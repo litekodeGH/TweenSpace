@@ -171,12 +171,14 @@ var TweenSpace = TweenSpace || (function () {
                     
                     _start_limit = (_clip.useDelay == true)?_start_limit = -_clip.delay:_start_limit = _clip.sTime;
                     
+                    
                     if( _clip.eTime <= _start_limit || _clip.eTime >= _clip.durExtended )
                     {
                         if( ( _clip.reversedRepeat() == false && _clip.repeatCounter() == _clip.repeat ) ||
                             ( _clip.reversedRepeat() == true && _clip.repeatCounter() == 0) ||
                             (_clip.yoyo == false && _clip.repeat == 0 ) ) 
                         {
+                            
                             _clip.playing = false;
                             
                             if( _clip.onComplete != undefined )
@@ -197,12 +199,15 @@ var TweenSpace = TweenSpace || (function () {
                         }
                         else
                         {
+                            
                             if(_clip.yoyo == true)
                             {
                                 if( _clip.reversed() == true )
-                                    _clip.reversed(false);
+                                {    _clip.reversed(false);
+                                }
                                 else
-                                    _clip.reversed(true);
+                                {    _clip.reversed(true); }
+                                
                             }
                             else
                             {
@@ -426,7 +431,7 @@ var TweenSpace = TweenSpace || (function () {
         *@param {int} playhead - Moves playhead at specified time in milliseconds.*/
         this.seek = function( playhead )
         {
-            if( playhead )
+            if( playhead != undefined )
             {
                 if(_this.useDelay == true)
                 {
@@ -458,7 +463,7 @@ var TweenSpace = TweenSpace || (function () {
         *@return {boolean} - If true, animation is reversed.*/
         this.reversed = function( bool )
         {
-            if( bool )
+            if( bool != undefined )
                 _reversed = bool;
             
             return _reversed;
@@ -475,7 +480,7 @@ var TweenSpace = TweenSpace || (function () {
         *@return {int} - IAmount of times repeated. */
         this.repeatCounter = function(increment)
         {
-            if( increment )
+            if( increment != undefined )
                 _repeat_counter += increment;
             
             return _repeat_counter;
@@ -506,7 +511,7 @@ var TweenSpace = TweenSpace || (function () {
         *@private*/
         function adjustDelay( playhead )
         {
-            if(playhead)
+            if(playhead  != undefined )
                 if(playhead < 0)
                     this.delay = -playhead;
         }
@@ -1129,11 +1134,16 @@ var TweenSpace = TweenSpace || (function () {
         * @method to
         * @param {*} elements - Element or elements whose properties should be animated.
                                 Accepted arguments are a DOM element, an array of elements or CSS selection string.
-        * @param {int} duration - Duration in milliseconds.
+        * @param {int} duration - Tween duration in milliseconds.
         * @param {object} props - An object containing the destination values of css properties.
         *                       
         * @param {object} options - An object containing custom properties such as 'delay', 'onComplete', etc.
         * @param {int} options.delay - Amount of time in milliseconds to wait before starting the animation.
+        * @param {int} options.yoyo - If true, 'yoyo' property will play the animation back and forth based on 'repeat' property amount.
+        * @param {int} options.repeat - Amount of times that the animation will be played.
+        * @param {int} options.timescale -  Sets and returns the timescale value. 'timescale' is a factor used to scale time in the animation.
+        *                                   While a value of 1 represents normal speed, lower values makes the faster as well as greater values
+        *                                   makes the animation slower.
         * @param {function} options.ease - Easing function that describes the rate of change of a parameter over time.
         *                                  Equations used were developed by Robert Penner.
         * @param {function} options.onProgress - Callback dispatched every engine step while animation is running.
@@ -1399,15 +1409,20 @@ var TweenSpace = TweenSpace || (function () {
         },
         /**
         * Static method that returns a Clip instance which holds destination values and other properties.
-        * This method creates a Clip instance as well as stores its current values.
-        * @method createClip
-        * @param {*} elements - One or more elements whose properties should be animated.
+        * This method creates and queues a Clip instance as well as stores its current values.
+        * @method to
+        * @param {*} elements - Element or elements whose properties should be animated.
                                 Accepted arguments are a DOM element, an array of elements or CSS selection string.
-        * @param {int} duration - Duration in milliseconds.
+        * @param {int} duration - Tween duration in milliseconds.
         * @param {object} props - An object containing the destination values of css properties.
         *                       
         * @param {object} options - An object containing custom properties such as 'delay', 'onComplete', etc.
         * @param {int} options.delay - Amount of time in milliseconds to wait before starting the animation.
+        * @param {int} options.yoyo - If true, 'yoyo' property will play the animation back and forth based on 'repeat' property amount.
+        * @param {int} options.repeat - Amount of times that the animation will be played.
+        * @param {int} options.timescale -  Sets and returns the timescale value. 'timescale' is a factor used to scale time in the animation.
+        *                                   While a value of 1 represents normal speed, lower values makes the faster as well as greater values
+        *                                   makes the animation slower.
         * @param {function} options.ease - Easing function that describes the rate of change of a parameter over time.
         *                                  Equations used were developed by Robert Penner.
         * @param {function} options.onProgress - Callback dispatched every engine step while animation is running.
