@@ -1157,29 +1157,19 @@ var TweenSpace = TweenSpace || (function () {
 
             return clip;
         },
-        /** Pauses all clips and sequences.
+        /** Static method that pauses all clips and sequences.
         * @method pauseAll*/
         pauseAll: function()
         {
-            _node = _queue_DL.head;
             for( ;_queue_DL.length() > 0; )
-            {
-                _node.data.pause();
-                _node = _node.next;
-            }
-                
+                _queue_DL.head.data.pause();
         },
         /** Resumes all clips and sequences.
         * @method resumeAll*/
         resumeAll: function()
         {
-            var i = _queue_paused_DL.length()-1;
-            _node = _queue_paused_DL.head;
-            for( ; i>=0 ; i--)
-            {
-                _node.data.resume();
-                _node = _node.next;
-            }
+            for( ;_queue_paused_DL.length() > 0; )
+                _queue_paused_DL.head.data.resume();
         },
         /*reverseAll: function()
         {
@@ -1437,7 +1427,6 @@ var TweenSpace = TweenSpace || (function () {
         * Static method that returns a Sequence instance which is responsable of handling playback operations on groups of clips.
         * @method createSequence
         * @param {*} clips - One or more clips whose properties should be animated.
-                            Accepted arguments are a DOM element, an array of elements or CSS selection string.
         * @return {Sequence} - Sequence instance.
         */
         createSequence: function( clips )
