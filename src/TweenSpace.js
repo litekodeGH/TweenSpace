@@ -17,6 +17,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
  */
 var TweenSpace = TweenSpace || (function () {
     
+    "use strict";
     /** Reference to TweenSpace object. @private */
     var _this = this;
     /** Circular doubly linked list of the clips being played. @private */
@@ -53,12 +54,12 @@ var TweenSpace = TweenSpace || (function () {
     var _start_limit = 0;
     
     /** Return the least value between a and b. @private */
-    var min = function( a, b )
+    var min = function (a, b)
     {
         return (a<b)?a:b;
     }
     /** Return the least property value of an array of clips. @private */
-    var getMin = function( clips, prop )
+    var getMin = function (clips, prop)
     {
         if(clips.length == 0)
             return 0;
@@ -73,13 +74,14 @@ var TweenSpace = TweenSpace || (function () {
         return min;
     }
     /** Return the greatest property value of an array of clips. @private */
-    var getMax = function( clips, prop )
+    var getMax = function (clips, prop)
     {
         if(clips.length == 0)
             return 0;
         
         var max = 0;
-        for(l=0; l < clips.length; l++)
+        var l=0;
+        for(; l < clips.length; l++)
         {
             if( clips[l][prop] > max)
                 max = clips[l][prop];
@@ -88,7 +90,7 @@ var TweenSpace = TweenSpace || (function () {
         return max;
     }
     /** Check if specified properties are supported by this engine or correctlly spelled. @private */
-    var checkProps = function( propsRequested, propsDefined, string1, string2 )
+    var checkProps = function (propsRequested, propsDefined, string1, string2)
     {
         for ( var propReq in propsRequested )
         {
@@ -100,7 +102,7 @@ var TweenSpace = TweenSpace || (function () {
         }
     }
     /** Returns an array of the specified elements to be animated. @private */
-    var getElements = function( elements )
+    var getElements = function ( elements )
     {
         var elementArray = [];
         
@@ -115,7 +117,8 @@ var TweenSpace = TweenSpace || (function () {
             if( nodeList == null || nodeList == undefined )
                 return null;
 
-            for(i=0; i < nodeList.length; i++)
+            var i = 0;
+            for(;i < nodeList.length; i++)
                 elementArray[i] = nodeList.item(i);
         }
         else if( elements.constructor === Array ) elementArray = elements;
@@ -161,7 +164,8 @@ var TweenSpace = TweenSpace || (function () {
 
                 //Loop over clips
                 var curr_node = _queue_DL.head;
-                for( j=0; j<_queue_DL.length(); j++ )
+                var j=0;
+                for( ; j<_queue_DL.length(); j++ )
                 {
                     _clip = curr_node.data;
                     _clip.step();
@@ -195,7 +199,7 @@ var TweenSpace = TweenSpace || (function () {
                                 curr_node = curr_node.prev;
 
                             j--;
-                            (j<0)?0:j;
+                            j = (j<0)?0:j;
                         }
                         else
                         {
@@ -240,7 +244,7 @@ var TweenSpace = TweenSpace || (function () {
     
     /**
      * Clip.
-     * @class Internal class responsable of handling animations on single and multiple objects.
+     * @class Internal class responsible of handling animations on single and multiple objects.
      * @return {Clip} - Clip instance.
      * @private
      */
@@ -282,6 +286,8 @@ var TweenSpace = TweenSpace || (function () {
          *  @var {float} timescale */
         var _timescale = options.timescale || 1;
         
+        /** If true, clip is being played, otherwise it is either paused or not queued at all.
+         *  @var {array} tweens */
         this.playing = false;
         /** Array of properties to animate.
          *  @var {array} tweens */
@@ -353,8 +359,9 @@ var TweenSpace = TweenSpace || (function () {
         this.constructor = new function()
         {
             _this.timescale(_timescale);
-                
-            for(i=0; i < _elements.length; i++)
+            
+            var i = 0;
+            for(; i < _elements.length; i++)
                 addTween( _elements[i], _props );
         }
         /** Starts clip playback.
@@ -506,6 +513,20 @@ var TweenSpace = TweenSpace || (function () {
             }
             
             draw();
+        }
+        /** Removes all elements from DOM as well as its references stored in 'elements'.
+        *@method destroy*/
+        this.destroy = function()
+        {
+            var parent;
+            while( _elements.length > 0 )
+            {
+                parent = _elements[0].parentElement;
+                if( parent == null )
+                    return;
+                parent.removeChild( _elements[0] );
+                _elements.splice(0, 1);
+            }
         }
         /** Adjusts playhead position in time.
         *@private*/
@@ -1384,7 +1405,7 @@ var TweenSpace = TweenSpace || (function () {
             onProgress : function(){},
             onComplete : function(){}
         },
-        /** Calls a function after an specified time.
+        /** Static method that calls a function after an specified time.
         * @method delayedCall
         * @param {function} callback - Function to call.
         * @param {int} delay - Delay time in milliseconds. */
@@ -1443,7 +1464,7 @@ var TweenSpace = TweenSpace || (function () {
         {},
         /** TweenSpace Engine version.
          *  @var {string} version */
-        version: '1.0.1.0', //major.minor.dev_stage
+        version: '1.0.1.1', //major.minor.dev_stage
         /** Useful under a debugging enviroment for faster revisiones.
          *  If true, the engine will assign destination values immediately and no animation will be performed. 
          *  @var {boolean} debug */
