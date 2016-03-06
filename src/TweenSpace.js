@@ -588,6 +588,9 @@ var TweenSpace = TweenSpace || (function () {
             var names = [], fromValues = [], toValues = [], units = [],
                 matchResult, inputPropString, initTransform, transform, initProp;
             
+            //color vars
+            var nameMatch, name, initName, rgb;
+            
             //Store initial values
             var styles = window.getComputedStyle(tween.element, null);
             for ( var prop in tween.props )
@@ -595,6 +598,8 @@ var TweenSpace = TweenSpace || (function () {
                 inputPropString = String(tween.props[prop]);
                 names = [], fromValues = [], toValues = [], units = [];
                 initProp = styles[prop];
+                
+                nameMatch = name = initName = rgb = '';
                 
                 if( prop == 'transform' )
                 {
@@ -713,12 +718,11 @@ var TweenSpace = TweenSpace || (function () {
                     
                     initTransform = null;
                 }
-                else if( prop.match( /color/i ) )
+                else if( prop.match( /color|fill|stroke/i ) )
                 {
-                    var nameMatch = inputPropString.match( /rgba|rgb/i );
-                    var name = nameMatch[0];
-                    var initName = String(initProp).match( /rgba|rgb/i );
-                    var rgb;
+                    nameMatch = inputPropString.match( /rgba|rgb/i );
+                    name = nameMatch[0];
+                    initName = String(initProp).match( /rgba|rgb/i );
                     
                     if( name && initName)
                     {
@@ -745,7 +749,10 @@ var TweenSpace = TweenSpace || (function () {
                     units.push((matchResult) ? matchResult[0] : "");
                 }
                 
+                
                 tween.values[prop] = { names:name, fromValues:fromValues, toValues:toValues, units:units, transform:transform };
+                
+                
                 
                 tween.tweenStep = function( property, elapesedTime )
                 {
@@ -787,6 +794,7 @@ var TweenSpace = TweenSpace || (function () {
                         for(w=0; w < toLength; w++)
                         {
                             value = _this.ease( min(elapesedTime, _this.dur), fromValues[w], toValues[w], _this.dur );
+                            
                             /*var midpoint = 0.5;
                             var ratio = (value/toValues[w])/midpoint;
                             
