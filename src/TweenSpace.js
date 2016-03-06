@@ -718,7 +718,7 @@ var TweenSpace = TweenSpace || (function () {
                     
                     initTransform = null;
                 }
-                else if( prop.match( /color|fill|stroke/i ) )
+                else if( prop.match( /color|fill|^stroke$/i ) )
                 {
                     nameMatch = inputPropString.match( /rgba|rgb/i );
                     name = nameMatch[0];
