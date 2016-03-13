@@ -390,6 +390,8 @@ var TweenSpace = TweenSpace || (function () {
                 adjustDelay( playhead );
                 playback( playhead, true );
             }
+            
+            //console.log( _this.eTime, _queue_DL.length() );
         }
         /** Resumes clip playback.
         *@method resume
@@ -429,7 +431,18 @@ var TweenSpace = TweenSpace || (function () {
             adjustDelay(playhead);
             _paused = true;
             _this.playing = false;
-            dequeue();
+            pauseQueue();
+            
+            _this.seek( playhead );
+        }
+        /** Stops clip playback.
+        *@method stop
+        *@param {int} playhead - Stops playback at specified time in milliseconds.
+        * If no argument is passed, animation will stop at current 'eTime'. Negative values represents delay time.*/
+        this.stop = function( playhead )
+        {
+            adjustDelay(playhead);
+            stopQueue();
             
             _this.seek( playhead );
         }
@@ -574,7 +587,8 @@ var TweenSpace = TweenSpace || (function () {
                             _this.eTime = _this.durExtended;
                         tw.element.style[prop] = tw.tweenStep( prop, _this.dur );
                     }
-                    //console.log( _this.eTime );
+                    
+                    //console.log( prop, tw.element.style[prop] );
                 }
             }
             
@@ -626,7 +640,11 @@ var TweenSpace = TweenSpace || (function () {
                         {
                             matchResult = String( transform[ match[1] ].toValues[q] ).match( /em|ex|px|in|cm|mm|%|rad|deg/ );
                             transform[ match[1] ].toValues[q] = parseFloat(transform[ match[1] ].toValues[q]);
-                            transform[ match[1] ].units[q] = (matchResult) ? matchResult[0] : "";
+                            
+                            if(match[1] == 'rotate' || match[1] == 'rotate3d')
+                                transform[ match[1] ].units[q] = (matchResult) ? matchResult[0] : "deg";
+                            else
+                                transform[ match[1] ].units[q] = (matchResult) ? matchResult[0] : "";
                         }
                         
                         //Set initial values
@@ -747,12 +765,13 @@ var TweenSpace = TweenSpace || (function () {
                     fromValues.push(parseFloat(initProp));
                     toValues.push(parseFloat(inputPropString));
                     units.push((matchResult) ? matchResult[0] : "");
+                    
+                    /*if(prop == 'y2')
+                        console.log(prop, styles[prop]);*/
                 }
                 
-                
+                //console.log(prop, styles[prop], fromValues, toValues, units);
                 tween.values[prop] = { names:name, fromValues:fromValues, toValues:toValues, units:units, transform:transform };
-                
-                
                 
                 tween.tweenStep = function( property, elapesedTime )
                 {
@@ -827,7 +846,7 @@ var TweenSpace = TweenSpace || (function () {
         }
         /** Method that removes clips from queue.
         *@private*/
-        function dequeue()
+        function pauseQueue()
         {
             var q;
             _node = _queue_DL.head;
@@ -841,6 +860,41 @@ var TweenSpace = TweenSpace || (function () {
                 }
                 _node = _node.next;
             }
+        }
+        function stopQueue()
+        {
+            if(_paused == false)
+            {
+                var q;
+                _node = _queue_DL.head;
+                for(q=0; q < _queue_DL.length(); q++)
+                {
+                    if( _node.data == _this )
+                    {
+                        _queue_DL.remove(_node);
+                        break;
+                    }
+                    _node = _node.next;
+                }
+            }
+            else
+            {
+                var r;
+                _node_paused = _queue_paused_DL.head;
+                for(r=0; r < _queue_paused_DL.length(); r++)
+                {
+                    if( _node_paused.data == _this )
+                    {
+                        _queue_paused_DL.remove(_node_paused);
+                        break;
+                    }
+                    _node_paused = _node_paused.next;
+                }
+            }
+            
+            _paused = _this.playing = false;
+            
+                
         }
         /** Start forward or backward playback from specified time.
         *@private*/
@@ -1011,7 +1065,6 @@ var TweenSpace = TweenSpace || (function () {
                 //console.log( playhead, adjustedPlayhead );
                 _clips[q]['seek'](adjustedPlayhead);
             }
-                
         }
         /** Reverses sequence playback.
          *  @method reverse
@@ -1029,13 +1082,21 @@ var TweenSpace = TweenSpace || (function () {
             apply( 'timescale', value );
             autoTrim();
         }
-        /** Reverses sequence playback.
-         *  @method reverse
+        /** Pauses sequence playback.
+         *  @method pause
          *  @param {int} playhead - Pauses playback at specified time in milliseconds.
          *  If no argument is passed, animation will be paused at current playhead. Negative values represents delay time.*/
         this.pause = function( playhead )
         {
             apply( 'pause', playhead );
+        }
+        /** Stops sequence playback.
+         *  @method stop
+         *  @param {int} playhead - Stops playback at specified time in milliseconds.
+         *  If no argument is passed, animation will stop at current playhead. Negative values represents delay time.*/
+        this.stop = function( playhead )
+        {
+            apply( 'stop', playhead );
         }
         /** Used to apply clip methods.
          *  @method apply */
@@ -1199,6 +1260,16 @@ var TweenSpace = TweenSpace || (function () {
         {
             for( ;_queue_paused_DL.length() > 0; )
                 _queue_paused_DL.head.data.resume();
+        },
+        /** Stops all clips and sequences.
+        * @method stopAll*/
+        stopAll: function()
+        {
+            for( ;_queue_DL.length() > 0; )
+                _queue_DL.head.data.stop();
+            
+            for( ;_queue_paused_DL.length() > 0; )
+                _queue_paused_DL.head.data.stop();
         },
         /*reverseAll: function()
         {
@@ -1472,7 +1543,7 @@ var TweenSpace = TweenSpace || (function () {
         {},
         /** TweenSpace Engine version.
          *  @var {string} version */
-        version: '1.0.1.1', //major.minor.dev_stage
+        version: '1.1.0.1', //major.minor.dev_stage
         /** Useful under a debugging enviroment for faster revisiones.
          *  If true, the engine will assign destination values immediately and no animation will be performed. 
          *  @var {boolean} debug */
