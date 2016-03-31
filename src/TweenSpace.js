@@ -286,6 +286,12 @@ var TweenSpace = TweenSpace || (function () {
         {
             return _elements;
         }
+        /** Returns current time in milliseconds.
+         *  @method currentTime*/
+        this.currentTime = function()
+        {
+            return _mTime;
+        }
         /** Sets and returns the timescale value. 'timescale' is a factor used to scale time in the animation.
          *  While a value of 1 represents normal speed, lower values makes the faster as well as greater values makes the animation slower.
          *  @method timescale
@@ -1497,7 +1503,7 @@ var TweenSpace = TweenSpace || (function () {
         {},
         /** TweenSpace Engine version.
          *  @var {string} version */
-        version: '1.2.0.1', //major.minor.dev_stage
+        version: '1.2.1.1', //major.minor.dev_stage
         /** Useful under a debugging enviroment for faster revisiones.
          *  If true, the engine will assign destination values immediately and no animation will be performed. 
          *  @var {boolean} debug */
