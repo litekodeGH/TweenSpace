@@ -34,8 +34,8 @@ var TweenSpace = TweenSpace || (function () {
     var _eTime = 0;
     /** Delta time. @private */
     var _dt = 0;
-    /** Counts each step call. @private */
-    var _stepCounter = 0;
+    /** Counts each tick call. @private */
+    var _tickCounter = 0;
     /** Temporary Clip instance. @private */
     var _clip = null;
     /** Stores time right before starting the engine. @private */
@@ -51,6 +51,8 @@ var TweenSpace = TweenSpace || (function () {
     var _pi_m2 = _pi * 2;
     var _pi_d2 = _pi / 2;
     
+    var _requestAnimationFrame, _cancelAnimationFrame;
+    
     var _start_limit = 0;
     
     /** Return the least value between a and b. @private */
@@ -58,33 +60,18 @@ var TweenSpace = TweenSpace || (function () {
     {
         return (a<b)?a:b;
     }
-    /** Return the least property value of an array of clips. @private */
-    var getMin = function (clips, prop)
-    {
-        if(clips.length == 0)
-            return 0;
-        
-        var min = Number.MAX_VALUE;
-        for(l=0; l < clips.length; l++)
-        {
-            if( clips[l][prop] < min)
-                min = clips[l][prop];
-        }
-        
-        return min;
-    }
     /** Return the greatest property value of an array of clips. @private */
-    var getMax = function (clips, prop)
+    var getMax = function (array)
     {
-        if(clips.length == 0)
+        if(array.length == 0)
             return 0;
         
         var max = 0;
         var l=0;
-        for(; l < clips.length; l++)
+        for(; l < array.length; l++)
         {
-            if( clips[l][prop] > max)
-                max = clips[l][prop];
+            if( array[l] > max)
+                max = array[l];
         }
         
         return max;
@@ -132,23 +119,27 @@ var TweenSpace = TweenSpace || (function () {
         //____ENGINE STARTS_____//
         if( _isEngineOn == false )
         {
-            var requestAnimationFrame = window.requestAnimationFrame || window.mozRequestAnimationFrame || 
-                                        window.webkitRequestAnimationFrame || window.msRequestAnimationFrame;
-            var cancelAnimationFrame = window.cancelAnimationFrame || window.mozCancelAnimationFrame || 
-                                        window.webkitCancelAnimationFrame || window.msCancelAnimationFrame;
+            _requestAnimationFrame =    window.requestAnimationFrame ||
+                                        window.mozRequestAnimationFrame || 
+                                        window.webkitRequestAnimationFrame ||
+                                        window.msRequestAnimationFrame;
+            _cancelAnimationFrame = window.cancelAnimationFrame ||
+                                    window.mozCancelAnimationFrame || 
+                                    window.webkitCancelAnimationFrame ||
+                                    window.msCancelAnimationFrame;
             _isEngineOn = true;
-            _stepCounter = _eTime = _now = _dt = 0;
+            _tickCounter = _eTime = _now = _dt = 0;
             _clip = null;
             
             _start_time = _then = window.performance.now();
-
-            step();
-            function step()
+            
+            tick();
+            function tick()
             {
-                cancelAnimationFrame(_reqID);
+                _cancelAnimationFrame(_reqID);
                 if( _queue_DL.length() > 0 )
                 {
-                    _reqID = requestAnimationFrame(step);
+                    _reqID = _requestAnimationFrame(tick);
                 }
                 else
                 {
@@ -156,7 +147,7 @@ var TweenSpace = TweenSpace || (function () {
                     _isEngineOn = false;
                     _eTime = 0;
                 }
-
+                
                 _now = window.performance.now();
                 _eTime = _now - _start_time;
                 _dt = _now - _then;
@@ -168,76 +159,28 @@ var TweenSpace = TweenSpace || (function () {
                 for( ; j<_queue_DL.length(); j++ )
                 {
                     _clip = curr_node.data;
-                    _clip.step();
                     
-                    if( _clip.onProgress != undefined )
-                            _clip.onProgress();
-                    
-                    _start_limit = (_clip.useDelay == true)?_start_limit = -_clip.delay:_start_limit = _clip.sTime;
-                    
-                    
-                    if( _clip.eTime <= _start_limit || _clip.eTime >= _clip.durExtended )
+                    if( _clip.playing == true )
+                        _clip.tick();
+                    else
                     {
-                        if( ( _clip.reversedRepeat() == false && _clip.repeatCounter() == _clip.repeat ) ||
-                            ( _clip.reversedRepeat() == true && _clip.repeatCounter() == 0) ||
-                            (_clip.yoyo == false && _clip.repeat == 0 ) ) 
-                        {
-                            
-                            _clip.playing = false;
-                            
-                            if( _clip.onComplete != undefined )
-                            {
-                                if( _clip.reversed() == true && _clip.eTime <= _clip.sTime)
-                                    _clip.onComplete();
-                                else if( _clip.reversed() == false && _clip.eTime >= _clip.dur)
-                                    _clip.onComplete();
-                            }
-                            
-                            curr_node = _queue_DL.remove( curr_node );
+                        if( _queue_DL.length() > 0 ) curr_node = _queue_DL.remove( curr_node );
+                        if( _queue_DL.length() > 1 ) curr_node = curr_node.prev;
 
-                            if( _queue_DL.length() > 1 )
-                                curr_node = curr_node.prev;
-
-                            j--;
-                            j = (j<0)?0:j;
-                        }
-                        else
-                        {
-                            
-                            if(_clip.yoyo == true)
-                            {
-                                if( _clip.reversed() == true )
-                                {    _clip.reversed(false);
-                                }
-                                else
-                                {    _clip.reversed(true); }
-                                
-                            }
-                            else
-                            {
-                                if( _clip.reversed() == true )
-                                    _clip.eTime = _clip.dur;
-                                else
-                                    _clip.eTime = _clip.sTime;
-                            }
-                            
-                            if(_clip.reversedRepeat() == true )
-                                _clip.repeatCounter(-1);
-                            else
-                                _clip.repeatCounter(1);
-                        }
+                        j--;
+                        j = (j<0)?0:j;
                     }
                     
                     if(curr_node)
                         curr_node = curr_node.next;
                 }
                 
-                if(_queue_DL.length() == 0)
+                if(_queue_DL.length() <= 0)
                     TweenSpace.onCompleteAll();
                 else
                     TweenSpace.onProgressAll();
                 
-                _stepCounter++;
+                _tickCounter++;
             }
         }
     }
@@ -258,7 +201,7 @@ var TweenSpace = TweenSpace || (function () {
         
         if(options == undefined) options = {};
         else checkProps(options, TweenSpace.options, 'option', 'Clip');
-
+        
         /** Reference to Clip instance. @private */
         var _this = this;
         /** Array of elements to animate. @private */
@@ -271,28 +214,30 @@ var TweenSpace = TweenSpace || (function () {
         var _reversed = false;
         /** If true, repeat cycle will be played backwards. @private */
         var _reversed_repeat = false;
+        /** Counts the amount of times that the animation has been played. @private */
+        var _repeat_counter = 0;
+        var _repetitions = 0;
         /** Clip's paused state. @private */
         var _paused = false;
         /** Stores initial duration. @private */
         var _dur_init = 0;
         /** Stores initial delay. @private */
         var _delay_init = 0;
-        /** Stores initial extended duration. @private */
+        /** Stores initial delay. @private */
         var _durExtended_init = 0;
-        /** Counts the amount of times that the animation has been played. @private */
-        var _repeat_counter = 0;
+        var _durRepeat_init = 0;
+        
         /** Factor used to scale time in the animation. While a value of 1 represents normal speed, lower values
          *  makes the faster as well as greater values makes the animation slower.
          *  @var {float} timescale */
         var _timescale = options.timescale || 1;
-        
         /** If true, clip is being played, otherwise it is either paused or not queued at all.
          *  @var {array} tweens */
         this.playing = false;
         /** Array of properties to animate.
          *  @var {array} tweens */
         this.tweens = [];
-        /** Callback dispatched every engine step while animation is running.
+        /** Callback dispatched every engine tick while animation is running.
          *  @method elements */
         this.onProgress = options.onProgress || undefined;
         /** Callback dispatched when the animation has finished.
@@ -304,10 +249,13 @@ var TweenSpace = TweenSpace || (function () {
         /** Duration in milliseconds of the animation.
          *  @var {int} dur */
         this.dur = _dur_init = duration;
-        /** Extended duration of a clip in queue. This is used in Sequence class to keep a clip active
+        /** Extended duration of a clip in queue. This is used in Sequence class to keep a clip active.
          *  even if is no animation is happening.
          *  @var {int} durExtended */
-        this.durExtended = _durExtended_init = duration;
+        this.durExtended = _durExtended_init =  duration;
+        /** Total duration in milliseconds of the repeat cycles.
+         *  @var {int} dur */
+        this.durRepeat = 0;
         /** If true, 'delay' property will be considered.
          *  @var {boolean} useDelay */
         this.useDelay = ( this.delay > 0 ) ? true : false;
@@ -323,6 +271,10 @@ var TweenSpace = TweenSpace || (function () {
         /** Animation playhead in milliseconds. Negative values represent delay time.
          *  @var {int} eTime */
         this.eTime = -this.delay;
+        //main time
+        this.mTime = -this.delay;
+        //draw time
+        this.dTime = 0;
         /** Start time in milliseconds. For now, always starts on 0.
          *  @var {int} sTime */
         this.sTime = 0;
@@ -346,10 +298,12 @@ var TweenSpace = TweenSpace || (function () {
             if( value )
             {
                 _this.eTime = (_this.eTime/_timescale)*value;
+                _this.mTime = (_this.mTime/_timescale)*value;
                 _timescale = value;
                 _this.delay = _delay_init * _timescale;
                 _this.dur = _dur_init * _timescale;
                 _this.durExtended = _durExtended_init * _timescale; 
+                _this.durRepeat = _durRepeat_init * _timescale; 
             }
             
             return _timescale;
@@ -358,6 +312,7 @@ var TweenSpace = TweenSpace || (function () {
         *@method constructor */
         this.constructor = new function()
         {
+            _this.durExtended = _this.durRepeat = _durRepeat_init = _durExtended_init = (_this.repeat * _this.dur) + _this.dur;
             _this.timescale(_timescale);
             
             var i = 0;
@@ -369,36 +324,15 @@ var TweenSpace = TweenSpace || (function () {
         *@param {int} playhead - Forward playback from specified time in milliseconds. Negative values represents delay time.*/
         this.play = function( playhead )
         {
-            if( _this.repeat > 0 )
-            {
-                adjustDelay(playhead);
-                if( _reversed_repeat == true && _reversed == false )
-                    playback( playhead, false );
-                
-                if(_this.yoyo == true)
-                {
-                    if(_repeat_counter < _this.repeat )
-                        playback( playhead, true );
-                }
-                else
-                    playback( playhead, true );
-                
-                _reversed_repeat = false;
-            }
-            else
-            {
-                adjustDelay( playhead );
-                playback( playhead, true );
-            }
-            
-            //console.log( _this.eTime, _queue_DL.length() );
+            adjustPlayhead( playhead );
+            playback( playhead, true );
         }
         /** Resumes clip playback.
         *@method resume
         *@param {int} playhead - Resumes playback from specified time in milliseconds. Negative values represents delay time.*/
         this.resume = function( playhead )
         {
-            adjustDelay( playhead );
+            adjustPlayhead( playhead );
             playback( playhead, !_reversed );
         }
         /** Reverses clip playback.
@@ -406,21 +340,8 @@ var TweenSpace = TweenSpace || (function () {
         *@param {int} playhead - Reverses playback from specified time in milliseconds. Negative values represents delay time.*/
         this.reverse = function( playhead )
         {
-            if( _this.repeat > 0 )
-            {
-                if(_reversed_repeat == false)
-                {
-                    adjustDelay( playhead );
-                    playback( playhead, _reversed );
-                }
-                    
-                _reversed_repeat = true;
-            }
-            else
-            {
-                adjustDelay(playhead);
-                playback( playhead, false );
-            }
+            adjustPlayhead(playhead);
+            playback( playhead, false ); 
         }
         /** Pauses clip playback.
         *@method pause
@@ -428,11 +349,9 @@ var TweenSpace = TweenSpace || (function () {
         * If no argument is passed, animation will be paused at current 'eTime'. Negative values represents delay time.*/
         this.pause = function( playhead )
         {
-            adjustDelay(playhead);
             _paused = true;
             _this.playing = false;
             pauseQueue();
-            
             _this.seek( playhead );
         }
         /** Stops clip playback.
@@ -441,7 +360,7 @@ var TweenSpace = TweenSpace || (function () {
         * If no argument is passed, animation will stop at current 'eTime'. Negative values represents delay time.*/
         this.stop = function( playhead )
         {
-            adjustDelay(playhead);
+            adjustPlayhead(playhead);
             stopQueue();
             
             _this.seek( playhead );
@@ -453,23 +372,12 @@ var TweenSpace = TweenSpace || (function () {
         {
             if( playhead != undefined )
             {
-                if(_this.useDelay == true)
-                {
-                    if( playhead >= -_this.delay && playhead <= _this.delay + _this.durExtended )
-                        _this.eTime = playhead;
-                    else
-                        console.warn('TweenSpace.js Warning: playhead argument is out of 0 - '+(_this.delay + _this.durExtended)+' range.');
-                }
-                else
-                {
-                    if( playhead >= -_this.delay && playhead <= _this.durExtended )
-                        _this.eTime = (_reversed == false )?playhead:_this.dur - playhead;
-                    else
-                        console.warn('TweenSpace.js Warning: playhead argument is out of '+(-_this.delay)+' - '+_this.dur+' range.');
+                if( adjustPlayhead(playhead) != undefined );
+                {   
+                    tick_logic();
+                    tick_draw(_this.dTime);
                 }
             }
-            
-            draw();
         }
         /** Returns true if animation is paused.
         *@method paused
@@ -488,44 +396,20 @@ var TweenSpace = TweenSpace || (function () {
             
             return _reversed;
         }
-        /** If true, repeat cycle will be played backwards.
-        *@method reversedRepeat
-        *@return {boolean} - Repeat cycle playback direction.*/
-        this.reversedRepeat = function()
-        {
-            return _reversed_repeat;
-        }
-        /** Counts the amount of times that the animation has been played.
-        *@method repeatCounter
-        *@return {int} - IAmount of times repeated. */
-        this.repeatCounter = function(increment)
-        {
-            if( increment != undefined )
-                _repeat_counter += increment;
-            
-            return _repeat_counter;
-        }
         /** Calculates values over time.
-        *@method step
-        *@return {boolean} - If true, animation is reversed.*/
-        this.step = function()
+        *@method tick */
+        this.tick = function()
         {
-            if(_reversed == true)
-            {
-                if(TweenSpace.debug == false)
-                    _this.eTime -= _dt;
-                else
-                    _this.eTime = 0;
-            }
+            if(TweenSpace.debug == false)
+                tick_delta();
             else
             {
-                if(TweenSpace.debug == false)
-                    _this.eTime += _dt;
-                else
-                    _this.eTime = _this.durExtended;
+                _this.playing = false;
+                _this.seek(_this.durExtended);
             }
             
-            draw();
+            tick_logic();
+            tick_draw(_this.dTime);
         }
         /** Removes all elements from DOM as well as its references stored in 'elements'.
         *@method destroy*/
@@ -543,55 +427,101 @@ var TweenSpace = TweenSpace || (function () {
         }
         /** Adjusts playhead position in time.
         *@private*/
-        function adjustDelay( playhead )
+        function adjustPlayhead( playhead )
         {
             if(playhead  != undefined )
+            {
                 if(playhead < 0)
-                    this.delay = -playhead;
+                {    
+                    _this.delay = -playhead;
+                    if(_this.delay > _delay_init)
+                        console.warn('TweenSpace.js Warning: delay property has been changed from '+_delay_init+'ms to '+_this.delay+'ms.');
+                }
+                else if(playhead > _this.durExtended)
+                {       
+                    console.warn('TweenSpace.js Warning: playhead '+playhead+'ms is greater than duration. Playhead has been set to '+_this.durExtended+'ms.');
+                    playhead = _this.durExtended;
+                }
+                
+                manageRepeatCycles();
+                
+                if(_this.elements()[0].id == 'box4' )
+                    console.log(_this.mTime, _this.dTime, _this.dur, _this.durExtended, _this.durRepeat , _repetitions, playhead );
+                
+                _this.mTime = playhead;
+            }
+            return playhead;
+        }
+        /** Calculates delta change.
+        *@private*/
+        function tick_delta()
+        {
+            //FORWARDS ---->>
+            if(_reversed == false)
+                _this.mTime += _dt;  
+            //BACKWARDS <<-----
+            else
+                _this.mTime -= _dt;
+        }
+        /** where the time logic occurs.
+        *@private*/
+        function tick_logic()
+        {
+            //ADJUST time______________________________________
+            if( _this.mTime < _this.sTime)
+            {
+                if( (_reversed == true && _this.useDelay == false) )
+                {
+                    _this.mTime = _this.sTime;
+                    _this.playing = false;
+                }
+
+                if( _this.mTime <= -_this.delay )
+                {    
+                    _this.mTime = -_this.delay;
+                    _this.playing = false;
+                }
+                
+                _this.dTime = _this.sTime;
+            }
+            else if( _this.mTime >= _this.sTime && _this.mTime <= _this.durExtended  )
+            {
+                if( _this.useDelay == true && _this.sequenceParent == false)
+                    _this.useDelay = false;
+                
+                _this.dTime = _this.mTime;
+            }
+            else if( _this.mTime > _this.durExtended )
+            {
+                _this.dTime = _this.mTime = _this.durExtended;
+                _this.playing = false;
+            }
+            //ADJUST time______________________________________
+            
+            manageRepeatCycles();
+            
+            //CLIP CALLBACKS____________________________________
+            if( _this.onProgress != undefined )
+                _this.onProgress();
+            
+            if( _this.onComplete != undefined )
+            {
+                if( _this.playing == false )
+                    _this.onComplete();
+            }
+            //CLIP CALLBACKS____________________________________
         }
         /** Method that draws the objects that are being animated.
         *@private*/
-        function draw()
+        function tick_draw( time )
         {
-            var i, tw, tp, units; //tw = tween, tp = tween options
+            var i, tw, units;
             for( i=0; i<_this.tweens.length; i++ )
             {
                 tw = _this.tweens[i];
-                
                 for ( var prop in tw.props )
-                {
-                    tp = tw.options;
-                    
-                    //Updates tween properties
-                    if(_this.eTime >= _this.sTime && _this.eTime <= _this.dur)
-                    {
-                        tw.element.style[prop] = tw.tweenStep(prop, _this.eTime);
-                        if( _this.useDelay == true && _this.sequenceParent == false)
-                            _this.useDelay = false;
-                    }
-                    else if( _this.eTime <= _this.sTime )
-                    {
-                        if( (_reversed == true && _this.useDelay == false) )
-                            _this.eTime = _this.sTime;
-                        
-                        if( _this.eTime <= -_this.delay )
-                            _this.eTime = -_this.delay;
-                        tw.element.style[prop] = tw.tweenStep( prop, _this.sTime );
-                    }
-                    else if( _this.eTime >= _this.dur )
-                    {
-                        if( (_reversed == false  && _this.useDelay == false) )
-                            _this.eTime = _this.dur;
-                        
-                        if( _this.eTime >= _this.durExtended )
-                            _this.eTime = _this.durExtended;
-                        tw.element.style[prop] = tw.tweenStep( prop, _this.dur );
-                    }
-                    
-                    //console.log( prop, tw.element.style[prop] );
-                }
+                    tw.element.style[prop] = tw.tweenStep(prop, time);
             }
-            
         }
         /** Method that adds tweens.
         *@private*/
@@ -729,8 +659,6 @@ var TweenSpace = TweenSpace || (function () {
                                 transform[ match[1] ].fromValues[14] = 0;
                                 transform[ match[1] ].fromValues[15] = 1;
                             }
-                            
-                            //console.log(match[1], transform[ match[1] ].fromValues);
                         }
                     }
                     
@@ -765,12 +693,8 @@ var TweenSpace = TweenSpace || (function () {
                     fromValues.push(parseFloat(initProp));
                     toValues.push(parseFloat(inputPropString));
                     units.push((matchResult) ? matchResult[0] : "");
-                    
-                    /*if(prop == 'y2')
-                        console.log(prop, styles[prop]);*/
                 }
                 
-                //console.log(prop, styles[prop], fromValues, toValues, units);
                 tween.values[prop] = { names:name, fromValues:fromValues, toValues:toValues, units:units, transform:transform };
                 
                 tween.tweenStep = function( property, elapesedTime )
@@ -789,8 +713,6 @@ var TweenSpace = TweenSpace || (function () {
                     {
                         for(var prop in transform)
                         {
-                            
-                            
                             toLength = transform[prop].toValues.length;
                             newValues = '';
                             for(w=0; w < toLength; w++)
@@ -804,6 +726,10 @@ var TweenSpace = TweenSpace || (function () {
                             }
                             result += prop+'('+newValues+') ';
                         }
+                        
+                        /*if(this.element.id == 'box4' )
+                            console.log(_this.dur, _this.durExtended, _this.eTime, prop, result);*/
+
                     }
                     else
                     {
@@ -813,14 +739,6 @@ var TweenSpace = TweenSpace || (function () {
                         for(w=0; w < toLength; w++)
                         {
                             value = _this.ease( min(elapesedTime, _this.dur), fromValues[w], toValues[w], _this.dur );
-                            
-                            /*var midpoint = 0.5;
-                            var ratio = (value/toValues[w])/midpoint;
-                            
-                            if(ratio >= (1/midpoint)*0.5)
-                                ratio = Math.abs( (1/midpoint)-((value/toValues[w])/midpoint));
-                            value *= ratio;  
-                            console.log( ratio );*/
                             
                             //rgba case: r g b values need to be integer, however alpha needs to be decimal
                             if( names )
@@ -871,7 +789,7 @@ var TweenSpace = TweenSpace || (function () {
                 {
                     if( _node.data == _this )
                     {
-                        _queue_DL.remove(_node);
+                        _queue_DL.remove(_node, 'clip.stopQueue');
                         break;
                     }
                     _node = _node.next;
@@ -893,8 +811,6 @@ var TweenSpace = TweenSpace || (function () {
             }
             
             _paused = _this.playing = false;
-            
-                
         }
         /** Start forward or backward playback from specified time.
         *@private*/
@@ -920,9 +836,41 @@ var TweenSpace = TweenSpace || (function () {
             
             _this.playing = true;
             _queue_DL.push( _this );
+            
             engine();
         }
-        
+        function manageRepeatCycles()
+        {
+            if( _this.repeat > 0 )
+            {
+                if( _this.mTime >= _this.durRepeat )
+                    _this.dTime = _this.durRepeat;
+                
+                _repetitions = parseInt(_this.dTime / _this.dur);
+                _repetitions = (_repetitions<=_this.repeat)?_repetitions:_this.repeat;
+                _repeat_counter = _repetitions;
+                
+                
+                if(_this.yoyo==true)
+                {
+                    _reversed_repeat = (_repetitions%2==0) ? false : true;
+                    _this.dTime = ( _reversed_repeat == false ) ? _this.dTime%_this.dur : Math.abs((_this.mTime%_this.dur)-_this.dur);
+                }    
+                else
+                {
+                    _reversed_repeat = false;
+                    _this.dTime = _this.dTime%_this.dur;
+                }
+                
+                if( _this.mTime >= _this.durRepeat )
+                {
+                    if( _reversed_repeat == false )
+                        _this.dTime = _this.durRepeat;
+                    else
+                        _this.dTime = _this.sTime;
+                }
+            }
+        }
         
         return this;
     }
@@ -992,8 +940,6 @@ var TweenSpace = TweenSpace || (function () {
             
             autoTrim();   
             setClipsProp( 'useDelay', true );
-            setClipsProp( 'yoyo', false );
-            setClipsProp( 'repeat', 0 );
             setClipsProp( 'sequenceParent', true );
         }
         /** Sequence class constructor.
@@ -1054,7 +1000,6 @@ var TweenSpace = TweenSpace || (function () {
          *  @param {int} playhead - Moves playhead at specified time in milliseconds.*/
         this.seek = function( playhead )
         {
-            
             var adjustedPlayhead =  0;
             
             var q;
@@ -1062,7 +1007,6 @@ var TweenSpace = TweenSpace || (function () {
             {
                 adjustedPlayhead = playhead - _clips[q].delay;
                 
-                //console.log( playhead, adjustedPlayhead );
                 _clips[q]['seek'](adjustedPlayhead);
             }
         }
@@ -1118,13 +1062,18 @@ var TweenSpace = TweenSpace || (function () {
          *  @method setClipsProp */
         function autoTrim()
         {
-            var delay = getMax( _clips , 'delay' );
-            var delayOut = getMax( _clips , 'dur' );
-            _dur = delay + delayOut;
-            
+            var list = [];
             var q;
             for(q=0; q < _clips.length; q++)
+                list.push(_clips[q].delay+_clips[q].dur+(_clips[q].repeat*_clips[q].dur));
+            
+            _dur = getMax( list );
+            
+            for(q=0; q < _clips.length; q++)
+            {    
                 _clips[q].durExtended = _dur - (_clips[q].delay + _clips[q].dur) + _clips[q].dur;
+                //console.log( _clips[q].elements()[0].id, _clips[q].durExtended );
+            }
         }
          
         return this;
@@ -1210,6 +1159,7 @@ var TweenSpace = TweenSpace || (function () {
             
             node = null;
             _length--;
+            _length = (_length > 0)?_length:0;
             
             return _temp_node;
         }
@@ -1236,7 +1186,7 @@ var TweenSpace = TweenSpace || (function () {
         *                                   makes the animation slower.
         * @param {function} options.ease - Easing function that describes the rate of change of a parameter over time.
         *                                  Equations used were developed by Robert Penner.
-        * @param {function} options.onProgress - Callback dispatched every engine step while animation is running.
+        * @param {function} options.onProgress - Callback dispatched every engine tick while animation is running.
         * @param {function} options.onComplete - Callback dispatched when the animation has finished.
         * @return {Clip} - Clip instance.
         */
@@ -1265,11 +1215,17 @@ var TweenSpace = TweenSpace || (function () {
         * @method stopAll*/
         stopAll: function()
         {
+            /*_cancelAnimationFrame(_reqID);
+            _isEngineOn = false;
+            _clip = null;*/
+            //TweenSpace.pauseAll();
+            
             for( ;_queue_DL.length() > 0; )
                 _queue_DL.head.data.stop();
             
             for( ;_queue_paused_DL.length() > 0; )
                 _queue_paused_DL.head.data.stop();
+            
         },
         /*reverseAll: function()
         {
@@ -1515,7 +1471,7 @@ var TweenSpace = TweenSpace || (function () {
         *                                   makes the animation slower.
         * @param {function} options.ease - Easing function that describes the rate of change of a parameter over time.
         *                                  Equations used were developed by Robert Penner.
-        * @param {function} options.onProgress - Callback dispatched every engine step while animation is running.
+        * @param {function} options.onProgress - Callback dispatched every engine tick while animation is running.
         * @param {function} options.onComplete - Callback dispatched when the animation has finished.
         * @return {Clip} - Clip instance.
         */
@@ -1533,7 +1489,7 @@ var TweenSpace = TweenSpace || (function () {
         {
             return new Sequence(clips);
         },
-        /** Callback dispatched every engine step while animation is running.
+        /** Callback dispatched every engine tick while animation is running.
         * @method elements */
         onProgressAll : function()
         {},
@@ -1543,7 +1499,7 @@ var TweenSpace = TweenSpace || (function () {
         {},
         /** TweenSpace Engine version.
          *  @var {string} version */
-        version: '1.1.0.1', //major.minor.dev_stage
+        version: '1.2.0.1', //major.minor.dev_stage
         /** Useful under a debugging enviroment for faster revisiones.
          *  If true, the engine will assign destination values immediately and no animation will be performed. 
          *  @var {boolean} debug */
