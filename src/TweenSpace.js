@@ -53,15 +53,13 @@ var TweenSpace = TweenSpace || (function () {
     
     var _requestAnimationFrame, _cancelAnimationFrame;
     
-    var _start_limit = 0;
-    
     /** Return the least value between a and b. @private */
-    var min = function (a, b)
+    var _min = function (a, b)
     {
         return (a<b)?a:b;
     }
     /** Return the greatest property value of an array of clips. @private */
-    var getMax = function (array)
+    var _getMax = function (array)
     {
         if(array.length == 0)
             return 0;
@@ -77,7 +75,7 @@ var TweenSpace = TweenSpace || (function () {
         return max;
     }
     /** Check if specified properties are supported by this engine or correctlly spelled. @private */
-    var checkProps = function (propsRequested, propsDefined, string1, string2)
+    var _checkProps = function (propsRequested, propsDefined, string1, string2)
     {
         for ( var propReq in propsRequested )
         {
@@ -89,7 +87,7 @@ var TweenSpace = TweenSpace || (function () {
         }
     }
     /** Returns an array of the specified elements to be animated. @private */
-    var getElements = function ( elements )
+    var _getElements = function ( elements )
     {
         var elementArray = [];
         
@@ -114,7 +112,7 @@ var TweenSpace = TweenSpace || (function () {
         return elementArray;
     }
     /** Engine loop based on 'requestAnimationFrame' method. @private */
-    var engine = function()
+    var _engine = function()
     {
         //____ENGINE STARTS_____//
         if( _isEngineOn == false )
@@ -184,7 +182,6 @@ var TweenSpace = TweenSpace || (function () {
             }
         }
     }
-    
     /**
      * Clip.
      * @class Internal class responsible of handling animations on single and multiple objects.
@@ -200,12 +197,12 @@ var TweenSpace = TweenSpace || (function () {
         }
         
         if(options == undefined) options = {};
-        else checkProps(options, TweenSpace.options, 'option', 'Clip');
+        else _checkProps(options, TweenSpace.options, 'option', 'Clip');
         
         /** Reference to Clip instance. @private */
         var _this = this;
         /** Array of elements to animate. @private */
-        var _elements = getElements(elements);
+        var _elements = _getElements(elements);
         /** Object containing properties to animate. @private */
         var _props = props;
         /** Object containing TweenSpace custom properties. @private */
@@ -223,20 +220,30 @@ var TweenSpace = TweenSpace || (function () {
         var _dur_init = 0;
         /** Stores initial delay. @private */
         var _delay_init = 0;
-        /** Stores initial delay. @private */
+        /** Stores initial durExtended. @private */
         var _durExtended_init = 0;
+        /** Stores initial durRepeat. @private */
         var _durRepeat_init = 0;
-        
         /** Factor used to scale time in the animation. While a value of 1 represents normal speed, lower values
          *  makes the faster as well as greater values makes the animation slower.
          *  @var {float} timescale */
         var _timescale = options.timescale || 1;
+        /** Animation playhead in milliseconds. Negative values represent delay time.
+         *  @var {int} mTime */
+        var _mTime = -(options.delay) || 0;
+        /** Drawing animation playhead in milliseconds.
+         *  @var {int} dTime */
+        var _dTime = 0;
+        /** Start time in milliseconds. For now, always starts on 0.
+         *  @var {int} sTime */
+        var _sTime = 0;
+        /** Array of properties to animate.
+         *  @var {array} tweens */
+        var _tweens = [];
+        
         /** If true, clip is being played, otherwise it is either paused or not queued at all.
          *  @var {array} tweens */
         this.playing = false;
-        /** Array of properties to animate.
-         *  @var {array} tweens */
-        this.tweens = [];
         /** Callback dispatched every engine tick while animation is running.
          *  @method elements */
         this.onProgress = options.onProgress || undefined;
@@ -268,16 +275,6 @@ var TweenSpace = TweenSpace || (function () {
         /** If true, clip belongs to a Sequence object.
          *  @var {boolean} sequenceParent */
         this.sequenceParent = false;
-        /** Animation playhead in milliseconds. Negative values represent delay time.
-         *  @var {int} eTime */
-        this.eTime = -this.delay;
-        //main time
-        this.mTime = -this.delay;
-        //draw time
-        this.dTime = 0;
-        /** Start time in milliseconds. For now, always starts on 0.
-         *  @var {int} sTime */
-        this.sTime = 0;
         /** Easing function that describes the rate of change of a parameter over time.
          *  Equations used were developed by Robert Penner.
          *  @method ease */
@@ -297,8 +294,7 @@ var TweenSpace = TweenSpace || (function () {
         {
             if( value )
             {
-                _this.eTime = (_this.eTime/_timescale)*value;
-                _this.mTime = (_this.mTime/_timescale)*value;
+                _mTime = (_mTime/_timescale)*value;
                 _timescale = value;
                 _this.delay = _delay_init * _timescale;
                 _this.dur = _dur_init * _timescale;
@@ -317,31 +313,31 @@ var TweenSpace = TweenSpace || (function () {
             
             var i = 0;
             for(; i < _elements.length; i++)
-                addTween( _elements[i], _props );
+                _addTween( _elements[i], _props );
         }
         /** Starts clip playback.
         *@method play
         *@param {int} playhead - Forward playback from specified time in milliseconds. Negative values represents delay time.*/
         this.play = function( playhead )
         {
-            adjustPlayhead( playhead );
-            playback( playhead, true );
+            _adjustPlayhead( playhead );
+            _playback( playhead, true );
         }
         /** Resumes clip playback.
         *@method resume
         *@param {int} playhead - Resumes playback from specified time in milliseconds. Negative values represents delay time.*/
         this.resume = function( playhead )
         {
-            adjustPlayhead( playhead );
-            playback( playhead, !_reversed );
+            _adjustPlayhead( playhead );
+            _playback( playhead, !_reversed );
         }
         /** Reverses clip playback.
         *@method reverse
         *@param {int} playhead - Reverses playback from specified time in milliseconds. Negative values represents delay time.*/
         this.reverse = function( playhead )
         {
-            adjustPlayhead(playhead);
-            playback( playhead, false ); 
+            _adjustPlayhead(playhead);
+            _playback( playhead, false ); 
         }
         /** Pauses clip playback.
         *@method pause
@@ -351,7 +347,7 @@ var TweenSpace = TweenSpace || (function () {
         {
             _paused = true;
             _this.playing = false;
-            pauseQueue();
+            _pauseQueue();
             _this.seek( playhead );
         }
         /** Stops clip playback.
@@ -360,8 +356,8 @@ var TweenSpace = TweenSpace || (function () {
         * If no argument is passed, animation will stop at current 'eTime'. Negative values represents delay time.*/
         this.stop = function( playhead )
         {
-            adjustPlayhead(playhead);
-            stopQueue();
+            _adjustPlayhead(playhead);
+            _stopQueue();
             
             _this.seek( playhead );
         }
@@ -372,10 +368,10 @@ var TweenSpace = TweenSpace || (function () {
         {
             if( playhead != undefined )
             {
-                if( adjustPlayhead(playhead) != undefined );
+                if( _adjustPlayhead(playhead) != undefined );
                 {   
-                    tick_logic();
-                    tick_draw(_this.dTime);
+                    _tick_logic();
+                    _tick_draw(_dTime);
                 }
             }
         }
@@ -401,15 +397,15 @@ var TweenSpace = TweenSpace || (function () {
         this.tick = function()
         {
             if(TweenSpace.debug == false)
-                tick_delta();
+                _tick_delta();
             else
             {
                 _this.playing = false;
                 _this.seek(_this.durExtended);
             }
             
-            tick_logic();
-            tick_draw(_this.dTime);
+            _tick_logic();
+            _tick_draw(_dTime);
         }
         /** Removes all elements from DOM as well as its references stored in 'elements'.
         *@method destroy*/
@@ -427,7 +423,7 @@ var TweenSpace = TweenSpace || (function () {
         }
         /** Adjusts playhead position in time.
         *@private*/
-        function adjustPlayhead( playhead )
+        function _adjustPlayhead( playhead )
         {
             if(playhead  != undefined )
             {
@@ -443,62 +439,62 @@ var TweenSpace = TweenSpace || (function () {
                     playhead = _this.durExtended;
                 }
                 
-                manageRepeatCycles();
+                _manageRepeatCycles();
                 
                 if(_this.elements()[0].id == 'box4' )
-                    console.log(_this.mTime, _this.dTime, _this.dur, _this.durExtended, _this.durRepeat , _repetitions, playhead );
+                    console.log(_mTime, _dTime, _this.dur, _this.durExtended, _this.durRepeat , _repetitions, playhead );
                 
-                _this.mTime = playhead;
+                _mTime = playhead;
             }
             return playhead;
         }
         /** Calculates delta change.
         *@private*/
-        function tick_delta()
+        function _tick_delta()
         {
             //FORWARDS ---->>
             if(_reversed == false)
-                _this.mTime += _dt;  
+                _mTime += _dt;  
             //BACKWARDS <<-----
             else
-                _this.mTime -= _dt;
+                _mTime -= _dt;
         }
         /** where the time logic occurs.
         *@private*/
-        function tick_logic()
+        function _tick_logic()
         {
             //ADJUST time______________________________________
-            if( _this.mTime < _this.sTime)
+            if( _mTime < _sTime)
             {
                 if( (_reversed == true && _this.useDelay == false) )
                 {
-                    _this.mTime = _this.sTime;
+                    _mTime = _sTime;
                     _this.playing = false;
                 }
 
-                if( _this.mTime <= -_this.delay )
+                if( _mTime <= -_this.delay )
                 {    
-                    _this.mTime = -_this.delay;
+                    _mTime = -_this.delay;
                     _this.playing = false;
                 }
                 
-                _this.dTime = _this.sTime;
+                _dTime = _sTime;
             }
-            else if( _this.mTime >= _this.sTime && _this.mTime <= _this.durExtended  )
+            else if( _mTime >= _sTime && _mTime <= _this.durExtended  )
             {
                 if( _this.useDelay == true && _this.sequenceParent == false)
                     _this.useDelay = false;
                 
-                _this.dTime = _this.mTime;
+                _dTime = _mTime;
             }
-            else if( _this.mTime > _this.durExtended )
+            else if( _mTime > _this.durExtended )
             {
-                _this.dTime = _this.mTime = _this.durExtended;
+                _dTime = _mTime = _this.durExtended;
                 _this.playing = false;
             }
             //ADJUST time______________________________________
             
-            manageRepeatCycles();
+            _manageRepeatCycles();
             
             //CLIP CALLBACKS____________________________________
             if( _this.onProgress != undefined )
@@ -513,19 +509,19 @@ var TweenSpace = TweenSpace || (function () {
         }
         /** Method that draws the objects that are being animated.
         *@private*/
-        function tick_draw( time )
+        function _tick_draw( time )
         {
             var i, tw, units;
-            for( i=0; i<_this.tweens.length; i++ )
+            for( i=0; i<_tweens.length; i++ )
             {
-                tw = _this.tweens[i];
+                tw = _tweens[i];
                 for ( var prop in tw.props )
                     tw.element.style[prop] = tw.tweenStep(prop, time);
             }
         }
         /** Method that adds tweens.
         *@private*/
-        function addTween( element, props )
+        function _addTween( element, props )
         {
             var tween = { element:element, props, values:[] };
             var length = 0, q = 0, r = 0;
@@ -717,7 +713,7 @@ var TweenSpace = TweenSpace || (function () {
                             newValues = '';
                             for(w=0; w < toLength; w++)
                             {
-                                newValues += String( _this.ease( min(elapesedTime, _this.dur),
+                                newValues += String( _this.ease( _min(elapesedTime, _this.dur),
                                                                 transform[prop].fromValues[w],
                                                                 transform[prop].toValues[w],
                                                                 _this.dur ) )+transform[prop].units[w];
@@ -728,7 +724,7 @@ var TweenSpace = TweenSpace || (function () {
                         }
                         
                         /*if(this.element.id == 'box4' )
-                            console.log(_this.dur, _this.durExtended, _this.eTime, prop, result);*/
+                            console.log(_this.dur, _this.durExtended, prop, result);*/
 
                     }
                     else
@@ -738,7 +734,7 @@ var TweenSpace = TweenSpace || (function () {
                         
                         for(w=0; w < toLength; w++)
                         {
-                            value = _this.ease( min(elapesedTime, _this.dur), fromValues[w], toValues[w], _this.dur );
+                            value = _this.ease( _min(elapesedTime, _this.dur), fromValues[w], toValues[w], _this.dur );
                             
                             //rgba case: r g b values need to be integer, however alpha needs to be decimal
                             if( names )
@@ -760,11 +756,11 @@ var TweenSpace = TweenSpace || (function () {
                 }
             }
             
-            _this.tweens.push( tween );
+            _tweens.push( tween );
         }
         /** Method that removes clips from queue.
         *@private*/
-        function pauseQueue()
+        function _pauseQueue()
         {
             var q;
             _node = _queue_DL.head;
@@ -779,7 +775,7 @@ var TweenSpace = TweenSpace || (function () {
                 _node = _node.next;
             }
         }
-        function stopQueue()
+        function _stopQueue()
         {
             if(_paused == false)
             {
@@ -814,7 +810,7 @@ var TweenSpace = TweenSpace || (function () {
         }
         /** Start forward or backward playback from specified time.
         *@private*/
-        function playback( playhead, direction )
+        function _playback( playhead, direction )
         {
             _this.pause( playhead );
             
@@ -837,16 +833,18 @@ var TweenSpace = TweenSpace || (function () {
             _this.playing = true;
             _queue_DL.push( _this );
             
-            engine();
+            _engine();
         }
-        function manageRepeatCycles()
+        /** Calculates current playhead in repeat situations.
+        *@private*/
+        function _manageRepeatCycles()
         {
             if( _this.repeat > 0 )
             {
-                if( _this.mTime >= _this.durRepeat )
-                    _this.dTime = _this.durRepeat;
+                if( _mTime >= _this.durRepeat )
+                    _dTime = _this.durRepeat;
                 
-                _repetitions = parseInt(_this.dTime / _this.dur);
+                _repetitions = parseInt(_dTime / _this.dur);
                 _repetitions = (_repetitions<=_this.repeat)?_repetitions:_this.repeat;
                 _repeat_counter = _repetitions;
                 
@@ -854,20 +852,20 @@ var TweenSpace = TweenSpace || (function () {
                 if(_this.yoyo==true)
                 {
                     _reversed_repeat = (_repetitions%2==0) ? false : true;
-                    _this.dTime = ( _reversed_repeat == false ) ? _this.dTime%_this.dur : Math.abs((_this.mTime%_this.dur)-_this.dur);
+                    _dTime = ( _reversed_repeat == false ) ? _dTime%_this.dur : Math.abs((_mTime%_this.dur)-_this.dur);
                 }    
                 else
                 {
                     _reversed_repeat = false;
-                    _this.dTime = _this.dTime%_this.dur;
+                    _dTime = _dTime%_this.dur;
                 }
                 
-                if( _this.mTime >= _this.durRepeat )
+                if( _mTime >= _this.durRepeat )
                 {
                     if( _reversed_repeat == false )
-                        _this.dTime = _this.durRepeat;
+                        _dTime = _this.durRepeat;
                     else
-                        _this.dTime = _this.sTime;
+                        _dTime = _sTime;
                 }
             }
         }
@@ -938,9 +936,9 @@ var TweenSpace = TweenSpace || (function () {
                 }
             }
             
-            autoTrim();   
-            setClipsProp( 'useDelay', true );
-            setClipsProp( 'sequenceParent', true );
+            _autoTrim();   
+            _setClipsProp( 'useDelay', true );
+            _setClipsProp( 'sequenceParent', true );
         }
         /** Sequence class constructor.
          *  @method constructor */
@@ -979,21 +977,21 @@ var TweenSpace = TweenSpace || (function () {
                 }
             }
             
-            autoTrim();
+            _autoTrim();
         }
         /** Starts sequence playback.
          *  @method play
          *  @param {int} playhead - Forward playback from specified time in milliseconds.*/
         this.play = function( playhead )
         {
-            apply( 'play', playhead );
+            _apply( 'play', playhead );
         }
         /** Resumes sequence playback.
          *  @method resume
          *  @param {int} playhead - Forward playback from specified time in milliseconds.*/
         this.resume = function( playhead )
         {
-            apply( 'resume', playhead );
+            _apply( 'resume', playhead );
         }
         /** Moves playhead to an specified time.
          *  @method seek
@@ -1015,7 +1013,7 @@ var TweenSpace = TweenSpace || (function () {
          *  @param {int} playhead - Reverses playback from specified time in milliseconds.*/
         this.reverse = function( playhead )
         {
-            apply( 'reverse', playhead );
+            _apply( 'reverse', playhead );
         }
         /** Scales the time of all clips in the Sequence. While a value of 1 represents normal speed, lower values
          *  makes the faster as well as greater values makes the animation slower.
@@ -1023,8 +1021,8 @@ var TweenSpace = TweenSpace || (function () {
          *  @param {float} value - Amount of delay.*/
         this.timescale = function( value )
         {
-            apply( 'timescale', value );
-            autoTrim();
+            _apply( 'timescale', value );
+            _autoTrim();
         }
         /** Pauses sequence playback.
          *  @method pause
@@ -1032,7 +1030,7 @@ var TweenSpace = TweenSpace || (function () {
          *  If no argument is passed, animation will be paused at current playhead. Negative values represents delay time.*/
         this.pause = function( playhead )
         {
-            apply( 'pause', playhead );
+            _apply( 'pause', playhead );
         }
         /** Stops sequence playback.
          *  @method stop
@@ -1040,11 +1038,11 @@ var TweenSpace = TweenSpace || (function () {
          *  If no argument is passed, animation will stop at current playhead. Negative values represents delay time.*/
         this.stop = function( playhead )
         {
-            apply( 'stop', playhead );
+            _apply( 'stop', playhead );
         }
         /** Used to apply clip methods.
          *  @method apply */
-        function apply( operation, value )
+        function _apply( operation, value )
         {
             var q;
             for(q=0; q < _clips.length; q++)
@@ -1052,7 +1050,7 @@ var TweenSpace = TweenSpace || (function () {
         }
         /** Set values to specified property of elements within a Clip instance.
          *  @method setClipsProp */
-        function setClipsProp( prop, val )
+        function _setClipsProp( prop, val )
         {
             var q;
             for(q=0; q < _clips.length; q++)
@@ -1060,14 +1058,14 @@ var TweenSpace = TweenSpace || (function () {
         }
         /** Auto adjust sequence duration. This method is used right after a clip has been added of removed.
          *  @method setClipsProp */
-        function autoTrim()
+        function _autoTrim()
         {
             var list = [];
             var q;
             for(q=0; q < _clips.length; q++)
                 list.push(_clips[q].delay+_clips[q].dur+(_clips[q].repeat*_clips[q].dur));
             
-            _dur = getMax( list );
+            _dur = _getMax( list );
             
             for(q=0; q < _clips.length; q++)
             {    
