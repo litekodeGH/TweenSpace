@@ -47,6 +47,10 @@ var TweenSpace = TS = TweenSpace || (function () {
     var _then = 0;
     /** requestAnimationFrame method id. @private */
     var _reqID = 0;
+    /** _delayed calls list. @private */
+    var _delayedCallList = new DoublyList();
+    /** Temporary Node instance used in _delayedCallList. @private */
+    var _delayedCallNode = new Node();
     /** PI value. @private */
     var _pi = 3.1415926535897932384626433832795;
     var _pi_m2 = _pi * 2;
@@ -877,7 +881,7 @@ var TweenSpace = TS = TweenSpace || (function () {
                 {
                     if( _node.data == _this )
                     {
-                        _queue_DL.remove(_node, 'clip.stopQueue');
+                        _queue_DL.remove(_node);
                         break;
                     }
                     _node = _node.next;
@@ -1301,7 +1305,7 @@ var TweenSpace = TS = TweenSpace || (function () {
         }
         
         return this;
-    };
+    }
     
 	return {
         /**
@@ -1570,12 +1574,27 @@ var TweenSpace = TS = TweenSpace || (function () {
         * @param {int} delay - Delay time in milliseconds. */
         delayedCall: function( callback, delay )
         {
+            var tempDelayedNode;
             var id = setTimeout( function()
             {
                 clearTimeout( id );
+                _delayedCallList.remove(tempDelayedNode);
                 callback();
                 return;
             }, delay );
+            tempDelayedNode = _delayedCallList.push(id);
+            console.log('add', _delayedCallList.length());
+        },
+        /** Static method that kills all pending delayed calls.
+        * @method killPendingCalls*/
+        killDelayedCalls: function()
+        {
+            for( ;_delayedCallList.length() > 0; )
+            {    
+                clearTimeout( _delayedCallList.head.data );
+                _delayedCallList.remove(_delayedCallList.head);
+                console.log('kill', _delayedCallList.length());
+            }
         },
         /** Plugins templates.*/
         plugins:
@@ -1633,7 +1652,7 @@ var TweenSpace = TS = TweenSpace || (function () {
         {},
         /** TweenSpace Engine version.
          *  @var {string} version */
-        version: '1.3.1.1', //release.major.minor.dev_stage
+        version: '1.4.1.1', //release.major.minor.dev_stage
         /** Useful under a debugging enviroment for faster revisiones.
          *  If true, the engine will assign destination values immediately and no animation will be performed. 
          *  @var {boolean} debug */
