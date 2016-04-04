@@ -15,7 +15,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
  * TweenSpace Engine.
  * @class Static class that provides animations tools for tweening properties over time.
  */
-var TweenSpace = TweenSpace || (function () {
+var TweenSpace, TS;
+var TweenSpace = TS = TweenSpace || (function () {
     
     "use strict";
     /** Reference to TweenSpace object. @private */
@@ -50,6 +51,7 @@ var TweenSpace = TweenSpace || (function () {
     var _pi = 3.1415926535897932384626433832795;
     var _pi_m2 = _pi * 2;
     var _pi_d2 = _pi / 2;
+    var _MAX_NUMBER = Number.MAX_SAFE_INTEGER;
     
     var _requestAnimationFrame, _cancelAnimationFrame;
     
@@ -259,7 +261,7 @@ var TweenSpace = TweenSpace || (function () {
         /** Extended duration of a clip in queue. This is used in Sequence class to keep a clip active.
          *  even if is no animation is happening.
          *  @var {int} durExtended */
-        this.durExtended = _durExtended_init =  duration;
+        this.durExtended = _durExtended_init =  _dur_init;
         /** Total duration in milliseconds of the repeat cycles.
          *  @var {int} dur */
         this.durRepeat = 0;
@@ -314,6 +316,7 @@ var TweenSpace = TweenSpace || (function () {
         *@method constructor */
         this.constructor = new function()
         {
+            _this.repeat = (_this.repeat<0)?_MAX_NUMBER:_this.repeat;
             _this.durExtended = _this.durRepeat = _durRepeat_init = _durExtended_init = (_this.repeat * _this.dur) + _this.dur;
             _this.timescale(_timescale);
             
@@ -531,7 +534,7 @@ var TweenSpace = TweenSpace || (function () {
         {
             var tween = { element:element, props, values:[] };
             var length = 0, q = 0, r = 0;
-            var names = [], fromValues = [], toValues = [], units = [],
+            var names = [], fromValues = [], toValues = [], units = [], plugins = undefined,
                 matchResult, inputPropString, initTransform, transform, initProp;
             
             //color vars
@@ -539,9 +542,54 @@ var TweenSpace = TweenSpace || (function () {
             
             //Store initial values
             var styles = window.getComputedStyle(tween.element, null);
+            if(tween.element.id=='title1')
+                console.log(styles);
             for ( var prop in tween.props )
             {
-                inputPropString = String(tween.props[prop]);
+                //CHECK PLUGINS_______________________________________
+                if(tween.props[prop].constructor === Object )
+                {
+                    userLoop:for ( var userPlugin in tween.props[prop] )
+                    {
+                        var installed = false;
+                        installedLoop:for ( var installedPlugin in TweenSpace.plugins )
+                        {
+                            if(userPlugin == installedPlugin)
+                            {
+                                if( plugins == undefined)
+                                    plugins = {};
+                                
+                                installed = true;
+                                
+                                if( userPlugin != 'to' )
+                                {   
+                                    if(userPlugin == 'wiggle')
+                                    {
+                                        plugins[userPlugin] = new PerlinNoise(tween.props[prop][userPlugin].amplitude, tween.props[prop][userPlugin].speed);
+                                    }
+                                    /*else if(userPlugin == 'future_plugin')
+                                    {
+                                    }*/
+                                }
+                                
+                                break installedLoop;
+                            }
+                        }
+
+                        if(installed == false)
+                            console.warn('TweenSpace.js Warning: Plugin "'+userPlugin+'" is undefined.');
+                    }
+                }
+                
+                //CHECK PLUGINS_______________________________________
+                if(tween.props[prop].constructor === Object )
+                    if( tween.props[prop].to != undefined)
+                        inputPropString = String(tween.props[prop].to);
+                    else
+                        inputPropString = styles[prop];
+                else
+                    inputPropString = String(tween.props[prop]);    
+                
                 names = [], fromValues = [], toValues = [], units = [];
                 initProp = styles[prop];
                 
@@ -697,64 +745,102 @@ var TweenSpace = TweenSpace || (function () {
                     units.push((matchResult) ? matchResult[0] : "");
                 }
                 
-                tween.values[prop] = { names:name, fromValues:fromValues, toValues:toValues, units:units, transform:transform };
+                tween.values[prop] = { names:name, fromValues:fromValues, toValues:toValues, units:units, transform:transform, plugins:plugins };
+                plugins = undefined;
                 
                 tween.tweenStep = function( property, elapesedTime )
                 {
-                    var names = this.values[property]['names'];
-                    var toValues = this.values[property]['toValues'];
-                    var fromValues = this.values[property]['fromValues'];
-                    var units = this.values[property]['units'];
-                    var transform = this.values[property].transform;
+                    var _names = this.values[property].names;
+                    var _toValues = this.values[property].toValues;
+                    var _fromValues = this.values[property].fromValues;
+                    var _units = this.values[property].units;
+                    var _transform = this.values[property].transform;
+                    var _plugins = this.values[property].plugins;
                     
-                    var toLength, value;
+                    var toLength, value, pluginValue;
                     var result = '', newValues = '';
                     
                     var w;
-                    if( transform )
+                    if( property == 'transform' )
                     {
-                        for(var prop in transform)
+                        for(var prop in _transform)
                         {
-                            toLength = transform[prop].toValues.length;
+                            toLength = _transform[prop].toValues.length;
                             newValues = '';
                             for(w=0; w < toLength; w++)
                             {
-                                newValues += String( _this.ease( _min(elapesedTime, _this.dur),
-                                                                transform[prop].fromValues[w],
-                                                                transform[prop].toValues[w],
-                                                                _this.dur ) )+transform[prop].units[w];
+                                value = _this.ease( _min(elapesedTime, _this.dur),
+                                                    _transform[prop].fromValues[w],
+                                                    _transform[prop].toValues[w],
+                                                    _this.dur );
+                                
+                                if( _plugins != undefined )
+                                {
+                                    for ( var tweenPlugins in _plugins )
+                                    {
+                                        if( elapesedTime/_this.dur <= 0.1 )
+                                            pluginValue = _plugins[tweenPlugins].tick( _min(elapesedTime, _this.dur)) * _this.ease( elapesedTime, 0, 1, _this.dur*0.1 );
+                                        else if( elapesedTime/_this.dur >= 0.9 )
+                                            pluginValue = _plugins[tweenPlugins].tick( _min(elapesedTime, _this.dur)) * _this.ease( _this.dur-elapesedTime, 0, 1, _this.dur*0.1 );
+                                        else 
+                                            pluginValue = _plugins[tweenPlugins].tick( _min(elapesedTime, _this.dur));
+
+                                        value += pluginValue;
+                                    }
+                                }
+                                
+                                newValues += String( value )+_transform[prop].units[w];
                                 
                                 if(w<toLength-1) newValues += ',';
                             }
                             result += prop+'('+newValues+') ';
                         }
-                        
-                        /*if(this.element.id == 'box4' )
-                            console.log(_this.dur, _this.durExtended, prop, result);*/
-
                     }
                     else
                     {
-                        toLength = toValues.length;
+                        toLength = _toValues.length;
                         newValues = '';
                         
                         for(w=0; w < toLength; w++)
                         {
-                            value = _this.ease( _min(elapesedTime, _this.dur), fromValues[w], toValues[w], _this.dur );
+                            value = _this.ease( _min(elapesedTime, _this.dur), _fromValues[w], _toValues[w], _this.dur );
+                            
+                            if( _plugins != undefined )
+                            {
+                                for ( var tweenPlugins in _plugins )
+                                {
+                                    if( elapesedTime/_this.dur <= 0.1 )
+                                        pluginValue = _plugins[tweenPlugins].tick( _min(elapesedTime, _this.dur)) * _this.ease( elapesedTime, 0, 1, _this.dur*0.1 );
+                                    else if( elapesedTime/_this.dur >= 0.9 )
+                                        pluginValue = _plugins[tweenPlugins].tick( _min(elapesedTime, _this.dur)) * _this.ease( _this.dur-elapesedTime, 0, 1, _this.dur*0.1 );
+                                    else 
+                                        pluginValue = _plugins[tweenPlugins].tick( _min(elapesedTime, _this.dur));
+                                    
+                                    if( _names )
+                                        if( _names.match(/rgb/i) )
+                                        {
+                                            pluginValue = (pluginValue<0)?-pluginValue:pluginValue;
+                                            if(w==3)
+                                                pluginValue = _this.ease( pluginValue, 0, 1, _plugins[tweenPlugins].amplitude * _fromValues[w] );
+                                        }
+                                    
+                                    value += pluginValue;
+                                }
+                            }
                             
                             //rgba case: r g b values need to be integer, however alpha needs to be decimal
-                            if( names )
-                                if( names.match(/rgb/i) )
+                            if( _names )
+                                if( _names.match(/rgb/i) )
                                 {
                                     if(w<3)
                                         value = parseInt(value);
                                 }
                             
-                            newValues += String( value ) + units[w];
+                            newValues += String( value ) + _units[w];
                             if(w<toLength-1) newValues += ',';
                         }
                         
-                        if( names ) result = names+'('+newValues+')';
+                        if( _names ) result = _names+'('+newValues+')';
                         else result = newValues;
                     }
                         
@@ -1170,6 +1256,52 @@ var TweenSpace = TweenSpace || (function () {
 
         return this;
     }
+    /**
+     * PerlinNoise.
+     * @class Internal class that creates 1D Perlin Noise values.
+     * @return {PerlinNoise} - PerlinNoise instance.
+     * @private
+     */
+    function PerlinNoise( amplitude, speed )
+    {
+        this.amplitude = amplitude;
+        this.speed = speed;
+        
+        var _this = this;
+        var _MAX_VERTICES = 256; //256
+        var _MAX_VERTICES_MASK = _MAX_VERTICES -1;
+        var _vertices = [];
+        
+        var _xMin, _xMax;
+        
+        this.constructor = new function()
+        {
+            for ( var i = 0; i < _MAX_VERTICES; ++i )
+                _vertices.push( Math.random()*((Math.random()<0.5)?-1:1) );
+        }
+        
+        this.tick = function( x )
+        {
+            var scaledX = x * (_this.speed * 0.01 );
+            var xFloor = Math.floor(scaledX);
+            var t = scaledX - xFloor;
+            var tRemapSmoothstep = t * t * ( 3 - 2 * t );
+
+            _xMin = (xFloor & _MAX_VERTICES_MASK);
+            _xMax = ( _xMin + 1 ) & _MAX_VERTICES_MASK;
+            
+            var y = _lerp( _vertices[ _xMin ], _vertices[ _xMax ], tRemapSmoothstep );
+            
+            return y * _this.amplitude;
+        }
+
+        function _lerp(a, b, t )
+        {
+            return a * ( 1 - t ) + b * t;
+        }
+        
+        return this;
+    };
     
 	return {
         /**
@@ -1219,24 +1351,12 @@ var TweenSpace = TweenSpace || (function () {
         * @method stopAll*/
         stopAll: function()
         {
-            /*_cancelAnimationFrame(_reqID);
-            _isEngineOn = false;
-            _clip = null;*/
-            //TweenSpace.pauseAll();
-            
             for( ;_queue_DL.length() > 0; )
                 _queue_DL.head.data.stop();
             
             for( ;_queue_paused_DL.length() > 0; )
                 _queue_paused_DL.head.data.stop();
-            
         },
-        /*reverseAll: function()
-        {
-            var i = _queue_paused.length-1;
-            for( ; i>=0 ; i--)
-                _queue_paused[i].reverse();
-        },*/
         /** Resumes all clips and sequences.
         * @var {object} options - An object containing custom properties such as 'delay', 'onComplete', etc. */
         options: 
@@ -1457,6 +1577,16 @@ var TweenSpace = TweenSpace || (function () {
                 return;
             }, delay );
         },
+        /** Plugins templates.*/
+        plugins:
+        {
+            to:0,
+            wiggle:
+            {
+                amplitude:0,
+                speed:0
+            }
+        },
         /**
         * Static method that returns a Clip instance which holds destination values and other properties.
         * This method creates and queues a Clip instance as well as stores its current values.
@@ -1503,7 +1633,7 @@ var TweenSpace = TweenSpace || (function () {
         {},
         /** TweenSpace Engine version.
          *  @var {string} version */
-        version: '1.2.1.1', //major.minor.dev_stage
+        version: '1.3.1.1', //release.major.minor.dev_stage
         /** Useful under a debugging enviroment for faster revisiones.
          *  If true, the engine will assign destination values immediately and no animation will be performed. 
          *  @var {boolean} debug */
