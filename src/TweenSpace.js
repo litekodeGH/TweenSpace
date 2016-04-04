@@ -1583,7 +1583,6 @@ var TweenSpace = TS = TweenSpace || (function () {
                 return;
             }, delay );
             tempDelayedNode = _delayedCallList.push(id);
-            console.log('add', _delayedCallList.length());
         },
         /** Static method that kills all pending delayed calls.
         * @method killPendingCalls*/
@@ -1593,7 +1592,6 @@ var TweenSpace = TS = TweenSpace || (function () {
             {    
                 clearTimeout( _delayedCallList.head.data );
                 _delayedCallList.remove(_delayedCallList.head);
-                console.log('kill', _delayedCallList.length());
             }
         },
         /** Plugins templates.*/
