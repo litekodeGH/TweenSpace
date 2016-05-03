@@ -9,7 +9,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 */
 
 /*TODO
-1. follow object
+1. Timeline: add onProgress, onComplete property
+2. Timeline: rethink constructor's arguments
 */
 
 if(TweenSpace === undefined ) 
@@ -207,6 +208,73 @@ if(TweenSpace === undefined )
             }
         }
     }
+    
+    function _sequential( params, play )
+    {
+        var elements, tsParams = {}, delay, delayInc, duration, tweens = [];
+        play = (play != undefined)?play:false;
+        
+        if( params.elements != undefined)
+        {
+
+            if( params.duration == undefined )
+            {
+                console.warn('TweenSpace.js Warning: Tween() has no duration defined!');
+                return null;
+            }
+            else
+            {
+                duration = params.duration;
+                if( params.delay == undefined)
+                {    
+                    console.warn('TweenSpace.js Warning: delay property needs to be defined in order to animate objects sequentially.');
+                    delay = 0;
+                }
+                else
+                    delay = params.delay;
+
+                delayInc = 0;
+                elements = TweenSpace._.getElements( params.elements );
+                
+                for ( var param in params )
+                {
+                    paramDefinedLoop:for ( var paramDefined in TweenSpace.params )
+                    {
+                        if( param == paramDefined)
+                        { 
+                            tsParams[param] = params[param];
+                            break paramDefinedLoop;
+                        }
+                    }
+                }
+
+                var length = elements.length;
+                for(var i=0; i<length; i++)
+                {
+                    for (var param in tsParams)
+                        params[param] = tsParams[param];
+                    
+                    params.elements = elements[i];
+                    params.delay = delayInc;
+                    params.duration = duration;
+                    
+                    tweens.push( TweenSpace.Tween( params ) );
+                    delayInc += delay;
+                    
+                    if(play == true)
+                        tweens[tweens.length-1].play();
+                }
+                return tweens;
+            }
+        }
+        else
+        {
+            console.warn('TweenSpace.js Warning: TweenSpace.sequential() has no elements to affect!');
+            return null;
+        }
+
+        return null;
+    }
     /**
      * Robert Penner's Easing Equations.
      * @private */
@@ -403,8 +471,6 @@ if(TweenSpace === undefined )
             }
         }
     }
-    
-    
     /**
      * Node.
      * @class Internal class. Simple node used in DoublyList.
@@ -559,6 +625,7 @@ if(TweenSpace === undefined )
         
         return this;
     }
+        
     
 	return {
         /**
@@ -580,14 +647,25 @@ if(TweenSpace === undefined )
         *                                  Equations used were developed by Robert Penner.
         * @property {function} params.onProgress - Callback dispatched every engine tick while animation is running.
         * @property {function} params.onComplete - Callback dispatched when the animation has finished.
+        * @property {function} params.onRepeat - Callback dispatched when the animation starts a repetition.
+        * @property {function} params.drawSVG - Value or set of values that allows you to animate an svg stroke length. Values can be provided as percentages as well as numbers.
+        * @property {function} params.motionPathSVG - Make any html element move along a svg path.
         * @return {Tween} - Tween instance.
         * @memberof TweenSpace */
-        to: function( elements, duration, props, options )
+        to: function( params )
         {
-            var tween = TweenSpace.Tween( elements, duration, props, options );
+            var tween = TweenSpace.Tween( params );
             tween.play();
 
             return tween;
+        },
+        sequential: function( params )
+        {
+            return _sequential( params );
+        },
+        sequentialTo: function( params )
+        {
+            return _sequential( params, true );
         },
         /** Static method that pauses all tweens and sequences.
         * @method pauseAll
@@ -616,13 +694,14 @@ if(TweenSpace === undefined )
             for( ;_queue_paused_DL.length() > 0; )
                 _queue_paused_DL.head.data.stop();
         },
-        /** TweenSpace options contains custom properties such as delay, onComplete, etc. TweenSpace.option object is intended to be used as a reference only.
-        * @var {object} options - An object containing custom properties such as delay, onComplete, etc.
+        /** TweenSpace params contains custom properties such as delay, onComplete, etc. TweenSpace.params object is intended to be used as a reference only.
+        * @var {object} params - An object containing custom properties such as delay, onComplete, etc.
         * @memberof TweenSpace */
         params: 
         {
-            elements:'elements',
-            duration:'duration',
+            tweens: 'tweens',
+            elements: 'elements',
+            duration: 'duration',
             delay: 'delay',
             yoyo: 'yoyo',
             repeat: 'repeat',
@@ -674,8 +753,9 @@ if(TweenSpace === undefined )
                 }
                 
             },
-            onProgress : function(){},
-            onComplete : function(){},
+            onProgress: function(){},
+            onComplete: function(){},
+            onRepeat: function(){},
             effects:
             {
                 to:'to',
@@ -688,6 +768,20 @@ if(TweenSpace === undefined )
                 {
                     amplitude:'amplitude',
                     frequency:'frequency'
+                }
+            },
+            svg:
+            {
+                drawSVG:'drawSVG',
+                motionPathSVG:
+                {
+                    to:'to',
+                    from:'from',
+                    path:'path',
+                    rotationOffset:'rotationOffset',
+                    offsetX:'offsetX',
+                    offsetY:'offsetY',
+                    align:'align'
                 }
             }
         },
@@ -709,7 +803,7 @@ if(TweenSpace === undefined )
             tempDelayedNode = _delayedCallList.push(id);
         },
         /** Static method that kills all pending delayed calls.
-        * @method killPendingCall
+        * @method killDelayedCalls
         * @memberof TweenSpace */
         killDelayedCalls: function()
         {
@@ -761,13 +855,14 @@ if(TweenSpace === undefined )
                 return new Wave(amplitude, frequency);
             },
             queue_DL: _queue_DL,
-            queue_paused_DL: _queue_paused_DL
+            queue_paused_DL: _queue_paused_DL,
+            PI: function() { return _pi }
             
         },
         /** TweenSpace Engine version.
          *  @var {string} version 
          *  @memberof TweenSpace */
-        version: '1.5.1.1', //release.major.minor.dev_stage
+        version: '1.6.2.1', //release.major.minor.dev_stage
         /** Useful under a debugging enviroment for faster revisiones.
          *  If true, the engine will assign destination values immediately and no animation will be performed.
          *  @var {boolean} debug 
@@ -790,7 +885,6 @@ if(TweenSpace === undefined )
     * @property {*} params.elements - Element or elements whose properties should be animated.
                             Accepted arguments are a DOM element, an array of elements or CSS selection string.
     * @property {int} params.duration - Tween duration in milliseconds.
-    * @param {object} params - An object containing custom properties such as delay(), onComplete(), etc.
     * @property {int} params.delay - Amount of time in milliseconds to wait before starting the animation.
     * @property {boolean} params.yoyo - If true, yoyo() property will play the animation back and forth based on repeat property amount.
     * @property {int} params.repeat - Amount of times that the animation will be played.
@@ -801,10 +895,15 @@ if(TweenSpace === undefined )
     *                                  Equations used were developed by Robert Penner.
     * @property {function} params.onProgress - Callback dispatched every engine tick while animation is running.
     * @property {function} params.onComplete - Callback dispatched when the animation has finished.
+    * @property {function} params.onRepeat - Callback dispatched when the animation starts a repetition.
+    * @property {object} params.wiggle - Adds randomness to property values. Use amplitude property to modify the magnitude of the effect and frequency property to change the speed.
+    * @property {object} params.wave - Adds oscilatory to property values. Use amplitude property to modify the magnitude of the effect and frequency property to change the speed.
+    * @property {string} params.drawSVG - Value or set of values that allows you to animate an svg stroke length. Values can be provided as percentages as well as numbers.
+    * @property {object} params.motionPathSVG - Make any html element move along a svg path.
     * @return {Tween} - Tween instance.
     * @memberof TweenSpace
-    * @public */
-    TweenSpace.Tween = function(params)
+    * */
+    TweenSpace.Tween = function( params )
     {
         return new Tween(params);
     }
@@ -812,12 +911,10 @@ if(TweenSpace === undefined )
     /**
     * @class Tween class is responsible of handling animations on single and multiple objects. This class is geared up
     * with usefull methods to control your animations in many different ways. Animations can be delayed, reversed, timescaled, repeated, etc. 
-    * @method Tween
     * @param {object} params - An object containing the destination values of css properties and TweenSpace parameters defined in TweenSpace.params.
     * @property {*} params.elements - Element or elements whose properties should be animated.
                             Accepted arguments are a DOM element, an array of elements or CSS selection string.
     * @property {int} params.duration - Tween duration in milliseconds.
-    * @param {object} params - An object containing custom properties such as delay(), onComplete(), etc.
     * @property {int} params.delay - Amount of time in milliseconds to wait before starting the animation.
     * @property {boolean} params.yoyo - If true, yoyo() property will play the animation back and forth based on repeat property amount.
     * @property {int} params.repeat - Amount of times that the animation will be played.
@@ -826,16 +923,33 @@ if(TweenSpace === undefined )
     *                                   makes the animation slower.
     * @property {function} params.ease - Easing function that describes the rate of change of a parameter over time.
     *                                  Equations used were developed by Robert Penner.
-    * @property {function} params.onProgress - Callback dispatched every engine tick while animation is running.
+    * @property {function} params.onProgress - Callback dispatched every engine tick while the animation is running.
     * @property {function} params.onComplete - Callback dispatched when the animation has finished.
+    * @property {function} params.onRepeat - Callback dispatched when the animation starts a repetition.
+    * @property {object} params.wiggle - Adds randomness to property values. Use amplitude property to modify the magnitude of the effect and frequency property to change the speed.
+    * @property {object} params.wave - Adds oscilatory to property values. Use amplitude property to modify the magnitude of the effect and frequency property to change the speed.
+    * @property {function} params.drawSVG - Value or set of values that allows you to animate an svg stroke length. Values can be provided as percentages as well as numbers.
+    * @property {function} params.motionPathSVG - Make any html element move along a svg path.
     * @return {Tween} - Tween instance.
-    * @memberof TweenSpace
+    * @memberof Tween
     * @public */
     function Tween( params )
     {
-        var elements, duration;
-        var props = {};
-        var options = {};
+        /** Reference to Tween instance.
+         * @private */
+        var _this = this;
+        /** Array of elements to animate.
+         * @private */
+        var _elements;
+        /** Object containing properties to animate.
+         * @private */
+        var _props = {};
+        /** Object containing TweenSpace custom properties.
+         * @private */
+        var _options = {};
+        /** Stores initial duration.
+         * @private */
+        var _dur_init;
         
         //CHECK PARAMS
         if(params.elements == undefined )
@@ -845,7 +959,7 @@ if(TweenSpace === undefined )
         }
         else
         { 
-            elements = params.elements;
+            _elements = TweenSpace._.getElements(params.elements);
             delete params.elements;
         }
             
@@ -856,7 +970,7 @@ if(TweenSpace === undefined )
         }
         else
         {
-            duration = params.duration;
+            _dur_init = params.duration;
             delete params.duration;
         }
         
@@ -868,10 +982,9 @@ if(TweenSpace === undefined )
                 //CHECK IF PARAM IS TWEENSPACE CUSTOM
                 if( param == paramDefined)
                 { 
-                    options[param] = params[param];
+                    _options[param] = params[param];
                     delete params[param];
                     break paramDefinedLoop;
-                    
                 }
                 else
                 {
@@ -911,7 +1024,7 @@ if(TweenSpace === undefined )
                                     newEffectObj[effectObjProp] = effectObjects[effectObjProp];
                                 }
                                 newEffectObj['to'] = effectProps[m].val;
-                                props[effectProps[m].prop] = newEffectObj;
+                                _props[effectProps[m].prop] = newEffectObj;
                             }
                             
                             delete params[param];
@@ -921,28 +1034,11 @@ if(TweenSpace === undefined )
                     
                     //PARAM IS HTML PROP
                     if(effectFound == false)
-                    {    
-                        props[param] = params[param];
-                    }
+                        _props[param] = params[param];
                 }
             }
         }
         
-        
-        //IDENTIFY EFFECTS
-        
-        /** Reference to Tween instance.
-         * @private */
-        var _this = this;
-        /** Array of elements to animate.
-         * @private */
-        var _elements = TweenSpace._.getElements(elements);
-        /** Object containing properties to animate.
-         * @private */
-        var _props = props;
-        /** Object containing TweenSpace custom properties.
-         * @private */
-        var _options = options;
         /** If true, animation will be played backwards.
          * @private */
         var _reversed = false;
@@ -958,12 +1054,9 @@ if(TweenSpace === undefined )
         /** Tween's paused state.
          * @private */
         var _paused = false;
-        /** Stores initial duration.
-         * @private */
-        var _dur_init = duration;
         /** Stores the amount of time in milliseconds to wait before starting the animation.
          * @private */
-        var _delay = options.delay || 0;
+        var _delay = _options.delay || 0;
         /** Stores initial delay.
          * @private */
         var _delay_init = _delay;
@@ -985,7 +1078,7 @@ if(TweenSpace === undefined )
         /** Factor used to scale time in the animation. While a value of 1 represents normal speed, lower values
          *  makes the faster as well as greater values makes the animation slower.
          * @private */
-        var _timescale = options.timescale || 1;
+        var _timescale = _options.timescale || 1;
         /** Animation playhead in milliseconds. Negative values represent delay time.
          * @private */
         var _mTime = -(_delay);
@@ -998,35 +1091,42 @@ if(TweenSpace === undefined )
         /** Array of properties to animate.
          *  @private */
         var _subTweens = [];
-        /** If true, tween belongs to a Timeline object.
+        /** Parent Timeline instance.
          *  @private */
-        var _sequenceParent = false;
+        var _timelineParent = null;
         /** If true, delay() property will be considered.
          *  @private */
         var _useDelay = ( _delay > 0 ) ? true : false;
         /** If true, yoyo() property will play the animation back and forth based on repeat property amount.
          *  @private */
-        var _yoyo = options.yoyo || false;
+        var _yoyo = _options.yoyo || false;
         /** If true, tween is being played, otherwise it is either paused or not queued at all.
          *   @private */
         var _playing = false;
         /** Amount of times that the animation will be played.
          *  @private */
-        var _repeat = options.repeat || 0;
+        var _repeat = _options.repeat || 0;
+        /** If true, Tween instance used by Timeline parent to execute important tasks such as onProgress and onComplete callbacks.
+         *  @private */
+        var _keyTween = false;
         
-        /** Callback dispatched every engine tick while animation is running.
-         *  @var onProgress 
-         *  @memberof Tween */
-        this.onProgress = options.onProgress || undefined;
         /** Callback dispatched when the animation has finished.
          *  @var  onComplete 
          *  @memberof Tween */
-        this.onComplete = options.onComplete || undefined;
+        this.onComplete = _options.onComplete || undefined;
+        /** Callback dispatched every engine tick while animation is running.
+         *  @var onProgress 
+         *  @memberof Tween */
+        this.onProgress = _options.onProgress || undefined;
+        /** Callback dispatched every time the animation starts a repetition.
+         *  @var  onRepeat 
+         *  @memberof Tween */
+        this.onRepeat = _options.onRepeat || undefined;
         /** Easing function that describes the rate of change of a parameter over time.
          *  Equations used were developed by Robert Penner.
          *  @var ease 
          *  @memberof Tween */
-        this.ease = options.ease || TweenSpace.params.ease.quad.inOut;
+        this.ease = _options.ease || TweenSpace.params.ease.quad.inOut;
         /** Returns an array containing the animated elements.
          *  @method elements
          *  @return {array} - Array of animated elements.
@@ -1101,12 +1201,12 @@ if(TweenSpace === undefined )
             return _yoyo;
         }
         /** If true, tween belongs to a Timeline object. @private */
-        this.sequenceParent = function(value)
+        this.timelineParent = function(value)
         {
             if( value != undefined )
-                _sequenceParent = value;
+                _timelineParent = value;
             
-            return _sequenceParent;
+            return _timelineParent;
         }
         /** Returns the duration in milliseconds including. Neither repeat cycles nor delays are included.
          *  @method duration
@@ -1274,6 +1374,20 @@ if(TweenSpace === undefined )
             
             _tick_logic();
             _tick_draw(_dTime);
+            
+            //TIMELINE CALLBACKS____________________________________
+            if( _keyTween == true )
+            {
+                if( _this.timelineParent().onProgress != undefined )
+                {    
+                    _this.timelineParent().onProgress();
+                }
+                
+                if(_playing == false)
+                    if( _this.timelineParent().onComplete != undefined )
+                        _this.timelineParent().onComplete();
+            }
+            //TIMELINE CALLBACKS____________________________________
         }
         /** Removes all elements from DOM as well as its references stored in 'elements'.
         *@method destroy
@@ -1289,6 +1403,15 @@ if(TweenSpace === undefined )
                 parent.removeChild( _elements[0] );
                 _elements.splice(0, 1);
             }
+        }
+        /** Set or return the key Tween instance.
+         * @private*/
+        this.keyTween = function(value)
+        {
+            if( value != undefined )
+                _keyTween = value;
+            
+            return _keyTween;
         }
         /** Reset settings.
          * @private*/
@@ -1306,7 +1429,7 @@ if(TweenSpace === undefined )
             {
                 if(playhead < 0 )
                 {    
-                    if(_sequenceParent == false )
+                    if(_timelineParent == null )
                     {
                         _delay = -playhead;
                         if(_delay < _delay_init)
@@ -1360,7 +1483,7 @@ if(TweenSpace === undefined )
             }
             else if( _mTime >= _sTime && _mTime <= _durationTotal  )
             {
-                if( _useDelay == true && _sequenceParent == false)
+                if( _useDelay == true && _timelineParent == null)
                     _useDelay = false;
                 
                 _dTime = _mTime;
@@ -1383,10 +1506,25 @@ if(TweenSpace === undefined )
             {
                 tw = _subTweens[i];
                 for ( var prop in tw.props )
-                    tw.element.style[prop] = tw.tweenStep(prop, time);
+                {   
+                    if( prop == TweenSpace.params.svg.drawSVG )
+                    {    
+                        var drawValues = tw.tweenStep(prop, time);
+                        tw.element.style.strokeDashoffset = drawValues[0];
+                        
+                        if(drawValues.length > 2)
+                            tw.element.style.strokeDasharray = drawValues[1]+', '+drawValues[2];
+                        else
+                            tw.element.style.strokeDasharray = drawValues[1];
+                    }
+                    else if( prop == 'motionPathSVG' )
+                        tw.element.style.transform = tw.tweenStep(prop, time);
+                    else
+                        tw.element.style[prop] = tw.tweenStep(prop, time);
+                }
             }
             
-            //CLIP CALLBACKS____________________________________
+            //TWEEN CALLBACKS____________________________________
             if( _this.onProgress != undefined )
                 _this.onProgress();
             
@@ -1395,7 +1533,7 @@ if(TweenSpace === undefined )
                 if( _playing == false )
                     _this.onComplete();
             }
-            //CLIP CALLBACKS____________________________________
+            //TWEEN CALLBACKS____________________________________
         }
         /** Method that adds an element.
          * @private*/
@@ -1420,53 +1558,27 @@ if(TweenSpace === undefined )
             
             for ( var prop in tween.props )
             {
-                //CHECK PLUGINS_______________________________________
-                if(tween.props[prop].constructor === Object )
+                //CHECK OBJECT TYPE ARGUMENTS_______________________________________
+                if( tween.props[prop].constructor === Object )
                 {
-                    userLoop:for ( var userPlugin in tween.props[prop] )
-                    {
-                        var installed = false;
-                        installedLoop:for ( var installedPlugin in TweenSpace.params.effects )
-                        {
-                            if(userPlugin == installedPlugin)
-                            {
-                                if( effects == undefined)
-                                    effects = {};
-                                
-                                installed = true;
-                                
-                                if( userPlugin != 'to' )
-                                {   
-                                    if(userPlugin == 'wiggle')
-                                    {
-                                        effects[userPlugin] = TweenSpace._.PerlinNoise(tween.props[prop][userPlugin].amplitude, tween.props[prop][userPlugin].frequency);
-                                    }
-                                    else if(userPlugin == 'wave')
-                                    {
-                                        effects[userPlugin] = TweenSpace._.Wave(tween.props[prop][userPlugin].amplitude, tween.props[prop][userPlugin].frequency);
-                                    }
-                                    /*else if(userPlugin == 'future_effect')
-                                    {
-                                    }*/
-                                }
-                                
-                                break installedLoop;
-                            }
-                        }
+                    effects = {};
 
-                        if(installed == false)
-                            console.warn('TweenSpace.js Warning: Plugin "'+userPlugin+'" is undefined.');
+                    if( tween.props[prop]['wiggle'] != undefined )
+                    {
+                        effects['wiggle'] = TweenSpace._.PerlinNoise(tween.props[prop]['wiggle'].amplitude, tween.props[prop]['wiggle'].frequency);
                     }
-                }
-                
-                //CHECK PLUGINS_______________________________________
-                if(tween.props[prop].constructor === Object )
-                    if( tween.props[prop].to != undefined)
-                        inputPropString = String(tween.props[prop].to);
+                    else if( tween.props[prop]['wave'] != undefined )
+                    {
+                        effects['wave'] = TweenSpace._.Wave(tween.props[prop]['wave'].amplitude, tween.props[prop]['wave'].frequency);
+                    }
+                    
+                    if( tween.props[prop]['to'] != undefined )
+                        inputPropString = String( tween.props[prop]['to'] );
                     else
                         inputPropString = styles[prop];
+                }
                 else
-                    inputPropString = String(tween.props[prop]);    
+                    inputPropString = String(tween.props[prop]);
                 
                 names = [], fromValues = [], toValues = [], units = [];
                 initProp = styles[prop];
@@ -1615,6 +1727,118 @@ if(TweenSpace === undefined )
                         }
                     }
                 }
+                else if( prop == TweenSpace.params.svg.drawSVG )
+                {
+                    var pathLength = TweenSpace.utils.svg.getPathLength( tween.element );
+                    //matchResult = String(inputPropString).match( /px|%/ );
+                    units.push('px', 'px', 'px');
+                    
+                    //fromValues and toValues: [0] = strokeDashoffset, [1] = strokeDasharray first value, [2] = strokeDasharray second value
+                    fromValues.push(parseFloat(styles['strokeDashoffset']));
+                    if( styles['strokeDasharray'] == 'none')
+                    {    
+                        fromValues.push(pathLength);
+                        fromValues.push(0);
+                    }
+                    else
+                    {    
+                        var drawFromValues = String(styles['strokeDasharray']).split(' ');
+                        
+                        if(drawFromValues.length > 1)
+                            fromValues.push(parseFloat( drawFromValues[0] ), parseFloat( drawFromValues[1] ));
+                        else
+                            fromValues.push(parseFloat( drawFromValues[0] ), 0 );
+                    }
+                    
+                    var drawToValues = String(inputPropString).split(' ');
+                    if( String(inputPropString).match( /%/ ) != null )
+                    {
+                        if(drawToValues.length > 1)
+                        {
+                            toValues.push( -( parseFloat(drawToValues[0] )*0.01*pathLength ) );
+                            toValues.push( Math.abs(parseFloat(drawToValues[0])-parseFloat(drawToValues[1]))*0.01*pathLength );
+                            toValues.push( (100-Math.abs(parseFloat(drawToValues[0])-parseFloat(drawToValues[1])))*0.01*pathLength );
+                        }
+                        else
+                        {
+                            toValues.push( 0 );
+                            toValues.push( Math.abs(parseFloat(drawToValues[0]))*0.01*pathLength );
+                            toValues.push( (Math.abs(100-parseFloat(drawToValues[0]))*0.01*pathLength) );
+                        }
+                    }
+                    else
+                    {
+                        if(drawToValues.length > 1)
+                        {
+                            toValues.push( -( parseFloat(drawToValues[0] ) ) );
+                            toValues.push( Math.abs(parseFloat(drawToValues[0])-parseFloat(drawToValues[1])) );
+                            toValues.push( (pathLength-Math.abs(parseFloat(drawToValues[0])-parseFloat(drawToValues[1]))) );
+                        }
+                        else
+                        {
+                            toValues.push( 0 );
+                            toValues.push( parseFloat(drawToValues[0]) );
+                            toValues.push( pathLength-parseFloat(drawToValues[0]) );
+                        }
+                    }
+                }
+                else if( prop == 'motionPathSVG' )
+                {
+                    effects = {};
+                    units.push('px');
+                    
+                    if( tween.props[prop]['path'] != undefined )
+                    {    
+                        effects['path'] = TweenSpace._.getElements( tween.props[prop]['path'] )[0];
+                        effects['pathLength'] = TweenSpace.utils.svg.getPathLength( effects['path'] );
+                    }
+                    
+                    effects['align'] = ( tween.props[prop]['align'] != undefined )?tween.props[prop]['align']:false;
+                    
+                    if( tween.props[prop]['rotationOffset'] != undefined )
+                    {    
+                        effects['rotationOffset'] = parseFloat(tween.props[prop]['rotationOffset']);
+                        if(  String( tween.props[prop]['rotationOffset'] ).match( /rad/ ) != null )
+                            effects['rotationOffsetUnits'] = 'rad';
+                        else effects['rotationOffsetUnits'] = 'deg';
+                    }
+                    else
+                    {
+                        effects['rotationOffset'] = 0;
+                        effects['rotationOffsetUnits'] = 'deg';
+                    }
+                    
+                    effects['p1'] = {x:0, y:0};
+                    effects['p2'] = {x:0, y:0};
+                    
+                    effects['offsetX'] = ( tween.props[prop]['offsetX'] != undefined )?tween.props[prop]['offsetX']:0;
+                    effects['offsetY'] = ( tween.props[prop]['offsetY'] != undefined )?tween.props[prop]['offsetY']:0;
+                    
+                    if( String(inputPropString).match( /%/ ) != null )
+                    {
+                        if( tween.props[prop]['from'] != undefined )
+                            fromValues.push( parseFloat( tween.props[prop]['from'] ) * 0.01 * effects['pathLength'] );
+                        else
+                            fromValues.push(0);
+                        
+                        if( tween.props[prop]['to'] != undefined )
+                            toValues.push( parseFloat( tween.props[prop]['to'] ) * 0.01 * effects['pathLength'] );
+                        else
+                            toValues.push(0);
+                    }
+                    else
+                    {
+                        if( tween.props[prop]['from'] != undefined )
+                            fromValues.push( parseFloat( tween.props[prop]['from'] ) );
+                        else
+                            fromValues.push(0);
+                        
+                        if( tween.props[prop]['to'] != undefined )
+                            toValues.push( parseFloat( tween.props[prop]['to'] ) );
+                        else
+                            toValues.push(0);
+                    }
+                }
                 else
                 {
                     matchResult = String(inputPropString).match( /em|ex|px|in|cm|mm|%|rad|deg/ );
@@ -1624,6 +1848,7 @@ if(TweenSpace === undefined )
                 }
                 
                 tween.values[prop] = new PropValues(name, fromValues, toValues, units, transform, effects);
+                
                 effects = undefined;
             }
             
@@ -1721,11 +1946,6 @@ if(TweenSpace === undefined )
          * @private*/
         function _playback( playhead, direction )
         {
-            /*var n,p;
-            for(p=0; p < _subTweens.length; p++)
-            {
-                console.log(_subTweens[p].element.id, _subTweens[p].props);
-            }*/
             _this.pause( playhead );
             
             _paused = false;
@@ -1760,8 +1980,13 @@ if(TweenSpace === undefined )
                 
                 _repetitions = parseInt(_dTime / _duration);
                 _repetitions = (_repetitions<=_repeat)?_repetitions:_repeat;
-                _repeat_counter = _repetitions;
                 
+                if(_repeat_counter != _repetitions)
+                {
+                    if( _this.onRepeat != undefined )
+                        _this.onRepeat();
+                    _repeat_counter = _repetitions;
+                }
                 
                 if(_yoyo==true)
                 {
@@ -1793,7 +2018,7 @@ if(TweenSpace === undefined )
             this.element = element;
             this.props = props;
             this.values = {};
-
+            
             this.tweenStep = function( property, elapesedTime )
             {
                 var _names = this.values[property].names;
@@ -1803,9 +2028,9 @@ if(TweenSpace === undefined )
                 var _transform = this.values[property].transform;
                 var _effects = this.values[property].effects;
 
-                var toLength, value, effectValue;
+                var toLength, value, effectValue, rotate = 0;
                 var result = '', newValues = '';
-
+                
                 var w;
                 if( property == 'transform' )
                 {
@@ -1841,6 +2066,53 @@ if(TweenSpace === undefined )
                         }
                         result += prop+'('+newValues+') ';
                     }
+                }
+                else if( property == TweenSpace.params.svg.drawSVG )
+                {
+                    toLength = _toValues.length;
+                    newValues = '';
+                    result = [];
+                    for(w=0; w < toLength; w++)
+                    {    
+                        //result.push( _this.ease( TweenSpace._.min(elapesedTime, _duration), _fromValues[w], _toValues[w], _duration )+_units[w] );
+                        value = _this.ease( TweenSpace._.min(elapesedTime, _duration), _fromValues[w], _toValues[w], _duration );
+                        if(w!=1)
+                        {
+                            if( _effects != undefined )
+                            {
+                                for ( var tweenEffects in _effects )
+                                {
+                                    if( elapesedTime/_duration <= 0.1 )
+                                        effectValue = _effects[tweenEffects].tick( TweenSpace._.min(elapesedTime, _duration)) * _this.ease( elapesedTime, 0, 1, _duration*0.1 );
+                                    else if( elapesedTime/_duration >= 0.9 )
+                                        effectValue = _effects[tweenEffects].tick( TweenSpace._.min(elapesedTime, _duration)) * _this.ease( _duration-elapesedTime, 0, 1, _duration*0.1 );
+                                    else 
+                                        effectValue = _effects[tweenEffects].tick( TweenSpace._.min(elapesedTime, _duration));
+
+                                    value += effectValue;
+                                }
+                            }
+                        }
+                        result.push( value+_units[w] );
+                    }
+                }
+                else if( property == 'motionPathSVG' )
+                {
+                    value = _this.ease( TweenSpace._.min(elapesedTime, _duration), _fromValues[0], _toValues[0], _duration );
+                    
+                    if( _effects['align'] == true )
+                    {
+                        _effects['p1'].x = _effects['path'].getPointAtLength(value)['x'],
+                        _effects['p1'].y = _effects['path'].getPointAtLength(value)['y'];
+                        _effects['p2'].x = _effects['path'].getPointAtLength(_this.ease(_this.currentTime()-TweenSpace._.dt(), _fromValues[0], _toValues[0], _this.duration() ) )['x'],
+                        _effects['p2'].y = _effects['path'].getPointAtLength(_this.ease(_this.currentTime()-TweenSpace._.dt(), _fromValues[0], _toValues[0], _this.duration() ) )['y']; 
+                       
+                        rotate = Math.atan2(_effects['p2'].y - _effects['p1'].y, _effects['p2'].x - _effects['p1'].x) * 180 / TweenSpace._.PI();
+                    }
+                    
+                    result =    'translate('    +(_effects['path'].getPointAtLength( value )['x']+_effects['offsetX'])+'px,'
+                                                +(_effects['path'].getPointAtLength( value )['y']+_effects['offsetY'])+'px)'+
+                                ' rotate('+(_effects['rotationOffset']+rotate)+_effects['rotationOffsetUnits']+')';
                 }
                 else
                 {
@@ -1919,44 +2191,73 @@ if(TweenSpace === undefined )
     
 })(TweenSpace || {});
 
-/*Sequence Module*/
+/*Timeline Module*/
 (function ( TweenSpace ) {
     
     /** Static method that creates Timeline instances which are capable of controlling playback operations and time management on groups of tweens.
-    * @method Timeline
-    * @return {Timeline} - Timeline instance.
-    * @memberof TweenSpace */
-    TweenSpace.Timeline = function(tweens)
+     * @method Timeline
+     * @param {object} params - An object containing Timeline properties.
+     * @property {*} params.tweens - A Tween or an array of Tween instances whose properties should be animated.
+     * @property {function} params.onProgress - Callback dispatched every engine tick while the Timeline instance is running.
+     * @property {function} params.onComplete - Callback dispatched when the animation of all the Tween instances that belongs to a Timeline object has finished.
+     * @return {Timeline} - Timeline instance.
+     * @memberof TweenSpace  */
+    TweenSpace.Timeline = function( params )
     {
-        return new Timeline(tweens);
+        return new Timeline(params);
     }
     
     /**
-     * Timeline Module.
      * @class Timeline class is capable of controlling playback operations and time management on groups of tweens.
-     * @param {*} tweens - One or more tweens whose properties should be animated
+     * @param {object} params - An object containing Timeline properties.
+     * @property {*} params.tweens - A Tween or an array of Tween instances whose properties should be animated.
+     * @property {function} params.onProgress - Callback dispatched every engine tick while the Timeline instance is running.
+     * @property {function} params.onComplete - Callback dispatched when the animation of all the Tween instances that belongs to a Timeline object has finished.
      * @return {Timeline} - Timeline instance.
-     * @memberof TweenSpace  
+     * @memberof Timeline  
      * @public */
-    function Timeline( tweens )
+    function Timeline( params )
     {
-        var _this = this;
-        var _tweens = [];
-        var _dur = [];
+        var _this = this,
+            _tweens = [],
+            _duration = [];
+        
         /** Returns Timeline instance duration in milliseconds.
          *  @method duration
          *  @return {int} - Duration in milliseconds.
          *  @memberof Timeline */
-        this.duration = function( )
+        this.duration = function()
         {
-            return _dur;
+            return _duration;
         }
+        /** Returns current time in milliseconds.
+         *  @method currentTime
+         *  @return {float} - Time in milliseconds.
+         *  @memberof Timeline */
+        this.currentTime = function()
+        {
+            return _tweens[_tweens.length-1].currentTime();
+        }
+        /** Callback dispatched when the animation has finished.
+         *  @var  onComplete 
+         *  @memberof Timeline */
+        this.onComplete = undefined;
+        /** Callback dispatched every engine tick while animation is running.
+         *  @var onProgress 
+         *  @memberof Timeline */
+        this.onProgress = undefined;
         /** Adds tweens to a Timeline instance.
          *  @method addTweens
          *  @param {*} tweens - Tween or array of Tween instances.
          *  @memberof Timeline */
         this.addTweens = function( tweens )
         {
+            if(_tweens.length > 0)
+            {    
+                _tweens[_tweens.length-1].keyTween(false);
+                _tweens[_tweens.length-1].timelineParent(null);
+            }
+            
             if(tweens != undefined)
             {
                 var i = 0, j = 0;
@@ -2004,15 +2305,22 @@ if(TweenSpace === undefined )
                     }
                 }
                 
+                _tweens[_tweens.length-1].keyTween(true);
+                
                 _autoTrim();   
                 _apply( 'useDelay', true );
-                _apply( 'sequenceParent', true );
+                _apply( 'timelineParent', _this );
             }
         }
         /** Timeline class constructor. @private*/
         this.constructor = new function()
         {
-            _this.addTweens(tweens);
+            if( params != undefined )
+            {
+                _this.onProgress = params.onProgress || undefined;
+                _this.onComplete = params.onComplete || undefined;
+                _this.addTweens( params.tweens || undefined );
+            }
         }
         /** Removes tweens to a Timeline instance.
          *  @method removeTweens
@@ -2020,6 +2328,12 @@ if(TweenSpace === undefined )
          *  @memberof Timeline */
         this.removeTweens = function( tweens )
         {
+            if(_tweens.length > 0)
+            {    
+                _tweens[_tweens.length-1].keyTween(false);
+                _tweens[_tweens.length-1].timelineParent(null);
+            }
+            
             var i = 0, j = 0;
             if( Tween.prototype.isPrototypeOf(tweens) === true )
             {
@@ -2036,7 +2350,7 @@ if(TweenSpace === undefined )
             {
                 loop1:for(; i < tweens.length; i++)
                 {
-                    loop2:for(; j < _tweens.length; j++)
+                   loop2:for(; j < _tweens.length; j++)
                     {
                         if(tweens[i] == _tweens[j])
                         {
@@ -2046,6 +2360,9 @@ if(TweenSpace === undefined )
                     }
                 }
             }
+            
+            _tweens[_tweens.length-1].keyTween(true);
+            _tweens[_tweens.length-1].timelineParent(_this);
             
             _autoTrim();
         }
@@ -2152,15 +2469,117 @@ if(TweenSpace === undefined )
             for(q=0; q < _tweens.length; q++)
                 list.push(_tweens[q].delay()+_tweens[q].duration()+(_tweens[q].repeat()*_tweens[q].duration()));
             
-            _dur = TweenSpace._.getMax( list );
+            _duration = TweenSpace._.getMax( list );
             
             for(q=0; q < _tweens.length; q++)
-                _tweens[q].durationTotal( _dur - (_tweens[q].delay() + _tweens[q].duration()) + _tweens[q].duration() );
+                _tweens[q].durationTotal( _duration - (_tweens[q].delay() + _tweens[q].duration()) + _tweens[q].duration() );
         }
          
         return this;
     }
     
+})(TweenSpace || {});
+
+/**Utilities Module
+* @private */
+(function ( TweenSpace ) {
+    
+    /**Utilities Module.
+    * @private*/
+    TweenSpace.utils = 
+    {
+        svg:
+        {
+            getPathLength: function(svgObj)
+            {
+                var length = null;
+                if( svgObj.tagName == 'circle') length = circle(svgObj);
+                else if( svgObj.tagName == 'rect') length = rect(svgObj);
+                else if( svgObj.tagName == 'polygon') length = polygon(svgObj);
+                else if( svgObj.tagName == 'path') length = path(svgObj);
+                
+                return length;
+            }
+        }
+    }
+    
+    function circle(svgObj)
+    {
+        var r = svgObj.getAttribute('r');
+        var circleLength = 2 * Math.PI * r; 
+        return circleLength;
+    }
+    function rect(svgObj)
+    {
+        var w = svgObj.getAttribute('width');
+        var h = svgObj.getAttribute('height');
+
+        return (w*2)+(h*2);
+    }
+    function polygon(svgObj)
+    {
+        var points = svgObj.getAttribute('points');
+        points = points.split(" ");
+        var x1 = null, x2, y1 = null, y2 , lineLength = 0, x3, y3;
+        for(var i = 0; i < points.length; i++)
+        {
+            var coords = points[i].split(",");
+            if(x1 == null && y1 == null){
+
+                if(/(\r\n|\n|\r)/gm.test(coords[0]))
+                {
+                    coords[0] = coords[0].replace(/(\r\n|\n|\r)/gm,"");
+                    coords[0] = coords[0].replace(/\s+/g,"");
+                }
+
+                if(/(\r\n|\n|\r)/gm.test(coords[1]))
+                {
+                    coords[0] = coords[1].replace(/(\r\n|\n|\r)/gm,"");
+                    coords[0] = coords[1].replace(/\s+/g,"");
+                }
+
+                x1 = coords[0];
+                y1 = coords[1];
+                x3 = coords[0];
+                y3 = coords[1];
+
+            }
+            else
+            {
+
+                if(coords[0] != "" && coords[1] != "")
+                {             
+                    if(/(\r\n|\n|\r)/gm.test(coords[0]))
+                    {
+                        coords[0] = coords[0].replace(/(\r\n|\n|\r)/gm,"");
+                        coords[0] = coords[0].replace(/\s+/g,"");
+                    }
+
+                    if(/(\r\n|\n|\r)/gm.test(coords[1]))
+                    {
+                        coords[0] = coords[1].replace(/(\r\n|\n|\r)/gm,"");
+                        coords[0] = coords[1].replace(/\s+/g,"");
+                    }
+
+                    x2 = coords[0];
+                    y2 = coords[1];
+
+                    lineLength += Math.sqrt(Math.pow((x2-x1), 2)+Math.pow((y2-y1),2));
+
+                    x1 = x2;
+                    y1 = y2;
+                    if(i == points.length-2)
+                        lineLength += Math.sqrt(Math.pow((x3-x1), 2)+Math.pow((y3-y1),2));
+                }
+            }
+
+        }
+        return lineLength;
+    }
+    function path(svgObj)
+    {
+        return svgObj.getTotalLength();
+    }
 })(TweenSpace || {});
 
 
