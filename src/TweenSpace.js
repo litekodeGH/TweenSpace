@@ -657,15 +657,27 @@ if(TweenSpace === undefined )
 
             return tween;
         },
+        /** Static method that returns an array of Tween instances. In contrast to the static method sequentialTo,
+        * this method does not start the animation. When the time comes to animate the same properties on multiple objects
+        * this method reduces multiple tweens instantiation into one. Moreover, it can be used in conjunction with Timeline objects
+        * to get playback controls over time.
+        * @method sequential
+        * @memberof TweenSpace */
         sequential: function( params )
         {
             return _sequential( params );
         },
+        /** Static method that returns an array of Tween instances. In contrast to the static method sequential,
+        * this method plays the animation right after instantiation. When the time comes to animate the same properties on multiple objects
+        * this method reduces multiple tweens instantiation into one. Moreover, it can be used in conjunction with Timeline objects
+        * to get playback controls over time.
+        * @method sequential
+        * @memberof TweenSpace */
         sequentialTo: function( params )
         {
             return _sequential( params, true );
         },
-        /** Static method that pauses all tweens and sequences.
+        /** Static method that pauses all tweens and timelines.
         * @method pauseAll
         * @memberof TweenSpace */
         pauseAll: function()
@@ -673,7 +685,7 @@ if(TweenSpace === undefined )
             for( ;_queue_DL.length() > 0; )
                 _queue_DL.head.data.pause();
         },
-        /** Static method that resumes all tweens and sequences.
+        /** Static method that resumes all tweens and timelines.
         * @method resumeAll
         * @memberof TweenSpace */
         resumeAll: function()
@@ -681,7 +693,7 @@ if(TweenSpace === undefined )
             for( ;_queue_paused_DL.length() > 0; )
                 _queue_paused_DL.head.data.resume();
         },
-        /** Static method that stops all tweens and sequences.
+        /** Static method that stops all tweens and timelines.
         * @method stopAll
         * @memberof TweenSpace */
         stopAll: function()
@@ -3526,6 +3538,74 @@ if(TweenSpace === undefined )
             alpha: alpha
         };
     }
+    // http://schepers.cc/getting-to-the-point
+    function catmullRom2bezier(crp, z)
+    {
+        var d = [];
+        for (var i = 0, iLen = crp.length; iLen - 2 * !z > i; i += 2) {
+            var p = [
+                        {x: +crp[i - 2], y: +crp[i - 1]},
+                        {x: +crp[i],     y: +crp[i + 1]},
+                        {x: +crp[i + 2], y: +crp[i + 3]},
+                        {x: +crp[i + 4], y: +crp[i + 5]}
+                    ];
+            if (z) {
+                if (!i) {
+                    p[0] = {x: +crp[iLen - 2], y: +crp[iLen - 1]};
+                } else if (iLen - 4 == i) {
+                    p[3] = {x: +crp[0], y: +crp[1]};
+                } else if (iLen - 2 == i) {
+                    p[2] = {x: +crp[0], y: +crp[1]};
+                    p[3] = {x: +crp[2], y: +crp[3]};
+                }
+            } else {
+                if (iLen - 4 == i) {
+                    p[3] = p[2];
+                } else if (!i) {
+                    p[0] = {x: +crp[i], y: +crp[i + 1]};
+                }
+            }
+            d.push(["C",
+                  (-p[0].x + 6 * p[1].x + p[2].x) / 6,
+                  (-p[0].y + 6 * p[1].y + p[2].y) / 6,
+                  (p[1].x + 6 * p[2].x - p[3].x) / 6,
+                  (p[1].y + 6*p[2].y - p[3].y) / 6,
+                  p[2].x,
+                  p[2].y
+            ]);
+        }
+
+        return d;
+    }
+    function ellipsePath(x, y, rx, ry, a)
+    {
+        if (a == null && ry == null) {
+            ry = rx;
+        }
+        x = +x;
+        y = +y;
+        rx = +rx;
+        ry = +ry;
+        if (a != null) {
+            var rad = Math.PI / 180,
+                x1 = x + rx * Math.cos(-ry * rad),
+                x2 = x + rx * Math.cos(-a * rad),
+                y1 = y + rx * Math.sin(-ry * rad),
+                y2 = y + rx * Math.sin(-a * rad),
+                res = [["M", x1, y1], ["A", rx, rx, 0, +(a - ry > 180), 0, x2, y2]];
+        } else {
+            res = [
+                ["M", x, y],
+                ["m", 0, -ry],
+                ["a", rx, ry, 0, 1, 1, 0, 2 * ry],
+                ["a", rx, ry, 0, 1, 1, 0, -2 * ry],
+                ["z"]
+            ];
+        }
+        res.toString = toString;
+        return res;
+    }
+    
     // Source: https://github.com/adobe-webplatform/Snap.svg
     // Author: Dmitry Baranovskiy (http://dmitry.baranovskiy.com/)
     //____________________________________________________________
