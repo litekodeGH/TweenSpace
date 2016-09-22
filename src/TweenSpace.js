@@ -25,7 +25,7 @@ if(TweenSpace === undefined )
     var TweenSpace, Tweenspace, TS;
     TweenSpace = Tweenspace = TS = (function () {
     
-    "use strict";
+    //"use strict";
     /** Reference to TweenSpace object.
      * @private */
     var _this = this;
@@ -209,12 +209,19 @@ if(TweenSpace === undefined )
     
     function _sequential( params, play )
     {
-        var elements, tsParams = {}, delay, delayInc, duration, tweens = [];
+        var elements, tsParams = {}, delay, delayInc, duration, tweens = [], shuffle, seed;
         play = (play != undefined)?play:false;
+        
+        if( params.shuffle != undefined )
+        {
+            shuffle = params.shuffle;
+            seed = params.seed;
+        }
+        else shuffle = false;
         
         if( params.elements != undefined)
         {
-
+            
             if( params.duration == undefined )
             {
                 console.warn('TweenSpace.js Warning: Tween() has no duration defined!');
@@ -223,6 +230,7 @@ if(TweenSpace === undefined )
             else
             {
                 duration = params.duration;
+                
                 if( params.delay == undefined)
                 {    
                     console.warn('TweenSpace.js Warning: delay property needs to be defined in order to animate objects sequentially.');
@@ -245,7 +253,7 @@ if(TweenSpace === undefined )
                         }
                     }
                 }
-
+                
                 var length = elements.length;
                 for(var i=0; i<length; i++)
                 {
@@ -259,9 +267,18 @@ if(TweenSpace === undefined )
                     tweens.push( TweenSpace.Tween( params ) );
                     delayInc += delay;
                     
-                    if(play == true)
+                    if( play == true && shuffle == false )
                         tweens[tweens.length-1].play();
                 }
+                
+                if( play == true && shuffle == true )
+                {    
+                    shuffleDelay( tweens, seed );
+                    
+                    for(var x=0; x<tweens.length; x++)
+                        tweens[x].play();
+                }
+                    
                 return tweens;
             }
         }
@@ -563,8 +580,10 @@ if(TweenSpace === undefined )
      * @return {PerlinNoise} - PerlinNoise instance.
      * @private
      */
-    function PerlinNoise( amplitude, frequency )
+    function PerlinNoise( amplitude, frequency, seed )
     {
+        if( seed == undefined) seed = 0;
+        
         this.amplitude = amplitude;
         this.frequency = frequency;
         
@@ -572,13 +591,23 @@ if(TweenSpace === undefined )
         var _MAX_VERTICES = 256; //256
         var _MAX_VERTICES_MASK = _MAX_VERTICES -1;
         var _vertices = [];
-        
+        var m = 0x80000000, a = 1103515245, c = 12345, next = seed;
         var _xMin, _xMax;
         
         this.constructor = new function()
         {
             for ( var i = 0; i < _MAX_VERTICES; ++i )
-                _vertices.push( Math.random()*((Math.random()<0.5)?-1:1) );
+            {
+                //Non-deterministic
+                //next = Math.random()*((Math.random()<0.5)?-1:1);
+                
+                //Deterministic
+                //https://en.wikipedia.org/wiki/Linear_congruential_generator
+                next = (((a * (next+i) + c) % m) / m);
+                if((((a * (next+i) + c) % m) / m)<0.5) next = -next;
+                
+                _vertices.push( next );
+            }    
         }
         
         this.tick = function( x )
@@ -604,9 +633,9 @@ if(TweenSpace === undefined )
         return this;
     }
     /**
-     * PerlinNoise.
-     * @class Internal class that creates 1D Perlin Noise values.
-     * @return {PerlinNoise} - PerlinNoise instance.
+     * Wave.
+     * @class Internal class that generates sine wave numbers.
+     * @return {Wave} - Wave instance.
      * @private
      */
     function Wave( amplitude, frequency )
@@ -623,7 +652,27 @@ if(TweenSpace === undefined )
         
         return this;
     }
+    /**
+     * shuffleDelay.
+     * @class Shuffles array items.
+     * @return {array} - An array with the items shuffled.
+     * @private
+     */
+    function shuffleDelay(array, seed)
+    {
+        if(seed==undefined) seed = 1;
         
+        var temp, j;
+
+        for(var i=0; i<array.length; i++)
+        {
+            j = (seed % (i+1) + i) % array.length;
+
+            temp=array[i].delay();
+            array[i].delay( array[j].delay() );
+            array[j].delay(temp);
+        }
+    }
     
 	return {
         /**
@@ -709,7 +758,14 @@ if(TweenSpace === undefined )
         * @memberof TweenSpace */
         params: 
         {
+            //Exclusive Paramenters for TweenSpace.sequential() and TweenSpace.sequentialTo()
+            shuffle: 'shuffle',
+            seed: 'seed',
+            
+            //Exclusive Paramenters for TweenSpace.Timeline()
             tweens: 'tweens',
+            
+            //Exclusive Paramenters for TweenSpace.Tween()
             elements: 'elements',
             duration: 'duration',
             delay: 'delay',
@@ -772,7 +828,8 @@ if(TweenSpace === undefined )
                 wiggle:
                 {
                     amplitude:'amplitude',
-                    frequency:'frequency'
+                    frequency:'frequency',
+                    seed:'seed'
                 },
                 wave:
                 {
@@ -863,9 +920,9 @@ if(TweenSpace === undefined )
             {
                 return _getMax(array);
             },
-            PerlinNoise: function(amplitude, frequency)
+            PerlinNoise: function(amplitude, frequency, seed)
             {
-                return new PerlinNoise(amplitude, frequency);
+                return new PerlinNoise(amplitude, frequency, seed);
             },
             Wave: function(amplitude, frequency)
             {
@@ -879,7 +936,7 @@ if(TweenSpace === undefined )
         /** TweenSpace Engine version.
          *  @var {string} version 
          *  @memberof TweenSpace */
-        version: '1.7.0.0', //release.major.minor.dev_stage
+        version: '1.7.5.0', //release.major.minor.dev_stage
         /** Useful under a debugging enviroment for faster revisiones.
          *  If true, the engine will assign destination values immediately and no animation will be performed.
          *  @var {boolean} debug 
@@ -1284,7 +1341,7 @@ if(TweenSpace === undefined )
                 _durationTotal = _durExtended_init * _timescale; 
                 _durationRepeat = _durRepeat_init * _timescale; 
             }
-            //console.log(_duration);
+            
             return _timescale;
         }
         /** Tween class constructor. @private
@@ -1356,7 +1413,7 @@ if(TweenSpace === undefined )
         {
             if( playhead != undefined )
             {
-                if( _adjustPlayhead(playhead) != undefined );
+                if( _adjustPlayhead(playhead) != undefined )
                 {   
                     _tick_logic();
                     _tick_draw(_dTime);
@@ -1600,7 +1657,7 @@ if(TweenSpace === undefined )
 
                     if( tween.props[prop]['wiggle'] != undefined )
                     {
-                        effects['wiggle'] = TweenSpace._.PerlinNoise(tween.props[prop]['wiggle'].amplitude, tween.props[prop]['wiggle'].frequency);
+                        effects['wiggle'] = TweenSpace._.PerlinNoise(tween.props[prop]['wiggle'].amplitude, tween.props[prop]['wiggle'].frequency, tween.props[prop]['wiggle'].seed);
                     }
                     else if( tween.props[prop]['wave'] != undefined )
                     {
