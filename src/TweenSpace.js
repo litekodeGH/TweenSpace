@@ -206,7 +206,10 @@ if(TweenSpace === undefined )
             }
         }
     }
-    
+    /**
+     * Private method that plays a group of tweens that share common animated properties. These tweens will be played sequentially
+     * with an offset in time based on the delay property.
+     * @private */
     function _sequential( params, play )
     {
         var elements, tsParams = {}, delay, delayInc, duration, tweens = [], shuffle, seed;
@@ -682,21 +685,37 @@ if(TweenSpace === undefined )
         * @param {object} params - An object containing the destination values of css properties and TweenSpace parameters defined in TweenSpace.params.
         * @property {*} params.elements - Element or elements whose properties should be animated.
                                 Accepted arguments are a DOM element, an array of elements or CSS selection string.
-        * @property {int} params.duration - Tween duration in milliseconds.
-        * @param {object} params - An object containing custom properties such as delay(), onComplete(), etc.
-        * @property {int} params.delay - Amount of time in milliseconds to wait before starting the animation.
-        * @property {boolean} params.yoyo - If true, yoyo() property will play the animation back and forth based on repeat property amount.
-        * @property {int} params.repeat - Amount of times that the animation will be played.
+        * @property {int} params.duration - Tween duration in milliseconds. Check this link: http://codepen.io/TweenSpace/pen/mVwBdY
+        * @property {int} params.delay - Amount of time in milliseconds to wait before starting the animation. http://codepen.io/TweenSpace/pen/BjZJdb
+        * @property {boolean} params.yoyo - If true, yoyo() property will play the animation back and forth based on repeat property amount. Try this example: http://codepen.io/TweenSpace/pen/GoEyQP
+        * @property {int} params.repeat - Amount of times that the animation will be played. http://codepen.io/TweenSpace/pen/pgwpdj
         * @property {int} params.timescale -  Sets and returns the timescale value. timescale() is a factor used to scale time in the animation.
         *                                   While a value of 1 represents normal speed, lower values makes the faster as well as greater values
-        *                                   makes the animation slower.
-        * @property {function} params.ease - Easing function that describes the rate of change of a parameter over time.
+        *                                   makes the animation slower. Please go to: http://codepen.io/TweenSpace/pen/OMzegL and http://codepen.io/TweenSpace/pen/WrOMQx
+        * @property {function} params.ease - Easing function that describes the rate of change of a parameter over time. http://codepen.io/TweenSpace/pen/qbjxZJ
         *                                  Equations used were developed by Robert Penner.
-        * @property {function} params.onProgress - Callback dispatched every engine tick while animation is running.
-        * @property {function} params.onComplete - Callback dispatched when the animation has finished.
+        * @property {function} params.onProgress - Callback dispatched every engine tick while animation is running. http://codepen.io/TweenSpace/pen/dMeVYR
+        * @property {function} params.onComplete - Callback dispatched when the animation has finished. http://codepen.io/TweenSpace/pen/vGjeEe
         * @property {function} params.onRepeat - Callback dispatched when the animation starts a repetition.
-        * @property {function} params.drawSVG - Value or set of values that allows you to animate an svg stroke length. Values can be provided as percentages as well as numbers.
-        * @property {function} params.motionPathSVG - Make any html element move along a svg path.
+        * @property {object} params.wiggle - Adds deterministic randomness to property values. Use amplitude property to modify the magnitude of the effect and frequency property to change the speed.
+        *                                    You can also change the seed property to obtain different deterministic random behaviors. wiggle can be used in two ways.
+        *                                    For setting multiple css properties at once use the following approach:
+        *                                    http://codepen.io/TweenSpace/pen/PGWzoV
+        *                                    When setting css properties separately follow this example:
+        *                                    http://codepen.io/TweenSpace/pen/XjpKJp
+        * @property {object} params.wave - Adds oscilatory to property values. Use amplitude property to modify the magnitude of the effect and frequency property to change the speed.
+        *                                   http://codepen.io/TweenSpace/pen/QKKbJy
+        * @property {object} params.drawSVG - Value or set of values that allows you to animate an svg stroke length. Values can be provided as percentages as well as numbers.
+        *                                   Try this example: http://codepen.io/TweenSpace/pen/yORjYO
+        * @property {object} params.motionPathSVG - Makes any html element move along a svg path. http://codepen.io/TweenSpace/pen/qaRVKK
+        * @property {object} params.morphSVG -  Morphs from one SVG Element to another. morphSVG will match the necessary amount of points for both paths,
+        *                                       besides, it provides handy properties like reverse, shapeIndex and debug. reverse will change the direction
+        *                                       of the destination path. shapeIndex will offset the points along the destination path. debug will show graphics
+        *                                       regarding initial and destination path for setup purposes. When debug is true, the green path is the initial path
+        *                                       while the red one is the destination path. Also, a larger dot indicates the end point and the max amount of points,
+        *                                       while a smaller dot represents either a 25% of length of the path or a user shapeIndex on the path. Notice that
+        *                                       the smaller dot indicates the direction of the path which is useful when matching dots positions.
+        *                                       Accepted SVG Elemets are circle, rect, ellipse, polygon, and path. Please go here for more info: http://codepen.io/TweenSpace/pen/KMpedd
         * @return {Tween} - Tween instance.
         * @memberof TweenSpace */
         to: function( params )
@@ -709,8 +728,14 @@ if(TweenSpace === undefined )
         /** Static method that returns an array of Tween instances. In contrast to the static method sequentialTo,
         * this method does not start the animation. When the time comes to animate the same properties on multiple objects
         * this method reduces multiple tweens instantiation into one. Moreover, it can be used in conjunction with Timeline objects
-        * to get playback controls over time.
+        * to get playback controls over time. Besides common custom properties such as
         * @method sequential
+        * @param {object} params -  An object containing the common destination values of css properties and TweenSpace parameters defined in TweenSpace.params.
+        *                           The following properties are exclusive for this method. For more additional TweenSpace custom properties please go to TweenSpace.to() method description.
+        * @property {int} delay - Is the time offset between each tween. The delay amount will increment linearly as the tweens are played.
+        * @property {boolean} shuffle - If shuffle is set to true, the tweens are going to be played in a deterministic random fashion.
+        * @property {int} seed - Change this value in order to get different random behaviors.
+        * @return {array} - Array of Tween instances.
         * @memberof TweenSpace */
         sequential: function( params )
         {
@@ -721,6 +746,12 @@ if(TweenSpace === undefined )
         * this method reduces multiple tweens instantiation into one. Moreover, it can be used in conjunction with Timeline objects
         * to get playback controls over time.
         * @method sequential
+        * @param {object} params -  An object containing the common destination values of css properties and TweenSpace parameters defined in TweenSpace.params.
+        *                           The following properties are exclusive for this method. For more additional TweenSpace custom properties please go to TweenSpace.to() method description.
+        * @property {int} delay - Is the time offset between each tween. The delay amount will increment linearly as the tweens are played.
+        * @property {boolean} shuffle - If shuffle is set to true, the tweens are going to be played in a deterministic random fashion.
+        * @property {int} seed - Change this value in order to get different random behaviors.
+        * @return {array} - Array of Tween instances.
         * @memberof TweenSpace */
         sequentialTo: function( params )
         {
@@ -958,22 +989,29 @@ if(TweenSpace === undefined )
     * @param {object} params - An object containing the destination values of css properties and TweenSpace parameters defined in TweenSpace.params.
     * @property {*} params.elements - Element or elements whose properties should be animated.
                             Accepted arguments are a DOM element, an array of elements or CSS selection string.
-    * @property {int} params.duration - Tween duration in milliseconds.
-    * @property {int} params.delay - Amount of time in milliseconds to wait before starting the animation.
-    * @property {boolean} params.yoyo - If true, yoyo() property will play the animation back and forth based on repeat property amount.
-    * @property {int} params.repeat - Amount of times that the animation will be played.
+    * @property {int} params.duration - Tween duration in milliseconds. Check this link: http://codepen.io/TweenSpace/pen/mVwBdY
+    * @property {int} params.delay - Amount of time in milliseconds to wait before starting the animation. http://codepen.io/TweenSpace/pen/BjZJdb
+    * @property {boolean} params.yoyo - If true, yoyo() property will play the animation back and forth based on repeat property amount. Try this example: http://codepen.io/TweenSpace/pen/GoEyQP
+    * @property {int} params.repeat - Amount of times that the animation will be played. http://codepen.io/TweenSpace/pen/pgwpdj
     * @property {int} params.timescale -  Sets and returns the timescale value. timescale() is a factor used to scale time in the animation.
     *                                   While a value of 1 represents normal speed, lower values makes the faster as well as greater values
-    *                                   makes the animation slower.
-    * @property {function} params.ease - Easing function that describes the rate of change of a parameter over time.
+    *                                   makes the animation slower. Please go to: http://codepen.io/TweenSpace/pen/OMzegL and http://codepen.io/TweenSpace/pen/WrOMQx
+    * @property {function} params.ease - Easing function that describes the rate of change of a parameter over time. http://codepen.io/TweenSpace/pen/qbjxZJ
     *                                  Equations used were developed by Robert Penner.
-    * @property {function} params.onProgress - Callback dispatched every engine tick while animation is running.
-    * @property {function} params.onComplete - Callback dispatched when the animation has finished.
+    * @property {function} params.onProgress - Callback dispatched every engine tick while animation is running. http://codepen.io/TweenSpace/pen/dMeVYR
+    * @property {function} params.onComplete - Callback dispatched when the animation has finished. http://codepen.io/TweenSpace/pen/vGjeEe
     * @property {function} params.onRepeat - Callback dispatched when the animation starts a repetition.
-    * @property {object} params.wiggle - Adds randomness to property values. Use amplitude property to modify the magnitude of the effect and frequency property to change the speed.
+    * @property {object} params.wiggle - Adds deterministic randomness to property values. Use amplitude property to modify the magnitude of the effect and frequency property to change the speed.
+    *                                    You can also change the seed property to obtain different deterministic random behaviors. wiggle can be used in two ways.
+    *                                    For setting multiple css properties at once use the following approach:
+    *                                    http://codepen.io/TweenSpace/pen/PGWzoV
+    *                                    When setting css properties separately follow this example:
+    *                                    http://codepen.io/TweenSpace/pen/XjpKJp
     * @property {object} params.wave - Adds oscilatory to property values. Use amplitude property to modify the magnitude of the effect and frequency property to change the speed.
-    * @property {string} params.drawSVG - Value or set of values that allows you to animate an svg stroke length. Values can be provided as percentages as well as numbers.
-    * @property {object} params.motionPathSVG - Makes any html element move along a svg path.
+    *                                   http://codepen.io/TweenSpace/pen/QKKbJy
+    * @property {object} params.drawSVG - Value or set of values that allows you to animate an svg stroke length. Values can be provided as percentages as well as numbers.
+    *                                   Try this example: http://codepen.io/TweenSpace/pen/yORjYO
+    * @property {object} params.motionPathSVG - Makes any html element move along a svg path. http://codepen.io/TweenSpace/pen/qaRVKK
     * @property {object} params.morphSVG -  Morphs from one SVG Element to another. morphSVG will match the necessary amount of points for both paths,
     *                                       besides, it provides handy properties like reverse, shapeIndex and debug. reverse will change the direction
     *                                       of the destination path. shapeIndex will offset the points along the destination path. debug will show graphics
@@ -981,7 +1019,7 @@ if(TweenSpace === undefined )
     *                                       while the red one is the destination path. Also, a larger dot indicates the end point and the max amount of points,
     *                                       while a smaller dot represents either a 25% of length of the path or a user shapeIndex on the path. Notice that
     *                                       the smaller dot indicates the direction of the path which is useful when matching dots positions.
-    *                                       Accepted SVG Elemets are circle, rect, ellipse, polygon, and path.                      
+    *                                       Accepted SVG Elemets are circle, rect, ellipse, polygon, and path. Please go here for more info: http://codepen.io/TweenSpace/pen/KMpedd                     
     * @return {Tween} - Tween instance.
     * @memberof TweenSpace
     * */
@@ -996,22 +1034,29 @@ if(TweenSpace === undefined )
     * @param {object} params - An object containing the destination values of css properties and TweenSpace parameters defined in TweenSpace.params.
     * @property {*} params.elements - Element or elements whose properties should be animated.
                             Accepted arguments are a DOM element, an array of elements or CSS selection string.
-    * @property {int} params.duration - Tween duration in milliseconds.
-    * @property {int} params.delay - Amount of time in milliseconds to wait before starting the animation.
-    * @property {boolean} params.yoyo - If true, yoyo() property will play the animation back and forth based on repeat property amount.
-    * @property {int} params.repeat - Amount of times that the animation will be played.
+    * @property {int} params.duration - Tween duration in milliseconds. Check this link: http://codepen.io/TweenSpace/pen/mVwBdY
+    * @property {int} params.delay - Amount of time in milliseconds to wait before starting the animation. http://codepen.io/TweenSpace/pen/BjZJdb
+    * @property {boolean} params.yoyo - If true, yoyo() property will play the animation back and forth based on repeat property amount. Try this example: http://codepen.io/TweenSpace/pen/GoEyQP
+    * @property {int} params.repeat - Amount of times that the animation will be played. http://codepen.io/TweenSpace/pen/pgwpdj
     * @property {int} params.timescale -  Sets and returns the timescale value. timescale() is a factor used to scale time in the animation.
     *                                   While a value of 1 represents normal speed, lower values makes the faster as well as greater values
-    *                                   makes the animation slower.
-    * @property {function} params.ease - Easing function that describes the rate of change of a parameter over time.
+    *                                   makes the animation slower. Please go to: http://codepen.io/TweenSpace/pen/OMzegL and http://codepen.io/TweenSpace/pen/WrOMQx
+    * @property {function} params.ease - Easing function that describes the rate of change of a parameter over time. http://codepen.io/TweenSpace/pen/qbjxZJ
     *                                  Equations used were developed by Robert Penner.
-    * @property {function} params.onProgress - Callback dispatched every engine tick while the animation is running.
-    * @property {function} params.onComplete - Callback dispatched when the animation has finished.
+    * @property {function} params.onProgress - Callback dispatched every engine tick while animation is running. http://codepen.io/TweenSpace/pen/dMeVYR
+    * @property {function} params.onComplete - Callback dispatched when the animation has finished. http://codepen.io/TweenSpace/pen/vGjeEe
     * @property {function} params.onRepeat - Callback dispatched when the animation starts a repetition.
-    * @property {object} params.wiggle - Adds randomness to property values. Use amplitude property to modify the magnitude of the effect and frequency property to change the speed.
+    * @property {object} params.wiggle - Adds deterministic randomness to property values. Use amplitude property to modify the magnitude of the effect and frequency property to change the speed.
+    *                                    You can also change the seed property to obtain different deterministic random behaviors. wiggle can be used in two ways.
+    *                                    For setting multiple css properties at once use the following approach:
+    *                                    http://codepen.io/TweenSpace/pen/PGWzoV
+    *                                    When setting css properties separately follow this example:
+    *                                    http://codepen.io/TweenSpace/pen/XjpKJp
     * @property {object} params.wave - Adds oscilatory to property values. Use amplitude property to modify the magnitude of the effect and frequency property to change the speed.
-    * @property {string} params.drawSVG - Value or set of values that allows you to animate an svg stroke length. Values can be provided as percentages as well as numbers.
-    * @property {object} params.motionPathSVG - Makes any html element move along a svg path.
+    *                                   http://codepen.io/TweenSpace/pen/QKKbJy
+    * @property {object} params.drawSVG - Value or set of values that allows you to animate an svg stroke length. Values can be provided as percentages as well as numbers.
+    *                                   Try this example: http://codepen.io/TweenSpace/pen/yORjYO
+    * @property {object} params.motionPathSVG - Makes any html element move along a svg path. http://codepen.io/TweenSpace/pen/qaRVKK
     * @property {object} params.morphSVG -  Morphs from one SVG Element to another. morphSVG will match the necessary amount of points for both paths,
     *                                       besides, it provides handy properties like reverse, shapeIndex and debug. reverse will change the direction
     *                                       of the destination path. shapeIndex will offset the points along the destination path. debug will show graphics
@@ -1019,7 +1064,7 @@ if(TweenSpace === undefined )
     *                                       while the red one is the destination path. Also, a larger dot indicates the end point and the max amount of points,
     *                                       while a smaller dot represents either a 25% of length of the path or a user shapeIndex on the path. Notice that
     *                                       the smaller dot indicates the direction of the path which is useful when matching dots positions.
-    *                                       Accepted SVG Elemets are circle, rect, ellipse, polygon, and path.
+    *                                       Accepted SVG Elemets are circle, rect, ellipse, polygon, and path. Please go here for more info: http://codepen.io/TweenSpace/pen/KMpedd 
     * @return {Tween} - Tween instance.
     * @memberof Tween
     * @public */
@@ -2353,19 +2398,37 @@ if(TweenSpace === undefined )
                 {
                     value = _this.ease( TweenSpace._.min(elapesedTime, _duration), _fromValues[0], _toValues[0], _duration );
                     
+                    
                     if( _effects['align'] == true )
                     {
-                        _effects['p1'].x = _effects['path'].getPointAtLength(value)['x'],
-                        _effects['p1'].y = _effects['path'].getPointAtLength(value)['y'];
-                        _effects['p2'].x = _effects['path'].getPointAtLength(_this.ease(_this.currentTime()-TweenSpace._.dt(), _fromValues[0], _toValues[0], _this.duration() ) )['x'],
-                        _effects['p2'].y = _effects['path'].getPointAtLength(_this.ease(_this.currentTime()-TweenSpace._.dt(), _fromValues[0], _toValues[0], _this.duration() ) )['y']; 
-                       
-                        rotate = Math.atan2(_effects['p2'].y - _effects['p1'].y, _effects['p2'].x - _effects['p1'].x) * 180 / TweenSpace._.PI();
+                        if( _fromValues[0] == value)
+                        { 
+                            _effects['p2'].x = _effects['path'].getPointAtLength(value)['x'],
+                            _effects['p2'].y = _effects['path'].getPointAtLength(value)['y'];
+                            _effects['p1'].x = _effects['path'].getPointAtLength(_this.ease(elapesedTime-TweenSpace._.dt(), _fromValues[0], _toValues[0], _this.duration() ) )['x'],
+                            _effects['p1'].y = _effects['path'].getPointAtLength(_this.ease(elapesedTime-TweenSpace._.dt(), _fromValues[0], _toValues[0], _this.duration() ) )['y'];
+                            console.log(rotate);
+                        }
+                        else if( _toValues[0] == value)
+                        { 
+                            //Do nothing for now 
+                        }
+                        else
+                        {
+                            _effects['p1'].x = _effects['path'].getPointAtLength(value)['x'],
+                            _effects['p1'].y = _effects['path'].getPointAtLength(value)['y'];
+                            _effects['p2'].x = _effects['path'].getPointAtLength(_this.ease(elapesedTime-TweenSpace._.dt(), _fromValues[0], _toValues[0], _this.duration() ) )['x'],
+                            _effects['p2'].y = _effects['path'].getPointAtLength(_this.ease(elapesedTime-TweenSpace._.dt(), _fromValues[0], _toValues[0], _this.duration() ) )['y']; 
+                        }
+                        
+                        rotate = Math.atan2(_effects['p2'].y - _effects['p1'].y, _effects['p2'].x - _effects['p1'].x) * (180 / TweenSpace._.PI());
                     }
                     
                     result =    'translate('    +(_effects['path'].getPointAtLength( value )['x']+_effects['offsetX'])+'px,'
                                                 +(_effects['path'].getPointAtLength( value )['y']+_effects['offsetY'])+'px)'+
                                 ' rotate('+(_effects['rotationOffset']+rotate)+_effects['rotationOffsetUnits']+')';
+                    
+                    
                 }
                 else if( property == 'morphSVG' )
                 {
