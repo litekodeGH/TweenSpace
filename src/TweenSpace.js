@@ -88,6 +88,15 @@ if(TweenSpace === undefined )
     {
         return (a<b)?a:b;
     }
+    /** Clamps a val between min and max.
+     * @private */
+    var _clamp = function (val, min, max)
+    {
+        if(val<min) val = min;
+        else if(val>max) val = max;
+        
+        return val;
+    }
     /**
      * Return the greatest property value of an array of tweens.
      * @private */
@@ -291,7 +300,7 @@ if(TweenSpace === undefined )
             return null;
         }
 
-        return null;
+        //return null;
     }
     /**
      * Robert Penner's Easing Equations.
@@ -947,6 +956,10 @@ if(TweenSpace === undefined )
             {
                 return _min(a, b);
             },
+            clamp: function(val, a, b)
+            {
+                return _clamp(val, a, b);
+            },
             getMax: function(array)
             {
                 return _getMax(array);
@@ -967,7 +980,7 @@ if(TweenSpace === undefined )
         /** TweenSpace Engine version.
          *  @var {string} version 
          *  @memberof TweenSpace */
-        version: '1.7.5.0', //release.major.minor.dev_stage
+        version: '1.7.6.0', //release.major.minor.dev_stage
         /** Useful under a debugging enviroment for faster revisiones.
          *  If true, the engine will assign destination values immediately and no animation will be performed.
          *  @var {boolean} debug 
@@ -2326,7 +2339,7 @@ if(TweenSpace === undefined )
                 var _transform = this.values[property].transform;
                 var _effects = this.values[property].effects;
 
-                var toLength, value, effectValue, rotate = 0;
+                var toLength, value, last_value, effectValue, rotate = 0;
                 var result = '', newValues = '';
                 
                 var w;
@@ -2396,29 +2409,25 @@ if(TweenSpace === undefined )
                 }
                 else if( property == 'motionPathSVG' )
                 {
-                    value = _this.ease( TweenSpace._.min(elapesedTime, _duration), _fromValues[0], _toValues[0], _duration );
-                    
+                    value = _this.ease( TweenSpace._.clamp( elapesedTime, 0, _duration), _fromValues[0], _toValues[0], _duration );
+                    last_value = _this.ease( TweenSpace._.clamp( elapesedTime-TweenSpace._.dt(), 0, _duration), _fromValues[0], _toValues[0], _duration );
                     
                     if( _effects['align'] == true )
                     {
                         if( _fromValues[0] == value)
                         { 
-                            _effects['p2'].x = _effects['path'].getPointAtLength(value)['x'],
-                            _effects['p2'].y = _effects['path'].getPointAtLength(value)['y'];
-                            _effects['p1'].x = _effects['path'].getPointAtLength(_this.ease(elapesedTime-TweenSpace._.dt(), _fromValues[0], _toValues[0], _this.duration() ) )['x'],
-                            _effects['p1'].y = _effects['path'].getPointAtLength(_this.ease(elapesedTime-TweenSpace._.dt(), _fromValues[0], _toValues[0], _this.duration() ) )['y'];
-                            console.log(rotate);
+                            //Do nothing for now
                         }
                         else if( _toValues[0] == value)
                         { 
-                            //Do nothing for now 
+                            //Do nothing for now
                         }
                         else
                         {
-                            _effects['p1'].x = _effects['path'].getPointAtLength(value)['x'],
-                            _effects['p1'].y = _effects['path'].getPointAtLength(value)['y'];
-                            _effects['p2'].x = _effects['path'].getPointAtLength(_this.ease(elapesedTime-TweenSpace._.dt(), _fromValues[0], _toValues[0], _this.duration() ) )['x'],
-                            _effects['p2'].y = _effects['path'].getPointAtLength(_this.ease(elapesedTime-TweenSpace._.dt(), _fromValues[0], _toValues[0], _this.duration() ) )['y']; 
+                            _effects['p1'].x = _effects['path'].getPointAtLength( value )['x'];
+                            _effects['p1'].y = _effects['path'].getPointAtLength( value )['y'];
+                            _effects['p2'].x = _effects['path'].getPointAtLength( last_value )['x'];
+                            _effects['p2'].y = _effects['path'].getPointAtLength( last_value )['y'];
                         }
                         
                         rotate = Math.atan2(_effects['p2'].y - _effects['p1'].y, _effects['p2'].x - _effects['p1'].x) * (180 / TweenSpace._.PI());
@@ -2427,8 +2436,6 @@ if(TweenSpace === undefined )
                     result =    'translate('    +(_effects['path'].getPointAtLength( value )['x']+_effects['offsetX'])+'px,'
                                                 +(_effects['path'].getPointAtLength( value )['y']+_effects['offsetY'])+'px)'+
                                 ' rotate('+(_effects['rotationOffset']+rotate)+_effects['rotationOffsetUnits']+')';
-                    
-                    
                 }
                 else if( property == 'morphSVG' )
                 {
