@@ -714,17 +714,31 @@ if(TweenSpace === undefined )
         *                                    http://codepen.io/TweenSpace/pen/XjpKJp
         * @property {object} params.wave - Adds oscilatory to property values. Use amplitude property to modify the magnitude of the effect and frequency property to change the speed.
         *                                   http://codepen.io/TweenSpace/pen/QKKbJy
-        * @property {object} params.drawSVG - Value or set of values that allows you to animate an svg stroke length. Values can be provided as percentages as well as numbers.
+        * @property {string} params.drawSVG - Value or set of values that allows you to animate an svg stroke length. Values can be provided as percentages as well as numbers.
         *                                   Try this example: http://codepen.io/TweenSpace/pen/yORjYO
-        * @property {object} params.motionPathSVG - Makes any html element move along a svg path. http://codepen.io/TweenSpace/pen/qaRVKK
+        * @property {object} params.motionPathSVG - Makes any html element move along a SVG path. 'motionPathSVG' object contains the following properties:<br>
+        *                                       <p style="padding-left:40px;">
+        *                                       path : SVG object which serves as the trajectory.<br>
+        *                                       'from' : Starting position on curve based on percentage of length or a value between 0 and curve length.<br>
+        *                                       'to' : Destination position on curve based on percentage of length or a value between 0 and curve length.<br>
+        *                                       rotationOffset : Offsets current rotation in degrees for custom purposes.<br>
+        *                                       offsetX : Offsets the current moving object's position in the x axis.<br>
+        *                                       offsetY : Offsets the current moving object's position in the y axis.<br>
+        *                                       'align' : Rotates automatically the moving object accordingly to the path's orientation using the current css transform-origin values.<br>
+        *                                       http://codepen.io/TweenSpace/pen/qaRVKK
+        *                                       </p>
         * @property {object} params.morphSVG -  Morphs from one SVG Element to another. morphSVG will match the necessary amount of points for both paths,
-        *                                       besides, it provides handy properties like reverse, shapeIndex and debug. reverse will change the direction
-        *                                       of the destination path. shapeIndex will offset the points along the destination path. debug will show graphics
-        *                                       regarding initial and destination path for setup purposes. When debug is true, the green path is the initial path
+        *                                       besides, it provides handy properties like reverse, shapeIndex and debug. Accepted SVG Elemets are circle, rect, ellipse, polygon, and path.
+        *                                       'morphSVG' object contains the following properties:
+        *                                       <p style="padding-left:40px;">
+        *                                       reverse : Changes the direction of the destination path. <br>
+        *                                       shapeIndex : Offsets the points along the destination path. <br>
+        *                                       debug : Shows graphics regarding initial and destination path for setup purposes. When debug is true, the green path is the initial path
         *                                       while the red one is the destination path. Also, a larger dot indicates the end point and the max amount of points,
         *                                       while a smaller dot represents either a 25% of length of the path or a user shapeIndex on the path. Notice that
-        *                                       the smaller dot indicates the direction of the path which is useful when matching dots positions.
-        *                                       Accepted SVG Elemets are circle, rect, ellipse, polygon, and path. Please go here for more info: http://codepen.io/TweenSpace/pen/KMpedd
+        *                                       the smaller dot indicates the direction of the path which is useful when matching dots positions.<br>
+        *                                       Please go here for more info: http://codepen.io/TweenSpace/pen/KMpedd
+        *                                       </p>
         * @return {Tween} - Tween instance.
         * @memberof TweenSpace */
         to: function( params )
@@ -741,9 +755,9 @@ if(TweenSpace === undefined )
         * @method sequential
         * @param {object} params -  An object containing the common destination values of css properties and TweenSpace parameters defined in TweenSpace.params.
         *                           The following properties are exclusive for this method. For more additional TweenSpace custom properties please go to TweenSpace.to() method description.
-        * @property {int} delay - Is the time offset between each tween. The delay amount will increment linearly as the tweens are played.
-        * @property {boolean} shuffle - If shuffle is set to true, the tweens are going to be played in a deterministic random fashion.
-        * @property {int} seed - Change this value in order to get different random behaviors.
+        * @property {int} params.delay - Is the time offset between each tween. The delay amount will increment linearly as the tweens are played.
+        * @property {boolean} params.shuffle - If shuffle is set to true, the tweens are going to be played in a deterministic random fashion.
+        * @property {int} params.seed - Change this value in order to get different random behaviors.
         * @return {array} - Array of Tween instances.
         * @memberof TweenSpace */
         sequential: function( params )
@@ -754,12 +768,12 @@ if(TweenSpace === undefined )
         * this method plays the animation right after instantiation. When the time comes to animate the same properties on multiple objects
         * this method reduces multiple tweens instantiation into one. Moreover, it can be used in conjunction with Timeline objects
         * to get playback controls over time.
-        * @method sequential
+        * @method sequentialTo
         * @param {object} params -  An object containing the common destination values of css properties and TweenSpace parameters defined in TweenSpace.params.
         *                           The following properties are exclusive for this method. For more additional TweenSpace custom properties please go to TweenSpace.to() method description.
-        * @property {int} delay - Is the time offset between each tween. The delay amount will increment linearly as the tweens are played.
-        * @property {boolean} shuffle - If shuffle is set to true, the tweens are going to be played in a deterministic random fashion.
-        * @property {int} seed - Change this value in order to get different random behaviors.
+        * @property {int} params.delay - Is the time offset between each tween. The delay amount will increment linearly as the tweens are played.
+        * @property {boolean} params.shuffle - If shuffle is set to true, the tweens are going to be played in a deterministic random fashion.
+        * @property {int} params.seed - Change this value in order to get different random behaviors.
         * @return {array} - Array of Tween instances.
         * @memberof TweenSpace */
         sequentialTo: function( params )
@@ -1022,17 +1036,31 @@ if(TweenSpace === undefined )
     *                                    http://codepen.io/TweenSpace/pen/XjpKJp
     * @property {object} params.wave - Adds oscilatory to property values. Use amplitude property to modify the magnitude of the effect and frequency property to change the speed.
     *                                   http://codepen.io/TweenSpace/pen/QKKbJy
-    * @property {object} params.drawSVG - Value or set of values that allows you to animate an svg stroke length. Values can be provided as percentages as well as numbers.
+    * @property {string} params.drawSVG - Value or set of values that allows you to animate an svg stroke length. Values can be provided as percentages as well as numbers.
     *                                   Try this example: http://codepen.io/TweenSpace/pen/yORjYO
-    * @property {object} params.motionPathSVG - Makes any html element move along a svg path. http://codepen.io/TweenSpace/pen/qaRVKK
+    * @property {object} params.motionPathSVG - Makes any html element move along a SVG path. 'motionPathSVG' object contains the following properties:<br>
+    *                                       <p style="padding-left:40px;">
+    *                                       path : SVG object which serves as the trajectory.<br>
+    *                                       'from' : Starting position on curve based on percentage of length or a value between 0 and curve length.<br>
+    *                                       'to' : Destination position on curve based on percentage of length or a value between 0 and curve length.<br>
+    *                                       rotationOffset : Offsets current rotation in degrees for custom purposes.<br>
+    *                                       offsetX : Offsets the current moving object's position in the x axis.<br>
+    *                                       offsetY : Offsets the current moving object's position in the y axis.<br>
+    *                                       'align' : Rotates automatically the moving object accordingly to the path's orientation using the current css transform-origin values.<br>
+    *                                       http://codepen.io/TweenSpace/pen/qaRVKK
+    *                                       </p>
     * @property {object} params.morphSVG -  Morphs from one SVG Element to another. morphSVG will match the necessary amount of points for both paths,
-    *                                       besides, it provides handy properties like reverse, shapeIndex and debug. reverse will change the direction
-    *                                       of the destination path. shapeIndex will offset the points along the destination path. debug will show graphics
-    *                                       regarding initial and destination path for setup purposes. When debug is true, the green path is the initial path
+    *                                       besides, it provides handy properties like reverse, shapeIndex and debug. Accepted SVG Elemets are circle, rect, ellipse, polygon, and path.
+    *                                       'morphSVG' object contains the following properties:
+    *                                       <p style="padding-left:40px;">
+    *                                       reverse : Changes the direction of the destination path. <br>
+    *                                       shapeIndex : Offsets the points along the destination path. <br>
+    *                                       debug : Shows graphics regarding initial and destination path for setup purposes. When debug is true, the green path is the initial path
     *                                       while the red one is the destination path. Also, a larger dot indicates the end point and the max amount of points,
     *                                       while a smaller dot represents either a 25% of length of the path or a user shapeIndex on the path. Notice that
-    *                                       the smaller dot indicates the direction of the path which is useful when matching dots positions.
-    *                                       Accepted SVG Elemets are circle, rect, ellipse, polygon, and path. Please go here for more info: http://codepen.io/TweenSpace/pen/KMpedd                     
+    *                                       the smaller dot indicates the direction of the path which is useful when matching dots positions.<br>
+    *                                       Please go here for more info: http://codepen.io/TweenSpace/pen/KMpedd
+    *                                       </p>                    
     * @return {Tween} - Tween instance.
     * @memberof TweenSpace
     * */
@@ -1067,17 +1095,31 @@ if(TweenSpace === undefined )
     *                                    http://codepen.io/TweenSpace/pen/XjpKJp
     * @property {object} params.wave - Adds oscilatory to property values. Use amplitude property to modify the magnitude of the effect and frequency property to change the speed.
     *                                   http://codepen.io/TweenSpace/pen/QKKbJy
-    * @property {object} params.drawSVG - Value or set of values that allows you to animate an svg stroke length. Values can be provided as percentages as well as numbers.
+    * @property {string} params.drawSVG - Value or set of values that allows you to animate an svg stroke length. Values can be provided as percentages as well as numbers.
     *                                   Try this example: http://codepen.io/TweenSpace/pen/yORjYO
-    * @property {object} params.motionPathSVG - Makes any html element move along a svg path. http://codepen.io/TweenSpace/pen/qaRVKK
+    * @property {object} params.motionPathSVG - Makes any html element move along a SVG path. 'motionPathSVG' object contains the following properties:<br>
+    *                                       <p style="padding-left:40px;">
+    *                                       path : SVG object which serves as the trajectory.<br>
+    *                                       'from' : Starting position on curve based on percentage of length or a value between 0 and curve length.<br>
+    *                                       'to' : Destination position on curve based on percentage of length or a value between 0 and curve length.<br>
+    *                                       rotationOffset : Offsets current rotation in degrees for custom purposes.<br>
+    *                                       offsetX : Offsets the current moving object's position in the x axis.<br>
+    *                                       offsetY : Offsets the current moving object's position in the y axis.<br>
+    *                                       'align' : Rotates automatically the moving object accordingly to the path's orientation using the current css transform-origin values.<br>
+    *                                       http://codepen.io/TweenSpace/pen/qaRVKK
+    *                                       </p>
     * @property {object} params.morphSVG -  Morphs from one SVG Element to another. morphSVG will match the necessary amount of points for both paths,
-    *                                       besides, it provides handy properties like reverse, shapeIndex and debug. reverse will change the direction
-    *                                       of the destination path. shapeIndex will offset the points along the destination path. debug will show graphics
-    *                                       regarding initial and destination path for setup purposes. When debug is true, the green path is the initial path
+    *                                       besides, it provides handy properties like reverse, shapeIndex and debug. Accepted SVG Elemets are circle, rect, ellipse, polygon, and path.
+    *                                       'morphSVG' object contains the following properties:
+    *                                       <p style="padding-left:40px;">
+    *                                       reverse : Changes the direction of the destination path. <br>
+    *                                       shapeIndex : Offsets the points along the destination path. <br>
+    *                                       debug : Shows graphics regarding initial and destination path for setup purposes. When debug is true, the green path is the initial path
     *                                       while the red one is the destination path. Also, a larger dot indicates the end point and the max amount of points,
     *                                       while a smaller dot represents either a 25% of length of the path or a user shapeIndex on the path. Notice that
-    *                                       the smaller dot indicates the direction of the path which is useful when matching dots positions.
-    *                                       Accepted SVG Elemets are circle, rect, ellipse, polygon, and path. Please go here for more info: http://codepen.io/TweenSpace/pen/KMpedd 
+    *                                       the smaller dot indicates the direction of the path which is useful when matching dots positions.<br>
+    *                                       Please go here for more info: http://codepen.io/TweenSpace/pen/KMpedd
+    *                                       </p>
     * @return {Tween} - Tween instance.
     * @memberof Tween
     * @public */
@@ -1666,7 +1708,11 @@ if(TweenSpace === undefined )
                             tw.element.style.strokeDasharray = drawValues[1];
                     }
                     else if( prop == 'motionPathSVG' )
+                    {    
+                        tw.element.style.transformOrigin = (tw.props[prop]['offsetX'])+'px '+(tw.props[prop]['offsetY']+'px ');
                         tw.element.style.transform = tw.tweenStep(prop, time);
+                        
+                    }
                     else if( prop == 'morphSVG' )
                         tw.element.setAttribute('d', tw.tweenStep(prop, time) ) ;
                     else
@@ -2433,8 +2479,8 @@ if(TweenSpace === undefined )
                         rotate = Math.atan2(_effects['p2'].y - _effects['p1'].y, _effects['p2'].x - _effects['p1'].x) * (180 / TweenSpace._.PI());
                     }
                     
-                    result =    'translate('    +(_effects['path'].getPointAtLength( value )['x']+_effects['offsetX'])+'px,'
-                                                +(_effects['path'].getPointAtLength( value )['y']+_effects['offsetY'])+'px)'+
+                    result =    'translate('    +(_effects['path'].getPointAtLength( value )['x']-_effects['offsetX'])+'px,'
+                                                +(_effects['path'].getPointAtLength( value )['y']-_effects['offsetY'])+'px)'+
                                 ' rotate('+(_effects['rotationOffset']+rotate)+_effects['rotationOffsetUnits']+')';
                 }
                 else if( property == 'morphSVG' )
