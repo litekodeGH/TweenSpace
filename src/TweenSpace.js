@@ -674,12 +674,13 @@ if(TweenSpace === undefined )
     {
         if(seed==undefined) seed = 1;
         
-        var temp, j;
+        var temp, i=0, j=0;
+        var length = array.length;
+        seed = Math.pow(seed+length, 48);
 
-        for(var i=0; i<array.length; i++)
+        forLoop:for(; i<length;i++)
         {
-            j = (seed % (i+1) + i) % array.length;
-
+            j = (seed % (i+1) + i) % length;
             temp=array[i].delay();
             array[i].delay( array[j].delay() );
             array[j].delay(temp);
@@ -716,14 +717,16 @@ if(TweenSpace === undefined )
         *                                   http://codepen.io/TweenSpace/pen/QKKbJy
         * @property {string} params.drawSVG - Value or set of values that allows you to animate an svg stroke length. Values can be provided as percentages as well as numbers.
         *                                   Try this example: http://codepen.io/TweenSpace/pen/yORjYO
-        * @property {object} params.motionPathSVG - Makes any html element move along a SVG path. 'motionPathSVG' object contains the following properties:<br>
+        * @property {object} params.motionPathSVG - Makes any html element move along an SVG path. 'motionPathSVG' object contains the following properties:<br>
         *                                       <p style="padding-left:40px;">
         *                                       path : SVG object which serves as the trajectory.<br>
         *                                       'from' : Starting position on curve based on percentage of length or a value between 0 and curve length.<br>
         *                                       'to' : Destination position on curve based on percentage of length or a value between 0 and curve length.<br>
         *                                       rotationOffset : Offsets current rotation in degrees for custom purposes.<br>
-        *                                       offsetX : Offsets the current moving object's position in the x axis.<br>
-        *                                       offsetY : Offsets the current moving object's position in the y axis.<br>
+        *                                       offsetX : Offsets the current moving object's position in the x axis. This value will be considered in pixel units only,
+        *                                       therefore only numerical values will be accepted.<br>
+        *                                       offsetY : Offsets the current moving object's position in the y axis. This value will be considered in pixel units only,
+        *                                       therefore only numerical values will be accepted.<br>
         *                                       'align' : Rotates automatically the moving object accordingly to the path's orientation using the current css transform-origin values.<br>
         *                                       http://codepen.io/TweenSpace/pen/qaRVKK
         *                                       </p>
@@ -1038,14 +1041,16 @@ if(TweenSpace === undefined )
     *                                   http://codepen.io/TweenSpace/pen/QKKbJy
     * @property {string} params.drawSVG - Value or set of values that allows you to animate an svg stroke length. Values can be provided as percentages as well as numbers.
     *                                   Try this example: http://codepen.io/TweenSpace/pen/yORjYO
-    * @property {object} params.motionPathSVG - Makes any html element move along a SVG path. 'motionPathSVG' object contains the following properties:<br>
+    * @property {object} params.motionPathSVG - Makes any html element move along an SVG path. 'motionPathSVG' object contains the following properties:<br>
     *                                       <p style="padding-left:40px;">
     *                                       path : SVG object which serves as the trajectory.<br>
     *                                       'from' : Starting position on curve based on percentage of length or a value between 0 and curve length.<br>
     *                                       'to' : Destination position on curve based on percentage of length or a value between 0 and curve length.<br>
     *                                       rotationOffset : Offsets current rotation in degrees for custom purposes.<br>
-    *                                       offsetX : Offsets the current moving object's position in the x axis.<br>
-    *                                       offsetY : Offsets the current moving object's position in the y axis.<br>
+    *                                       offsetX : Offsets the current moving object's position in the x axis. This value will be considered in pixel units only,
+    *                                       therefore only numerical values will be accepted.<br>
+    *                                       offsetY : Offsets the current moving object's position in the y axis. This value will be considered in pixel units only,
+    *                                       therefore only numerical values will be accepted.<br>
     *                                       'align' : Rotates automatically the moving object accordingly to the path's orientation using the current css transform-origin values.<br>
     *                                       http://codepen.io/TweenSpace/pen/qaRVKK
     *                                       </p>
@@ -1097,14 +1102,16 @@ if(TweenSpace === undefined )
     *                                   http://codepen.io/TweenSpace/pen/QKKbJy
     * @property {string} params.drawSVG - Value or set of values that allows you to animate an svg stroke length. Values can be provided as percentages as well as numbers.
     *                                   Try this example: http://codepen.io/TweenSpace/pen/yORjYO
-    * @property {object} params.motionPathSVG - Makes any html element move along a SVG path. 'motionPathSVG' object contains the following properties:<br>
+    * @property {object} params.motionPathSVG - Makes any html element move along an SVG path. 'motionPathSVG' object contains the following properties:<br>
     *                                       <p style="padding-left:40px;">
     *                                       path : SVG object which serves as the trajectory.<br>
     *                                       'from' : Starting position on curve based on percentage of length or a value between 0 and curve length.<br>
     *                                       'to' : Destination position on curve based on percentage of length or a value between 0 and curve length.<br>
     *                                       rotationOffset : Offsets current rotation in degrees for custom purposes.<br>
-    *                                       offsetX : Offsets the current moving object's position in the x axis.<br>
-    *                                       offsetY : Offsets the current moving object's position in the y axis.<br>
+    *                                       offsetX : Offsets the current moving object's position in the x axis. This value will be considered in pixel units only,
+    *                                       therefore only numerical values will be accepted.<br>
+    *                                       offsetY : Offsets the current moving object's position in the y axis. This value will be considered in pixel units only,
+    *                                       therefore only numerical values will be accepted.<br>
     *                                       'align' : Rotates automatically the moving object accordingly to the path's orientation using the current css transform-origin values.<br>
     *                                       http://codepen.io/TweenSpace/pen/qaRVKK
     *                                       </p>
