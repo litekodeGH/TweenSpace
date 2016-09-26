@@ -122,12 +122,7 @@ if(TweenSpace === undefined )
     {
         var elementArray = [];
         
-        /*if( Tween.prototype.isPrototypeOf(elements) == true )
-        {
-            for(l=0; l < elements.tweens.length; l++)
-                elementArray.push( elements.tweens[l].element);
-        }
-        else*/ if( elements.constructor === String)
+        if( elements.constructor === String)
         {
             var nodeList = document.querySelectorAll(elements);
             if( nodeList == null || nodeList == undefined )
@@ -1173,7 +1168,7 @@ if(TweenSpace === undefined )
             _elements = TweenSpace._.getElements(params.elements);
             delete params.elements;
         }
-            
+           
         if( params.duration == undefined )
         {
             console.warn('TweenSpace.js Warning: Tween() has no duration defined!');
@@ -1194,7 +1189,7 @@ if(TweenSpace === undefined )
                 if( param == paramDefined)
                 { 
                     _options[param] = params[param];
-                    delete params[param];
+                    delete params[param]; 
                     break paramDefinedLoop;
                 }
                 else
@@ -1320,7 +1315,6 @@ if(TweenSpace === undefined )
         /** If true, Tween instance used by Timeline parent to execute important tasks such as onProgress and onComplete callbacks.
          *  @private */
         var _keyTween = false;
-        
         /** Callback dispatched when the animation has finished.
          *  @var  onComplete 
          *  @memberof Tween */
