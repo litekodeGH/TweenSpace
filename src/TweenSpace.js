@@ -723,6 +723,10 @@ if(TweenSpace === undefined )
         *                                       'from' : Starting position on curve based on percentage of length or a value between 0 and curve length.<br>
         *                                       'to' : Destination position on curve based on percentage of length or a value between 0 and curve length.<br>
         *                                       rotationOffset : Offsets current rotation in degrees for custom purposes.<br>
+        *                                       pivotX : Adjusts the current moving object's pivot in the x axis. This value will be considered in pixel units only,
+        *                                       therefore only numerical values will be accepted.<br>
+        *                                       pivotY : Adjusts the current moving object's pivot in the y axis. This value will be considered in pixel units only,
+        *                                       therefore only numerical values will be accepted.<br>
         *                                       offsetX : Offsets the current moving object's position in the x axis. This value will be considered in pixel units only,
         *                                       therefore only numerical values will be accepted.<br>
         *                                       offsetY : Offsets the current moving object's position in the y axis. This value will be considered in pixel units only,
@@ -903,6 +907,8 @@ if(TweenSpace === undefined )
                     to:'to',
                     path:'path',
                     rotationOffset:'rotationOffset',
+                    pivotX:'pivotX',
+                    pivotY:'pivotY',
                     offsetX:'offsetX',
                     offsetY:'offsetY',
                     align:'align'
@@ -997,7 +1003,7 @@ if(TweenSpace === undefined )
         /** TweenSpace Engine version.
          *  @var {string} version 
          *  @memberof TweenSpace */
-        version: '1.7.6.0', //release.major.minor.dev_stage
+        version: '1.7.7.0', //release.major.minor.dev_stage
         /** Useful under a debugging enviroment for faster revisiones.
          *  If true, the engine will assign destination values immediately and no animation will be performed.
          *  @var {boolean} debug 
@@ -1047,6 +1053,10 @@ if(TweenSpace === undefined )
     *                                       'from' : Starting position on curve based on percentage of length or a value between 0 and curve length.<br>
     *                                       'to' : Destination position on curve based on percentage of length or a value between 0 and curve length.<br>
     *                                       rotationOffset : Offsets current rotation in degrees for custom purposes.<br>
+    *                                       pivotX : Adjusts the current moving object's pivot in the x axis. This value will be considered in pixel units only,
+    *                                       therefore only numerical values will be accepted.<br>
+    *                                       pivotY : Adjusts the current moving object's pivot in the y axis. This value will be considered in pixel units only,
+    *                                       therefore only numerical values will be accepted.<br>
     *                                       offsetX : Offsets the current moving object's position in the x axis. This value will be considered in pixel units only,
     *                                       therefore only numerical values will be accepted.<br>
     *                                       offsetY : Offsets the current moving object's position in the y axis. This value will be considered in pixel units only,
@@ -1108,6 +1118,10 @@ if(TweenSpace === undefined )
     *                                       'from' : Starting position on curve based on percentage of length or a value between 0 and curve length.<br>
     *                                       'to' : Destination position on curve based on percentage of length or a value between 0 and curve length.<br>
     *                                       rotationOffset : Offsets current rotation in degrees for custom purposes.<br>
+    *                                       pivotX : Adjusts the current moving object's pivot in the x axis. This value will be considered in pixel units only,
+    *                                       therefore only numerical values will be accepted.<br>
+    *                                       pivotY : Adjusts the current moving object's pivot in the y axis. This value will be considered in pixel units only,
+    *                                       therefore only numerical values will be accepted.<br>
     *                                       offsetX : Offsets the current moving object's position in the x axis. This value will be considered in pixel units only,
     *                                       therefore only numerical values will be accepted.<br>
     *                                       offsetY : Offsets the current moving object's position in the y axis. This value will be considered in pixel units only,
@@ -1716,7 +1730,7 @@ if(TweenSpace === undefined )
                     }
                     else if( prop == 'motionPathSVG' )
                     {    
-                        tw.element.style.transformOrigin = (tw.props[prop]['offsetX'])+'px '+(tw.props[prop]['offsetY']+'px ');
+                        tw.element.style.transformOrigin = (tw.props[prop]['pivotX'])+'px '+(tw.props[prop]['pivotY']+'px ');
                         tw.element.style.transform = tw.tweenStep(prop, time);
                         
                     }
@@ -2014,6 +2028,8 @@ if(TweenSpace === undefined )
                     effects['p1'] = {x:0, y:0};
                     effects['p2'] = {x:0, y:0};
                     
+                    effects['pivotX'] = ( tween.props[prop]['pivotX'] != undefined )?tween.props[prop]['pivotX']:0;
+                    effects['pivotY'] = ( tween.props[prop]['pivotY'] != undefined )?tween.props[prop]['pivotY']:0;
                     effects['offsetX'] = ( tween.props[prop]['offsetX'] != undefined )?tween.props[prop]['offsetX']:0;
                     effects['offsetY'] = ( tween.props[prop]['offsetY'] != undefined )?tween.props[prop]['offsetY']:0;
                     
@@ -2486,8 +2502,8 @@ if(TweenSpace === undefined )
                         rotate = Math.atan2(_effects['p2'].y - _effects['p1'].y, _effects['p2'].x - _effects['p1'].x) * (180 / TweenSpace._.PI());
                     }
                     
-                    result =    'translate('    +(_effects['path'].getPointAtLength( value )['x']-_effects['offsetX'])+'px,'
-                                                +(_effects['path'].getPointAtLength( value )['y']-_effects['offsetY'])+'px)'+
+                    result =    'translate('    +(_effects['path'].getPointAtLength( value )['x']-_effects['pivotX']+_effects['offsetX'])+'px,'
+                                                +(_effects['path'].getPointAtLength( value )['y']-_effects['pivotY']+_effects['offsetY'])+'px)'+
                                 ' rotate('+(_effects['rotationOffset']+rotate)+_effects['rotationOffsetUnits']+')';
                 }
                 else if( property == 'morphSVG' )
