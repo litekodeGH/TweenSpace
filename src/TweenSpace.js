@@ -1557,7 +1557,7 @@ if(TweenSpace === undefined )
         /** This method will update Tween property values at runtime. This method is intended to be used rather that to() in order to improve performance.
         * This way you will avoid unnecessary re-instantiation of the same Tween. You can add new properties even when they were not defined at creation. 
         *@method updateTo
-        *@param {object} props - Properties to.
+        *@param {object} props - An object containing new destination values.
         * @memberof Tween */
         this.updateTo = function( props )
         {
@@ -2629,7 +2629,7 @@ if(TweenSpace === undefined )
     {
         var _this = this,
             _tweens = [],
-            _duration = [];
+            _duration = 0;
         
         /** Returns Timeline instance duration in milliseconds.
          *  @method duration
@@ -2645,7 +2645,7 @@ if(TweenSpace === undefined )
          *  @memberof Timeline */
         this.currentTime = function()
         {
-            return _tweens[_tweens.length-1].currentTime();
+            return _tweens[_tweens.length-1].currentTime() + _tweens[_tweens.length-1].delay();
         }
         /** Callback dispatched when the animation has finished.
          *  @var  onComplete 
