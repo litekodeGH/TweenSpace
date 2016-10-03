@@ -1195,9 +1195,6 @@ if(TweenSpace === undefined )
                 else
                 {
                     //CHECK IF PARAM IS TWEENSPACE EFFECT
-                    /*if(elements=='#box')
-                        console.log( elements, param );*/
-                    
                     var effectFound = false;
                     effectLoop:for ( var effect in TweenSpace.params.effects )
                     {
@@ -1467,7 +1464,8 @@ if(TweenSpace === undefined )
             
             var i = 0;
             for(; i < _elements.length; i++)
-                _addSubTween( _addElement( _elements[i], _props ) );
+                _subTweens.push( _manageSubTween( new SubTween( _elements[i], _props ) ) );
+                
         }
         /** Starts tween playback.
         *@method play
@@ -1746,13 +1744,6 @@ if(TweenSpace === undefined )
             }
             //TWEEN CALLBACKS____________________________________
         } 
-        /** Method that adds an element.
-         * @private*/
-        function _addElement( element, props )
-        {
-            var tween = new SubTween(element, props );
-            return _manageSubTween( tween );
-        }
         /** Method that manages tweens.
          * @private*/
         function _manageSubTween( tween )
@@ -1775,13 +1766,9 @@ if(TweenSpace === undefined )
                     effects = {};
 
                     if( tween.props[prop]['wiggle'] != undefined )
-                    {
                         effects['wiggle'] = TweenSpace._.PerlinNoise(tween.props[prop]['wiggle'].amplitude, tween.props[prop]['wiggle'].frequency, tween.props[prop]['wiggle'].seed);
-                    }
                     else if( tween.props[prop]['wave'] != undefined )
-                    {
                         effects['wave'] = TweenSpace._.Wave(tween.props[prop]['wave'].amplitude, tween.props[prop]['wave'].frequency);
-                    }
                     
                     if( tween.props[prop]['to'] != undefined )
                         inputPropString = String( tween.props[prop]['to'] );
@@ -2189,12 +2176,12 @@ if(TweenSpace === undefined )
                         if( tween.props[prop]['shapeIndex'] )
                         {
                             toShapeDirection.setAttribute('cx', toValues[ parseInt(tween.props[prop]['shapeIndex']) ][5]);
-                            toShapeDirection.setAttribute('cy', toValues[  parseInt(tween.props[prop]['shapeIndex'])  ][6]);
+                            toShapeDirection.setAttribute('cy', toValues[ parseInt(tween.props[prop]['shapeIndex']) ][6]);
                         }
                         else
                         {
                             toShapeDirection.setAttribute('cx', toValues[ parseInt(Math.ceil(toValues.length-1)*0.25) ][5]);
-                            toShapeDirection.setAttribute('cy', toValues[  parseInt(Math.ceil(toValues.length-1)*0.25)  ][6]);
+                            toShapeDirection.setAttribute('cy', toValues[ parseInt(Math.ceil(toValues.length-1)*0.25) ][6]);
                         }
                         toShapeDirection.setAttribute('r', 4);
                         toShapeDirection.setAttribute('stroke-width', 0);
@@ -2227,12 +2214,6 @@ if(TweenSpace === undefined )
             }
             
             return tween;
-        }
-        /** Method that adds tweens into _subTweens.
-         * @private*/
-        function _addSubTween( tween )
-        {
-            _subTweens.push( tween );
         }
         /** Method that updates props values. 
          * @private*/
