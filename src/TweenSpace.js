@@ -8,8 +8,6 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-/*TODO
-*/
 
 if(TweenSpace === undefined ) 
 {    
@@ -41,33 +39,9 @@ if(TweenSpace === undefined )
     /** Another temporary Node instance used in DoublyList.
      * @private */
     var _node_paused = new Node();
-    /** if true, engine is running.
-     * @private */
-    var _isEngineOn = false;
-    /** Global elapsed time.
-     * @private */
-    var _eTime = 0;
-    /** Delta time.
-     * @private */
-    var _dt = 0;
-    /** Counts each tick call.
-     * @private */
-    var _tickCounter = 0;
     /** Temporary Tween instance.
      * @private */
     var _tween = null;
-    /** Stores time right before starting the engine.
-     * @private */
-    var _start_time = 0;
-    /** Stores current time.
-     * @private */
-    var _now;
-    /** Stores last time.
-     * @private */
-    var _then = 0;
-    /** requestAnimationFrame method id.
-     * @private */
-    var _reqID = 0;
     /** _delayed calls list.
      * @private */
     var _delayedCallList = new DoublyList();
@@ -80,8 +54,8 @@ if(TweenSpace === undefined )
     var _pi_m2 = _pi * 2;
     var _pi_d2 = _pi / 2;
     var _MAX_NUMBER = Number.MAX_SAFE_INTEGER;
-    var _requestAnimationFrame, _cancelAnimationFrame;
     
+        
     /** Return the least value between a and b.
      * @private */
     var _min = function (a, b)
@@ -137,78 +111,41 @@ if(TweenSpace === undefined )
         
         return elementArray;
     }
+    
+    
     /**
-     * Engine loop based on 'requestAnimationFrame' method.
+     * Loop over tweens.
      * @private */
-    var _engine = function()
+    function _updateTweens()
     {
-        //____ENGINE STARTS_____//
-        if( _isEngineOn == false )
+        _tween = null;
+        
+        //Loop over tweens
+        var curr_node = _queue_DL.head;
+        var j=0;
+        for( ; j<_queue_DL.length(); j++ )
         {
-            _requestAnimationFrame =    window.requestAnimationFrame ||
-                                        window.mozRequestAnimationFrame || 
-                                        window.webkitRequestAnimationFrame ||
-                                        window.msRequestAnimationFrame;
-            _cancelAnimationFrame = window.cancelAnimationFrame ||
-                                    window.mozCancelAnimationFrame || 
-                                    window.webkitCancelAnimationFrame ||
-                                    window.msCancelAnimationFrame;
-            _isEngineOn = true;
-            _tickCounter = _eTime = _now = _dt = 0;
-            _tween = null;
-            
-            _start_time = _then = window.performance.now();
-            
-            tick();
-            function tick()
+            _tween = curr_node.data;
+
+            if( _tween.playing() == true )
+                _tween.tick();
+            else
             {
-                _cancelAnimationFrame(_reqID);
-                if( _queue_DL.length() > 0 )
-                {
-                    _reqID = _requestAnimationFrame(tick);
-                }
-                else
-                {
-                    //Engine turns off
-                    _isEngineOn = false;
-                    _eTime = 0;
-                }
-                
-                _now = window.performance.now();
-                _eTime = _now - _start_time;
-                _dt = _now - _then;
-                _then = _now;
+                if( _queue_DL.length() > 0 ) curr_node = _queue_DL.remove( curr_node );
+                if( _queue_DL.length() > 1 ) curr_node = curr_node.prev;
 
-                //Loop over tweens
-                var curr_node = _queue_DL.head;
-                var j=0;
-                for( ; j<_queue_DL.length(); j++ )
-                {
-                    _tween = curr_node.data;
-                    
-                    if( _tween.playing() == true )
-                        _tween.tick();
-                    else
-                    {
-                        if( _queue_DL.length() > 0 ) curr_node = _queue_DL.remove( curr_node );
-                        if( _queue_DL.length() > 1 ) curr_node = curr_node.prev;
-
-                        j--;
-                        j = (j<0)?0:j;
-                    }
-                    
-                    if(curr_node)
-                        curr_node = curr_node.next;
-                }
-                
-                if(_queue_DL.length() <= 0)
-                    TweenSpace.onCompleteAll();
-                else
-                    TweenSpace.onProgressAll();
-                
-                _tickCounter++;
+                j--;
+                j = (j<0)?0:j;
             }
+
+            if(curr_node)
+                curr_node = curr_node.next;
         }
+
+        if(_queue_DL.length() <= 0)
+            TweenSpace.onCompleteAll();
+        else
+            TweenSpace.onProgressAll();
     }
     /**
      * Private method that plays a group of tweens that share common animated properties. These tweens will be played sequentially
@@ -296,6 +233,14 @@ if(TweenSpace === undefined )
         }
 
         //return null;
+    }
+    /**
+     * Private method that sets attributes and css properties.
+     * @private */
+    function _set( params )
+    {
+        params.duration = 1;
+        TweenSpace.Tween( params ).seek(1);
     }
     /**
      * Robert Penner's Easing Equations.
@@ -809,6 +754,13 @@ if(TweenSpace === undefined )
             for( ;_queue_paused_DL.length() > 0; )
                 _queue_paused_DL.head.data.stop();
         },
+        /** Static method that sets attributes and css properties.
+        * @method set
+        * @memberof TweenSpace */
+        set: function( params )
+        {
+            return _set( params );
+        },
         /** TweenSpace params contains custom properties such as delay, onComplete, etc. TweenSpace.params object is intended to be used as a reference only.
         * @var {object} params - An object containing custom properties such as delay, onComplete, etc.
         * @memberof TweenSpace */
@@ -958,17 +910,13 @@ if(TweenSpace === undefined )
          * @private*/
         _ : 
         {
+            updateTweens: function()
+            {
+                return _updateTweens();
+            },
             getElements: function(elements)
             {
                 return _getElements(elements);
-            },
-            engine:function()
-            {
-                _engine();
-            },
-            dt: function()
-            {
-                return _dt;
             },
             min: function(a, b)
             {
@@ -998,7 +946,7 @@ if(TweenSpace === undefined )
         /** TweenSpace Engine version.
          *  @var {string} version 
          *  @memberof TweenSpace */
-        version: '1.7.7.0', //release.major.minor.dev_stage
+        version: '1.7.8.0', //release.major.minor.dev_stage
         /** Useful under a debugging enviroment for faster revisiones.
          *  If true, the engine will assign destination values immediately and no animation will be performed.
          *  @var {boolean} debug 
@@ -1009,6 +957,93 @@ if(TweenSpace === undefined )
 
 })();
 }
+
+/**
+ * Engine loop module.
+ * @private */
+(function ( TweenSpace ) {
+    
+    /** if true, engine is running.
+     * @private */
+    var _isEngineOn = false;
+    /** Global elapsed time.
+     * @private */
+    var _eTime = 0;
+    /** Delta time.
+     * @private */
+    var _dt = 0;
+    /** Counts each tick call.
+     * @private */
+    var _tickCounter = 0;
+    /** Stores time right before starting the engine.
+     * @private */
+    var _start_time = 0;
+    /** Stores current time.
+     * @private */
+    var _now;
+    /** Stores last time.
+     * @private */
+    var _then = 0;
+    /** requestAnimationFrame method id.
+     * @private */
+    var _reqID = 0;
+    /** Request animation frame.
+     * @private */
+    var _requestAnimationFrame =    window.requestAnimationFrame ||
+                                    window.mozRequestAnimationFrame || 
+                                    window.webkitRequestAnimationFrame ||
+                                    window.msRequestAnimationFrame,
+        _cancelAnimationFrame =   window.cancelAnimationFrame ||
+                                    window.mozCancelAnimationFrame || 
+                                    window.webkitCancelAnimationFrame ||
+                                    window.msCancelAnimationFrame;
+    
+    /**
+     * Engine loop based on 'requestAnimationFrame' method.
+     * @private */
+        
+    TweenSpace._.dt = function()
+    {
+        return _dt;
+    }
+    TweenSpace._.engine = function()
+    {
+        //____ENGINE STARTS_____//
+        if( _isEngineOn == false )
+        {
+            _isEngineOn = true;
+            _tickCounter = _eTime = _now = _dt = 0;
+            _start_time = _then = window.performance.now();
+            var queue_DL = TweenSpace._.queue_DL;
+            
+            tick();
+            function tick()
+            {
+                _cancelAnimationFrame(_reqID);
+                if( queue_DL.length() > 0 )
+                {
+                    _reqID = _requestAnimationFrame(tick);
+                }
+                else
+                {
+                    //Engine turns off
+                    _isEngineOn = false;
+                    _eTime = 0;
+                }
+
+                _now = window.performance.now();
+                _eTime = _now - _start_time;
+                _dt = _now - _then;
+                _then = _now;
+
+                //Loop over tweens
+                TweenSpace._.updateTweens();
+
+                _tickCounter++;
+            }
+        }
+    }
+})(TweenSpace || {});
 
 /*Tween Module*/
 (function ( TweenSpace ) {
@@ -3782,7 +3817,23 @@ if(TweenSpace === undefined )
     //____________________________________________________________
 })(TweenSpace || {});
 
-
-
-
-
+/**Physics Module
+* @private */
+//(function ( TweenSpace ) {
+//    TweenSpace.Physics = function( params )
+//    {
+//        return new Physics(params);
+//    }
+//    
+//    class Physics
+//    {
+//        constructor (params)
+//        {
+//            console.log('constructor');
+//        }
+//        PhysicsMethod1 ()
+//        {
+//            console.log('PhysicsMethod1');
+//        }
+//    }
+//})(TweenSpace || {});
