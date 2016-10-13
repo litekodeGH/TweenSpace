@@ -1,0 +1,8 @@
+Use command prompt where the js file is located.
+
+HTML:
+jsdoc TweenSpace.js
+
+
+JSON:
+jsdoc -X TweenSpace.js > jsdoc-ast.json
