@@ -367,7 +367,20 @@ if(TweenSpace === undefined )
             for(; i < length; i++)
             {
                 for ( var param in params )
-                    _elements[i].style[param] = params[param];
+                {   
+                    if(_elements[i].style[param] != undefined)
+                        //css properties
+                        _elements[i].style[param] = params[param];
+                    else
+                    {
+                        //TweenSpace custom properties
+                        var tempParams = {};
+                        tempParams.elements = _elements[i];
+                        tempParams.duration = 1;
+                            tempParams[param] = params[param];
+                        TweenSpace.Tween( tempParams ).seek(1);
+                    }
+                }
             }
         }
         /**
@@ -814,6 +827,7 @@ if(TweenSpace === undefined )
                 //Exclusive Paramenters for TweenSpace.Tween()
                 elements: 'elements',
                 duration: 'duration',
+                checkConflict: 'checkConflict',
                 delay: 'delay',
                 yoyo: 'yoyo',
                 repeat: 'repeat',
@@ -1254,7 +1268,7 @@ if(TweenSpace === undefined )
                 if( param == paramDefined)
                 { 
                     _options[param] = params[param];
-                    delete params[param]; 
+                    delete params[param];
                     break paramDefinedLoop;
                 }
                 else
@@ -1299,13 +1313,11 @@ if(TweenSpace === undefined )
                             break paramDefinedLoop;
                         }
                     }
-                    
-                    //PARAM IS HTML PROP
-                    if(effectFound == false)
-                        _props[param] = params[param];
                 }
             }
         }
+        
+        _props = params;
         
         /** If true, animation will be played backwards.
          * @private */
@@ -1377,6 +1389,9 @@ if(TweenSpace === undefined )
         /** If true, Tween instance used by Timeline parent to execute important tasks such as onProgress and onComplete callbacks.
          *  @private */
         var _keyTween = false;
+        /** Check if an specific element's property is being played by multiple tweens. If so, the last call will prevail.
+         *  @private */
+        var _checkConflict = (_options.checkConflict!=undefined)?_options.checkConflict : true;
         /** Callback dispatched when the animation has finished.
          *  @var  onComplete 
          *  @memberof Tween */
@@ -1410,6 +1425,17 @@ if(TweenSpace === undefined )
         {
             return _mTime;
         }
+        /** Check if an specific element's property is being played by multiple tweens. If so, the last call will prevail.
+         *  @method checkConflict
+         *  @return {boolean} - If true, conflict checking will be performed just before playback. By default is set to true. 
+         *  @memberof Tween */
+        this.checkConflict = function(value)
+        {
+            if( value != undefined )
+                _checkConflict = value;
+                
+            return _checkConflict;
+        }  
         /** Returns the amount of time in milliseconds to wait before starting the animation.
          *  @method delay
          *  @return {float} - Delay time in milliseconds.
@@ -1680,6 +1706,12 @@ if(TweenSpace === undefined )
                 _keyTween = value;
             
             return _keyTween;
+        }
+        /** Set or return the key Tween instance.
+         * @private*/
+        this.subTweens = function()
+        {
+            return _subTweens;
         }
         /** Reset settings.
          * @private*/
@@ -2384,6 +2416,9 @@ if(TweenSpace === undefined )
                 }
             }
             
+            if(_checkConflict==true)
+                checkConflicts();
+                
             _playing = true;
             TweenSpace._.queue_DL.push( _this );
             
@@ -2425,6 +2460,50 @@ if(TweenSpace === undefined )
                         _dTime = _durationRepeat;
                     else
                         _dTime = _sTime;
+                }
+            }
+        }
+        function checkConflicts()
+        {
+            var i = 0, j = 0, k = 0;
+            
+            var this_subTweens_length = _subTweens.length;
+            var curr_subTweens_length;
+            var queue_length = TweenSpace._.queue_DL.length();
+            var currNode = TweenSpace._.queue_DL.head;
+            var tempNode;
+            
+            i=0;
+            for(;i<this_subTweens_length;i++)
+            {
+                j=0;
+                for(;j<queue_length;j++)
+                {
+                    curr_subTweens_length = currNode.data.subTweens().length;
+                    
+                    k=0;
+                    for(;k<curr_subTweens_length;k++)
+                    {
+                        currNode.data.subTweens()[k];
+                        
+                        if( _subTweens[i].element == currNode.data.subTweens()[k].element )
+                        {
+                            for( var this_prop in _subTweens[i].props )
+                            {
+                                for( var curr_prop in currNode.data.subTweens()[k].props )
+                                {
+                                    if(this_prop == curr_prop)
+                                    {
+                                        //delete redundant property on current tween to avoid conflicts
+                                        delete currNode.data.subTweens()[k].props[curr_prop];
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    tempNode = currNode.next;
+                    currNode = tempNode;
                 }
             }
         }

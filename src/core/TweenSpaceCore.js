@@ -228,7 +228,20 @@
             for(; i < length; i++)
             {
                 for ( var param in params )
-                    _elements[i].style[param] = params[param];
+                {   
+                    if(_elements[i].style[param] != undefined)
+                        //css properties
+                        _elements[i].style[param] = params[param];
+                    else
+                    {
+                        //TweenSpace custom properties
+                        var tempParams = {};
+                        tempParams.elements = _elements[i];
+                        tempParams.duration = 1;
+                            tempParams[param] = params[param];
+                        TweenSpace.Tween( tempParams ).seek(1);
+                    }
+                }
             }
         }
         /**
@@ -675,6 +688,7 @@
                 //Exclusive Paramenters for TweenSpace.Tween()
                 elements: 'elements',
                 duration: 'duration',
+                checkConflict: 'checkConflict',
                 delay: 'delay',
                 yoyo: 'yoyo',
                 repeat: 'repeat',
