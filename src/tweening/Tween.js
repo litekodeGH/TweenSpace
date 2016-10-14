@@ -145,18 +145,30 @@
          * @private */
         var _dur_init;
         
+        var _isNumberTo = false;
+        var _numberTo = 0;
+        
         //CHECK PARAMS
-        if(params.elements == undefined )
+        if(params.elements == undefined)
         {
-            console.warn('TweenSpace.js Warning: Tween() has no elements to affect!');
-            return null;
+            if(params.numberTo == undefined)
+            {
+                console.warn('TweenSpace.js Warning: Tween() has no elements to affect!');
+                return null;
+            }
+        }
+        
+        if(params.numberTo != undefined)
+        {    
+            _elements = [0];
+            _isNumberTo = true;
         }
         else
-        { 
             _elements = TweenSpace._.getElements(params.elements);
-            delete params.elements;
-        }
-           
+            
+        delete params.elements;
+
+        
         if( params.duration == undefined )
         {
             console.warn('TweenSpace.js Warning: Tween() has no duration defined!');
@@ -177,6 +189,7 @@
                 if( param == paramDefined)
                 { 
                     _options[param] = params[param];
+                    
                     delete params[param];
                     break paramDefinedLoop;
                 }
@@ -218,14 +231,22 @@
                                 _props[effectProps[m].prop] = newEffectObj;
                             }
                             
-                            delete params[param];
-                            break paramDefinedLoop;
+                            if(_isNumberTo == true && param == 'to')
+                            {}
+                            else
+                            {
+                                delete params[param];
+                                break paramDefinedLoop;
+                            }
+                            
                         }
                     }
                 }
             }
         }
         
+        
+            
         _props = params;
         
         /** If true, animation will be played backwards.
@@ -326,6 +347,15 @@
         {
             return _elements;
         }
+        /** Returns the current value between from and to properties when using TweenSpace.numberTo() method.
+         *  This value can be accessed within the onProgress() method. 
+         *  @method numberTo
+         *  @return {float} - Returns the current value between from and to properties when using TweenSpace.numberTo() method.
+         *  @memberof Tween */
+        this.numberTo = function()
+        {
+            return _numberTo;
+        }
         /** Returns current time in milliseconds.
          *  @method currentTime
          *  @return {float} - Time in milliseconds.
@@ -335,6 +365,7 @@
             return _mTime;
         }
         /** Check if an specific element's property is being played by multiple tweens. If so, the last call will prevail.
+         *  It is good to set it to false if you're planning to generate multiple elements dynamically in order to improve animation performance.
          *  @method checkConflict
          *  @return {boolean} - If true, conflict checking will be performed just before playback. By default is set to true. 
          *  @memberof Tween */
@@ -734,6 +765,8 @@
                     }
                     else if( prop == 'morphSVG' )
                         tw.element.setAttribute('d', tw.tweenStep(prop, time) ) ;
+                    else if( prop == 'numberTo' )
+                        _numberTo = tw.tweenStep(prop, time);
                     else
                         tw.element.style[prop] = tw.tweenStep(prop, time);
                 }
@@ -762,7 +795,7 @@
             var nameMatch, name, initName, rgb;
             
             //Store initial values
-            var styles = window.getComputedStyle(tween.element, null);
+            var styles = (_isNumberTo == true)?{}:window.getComputedStyle(tween.element, null);
             
             for ( var prop in tween.props )
             {
@@ -1206,6 +1239,13 @@
                     transform = null;
                     effects = null;
                 }
+                else if( prop == 'numberTo' )
+                {
+                    fromValues.push(parseFloat(_props['from']));
+                    toValues.push(parseFloat(_props['to']));
+                    delete _props['from'];
+                    delete _props['to'];
+                }
                 else
                 {
                     matchResult = String(inputPropString).match( /em|ex|px|in|cm|mm|%|rad|deg/ );
@@ -1556,6 +1596,10 @@
                     }
                     
                     result = TweenSpace.SVG.path.toString(currentPathArray);
+                }
+                else if( property == 'numberTo' )
+                {
+                    result = _this.ease( TweenSpace._.min(elapesedTime, _duration), _fromValues[0], _toValues[0], _duration );
                 }
                 else
                 {
