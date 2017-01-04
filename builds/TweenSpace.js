@@ -1102,7 +1102,7 @@ if(TweenSpace === undefined )
             {
                 //console.log(_tickCounter);
                 _cancelAnimationFrame(_reqID);
-                if( queue_DL.length() > 0 || TweenSpace.Physics.active == true )
+                if( queue_DL.length() > 0 )//|| TweenSpace.Physics.active == true ) //________________________________________________________________________________________________
                 {
                     _reqID = _requestAnimationFrame(tick);
                 }
