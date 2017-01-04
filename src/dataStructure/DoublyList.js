@@ -1,7 +1,7 @@
 (function ( TweenSpace ) {
     /**
      * DoublyList.
-     * @class Internal class that implements a circular linked list in both directions.
+     * @class Internal class that implements a circular bi-directional linked list in both directions.
      * @return {DoublyList} - DoublyList instance.
      * @private
      */

@@ -33,7 +33,7 @@
                                     window.mozRequestAnimationFrame || 
                                     window.webkitRequestAnimationFrame ||
                                     window.msRequestAnimationFrame,
-        _cancelAnimationFrame =   window.cancelAnimationFrame ||
+        _cancelAnimationFrame =     window.cancelAnimationFrame ||
                                     window.mozCancelAnimationFrame || 
                                     window.webkitCancelAnimationFrame ||
                                     window.msCancelAnimationFrame;
@@ -55,12 +55,14 @@
             _tickCounter = _eTime = _now = _dt = 0;
             _start_time = _then = window.performance.now();
             var queue_DL = TweenSpace._.queue_DL;
+            //var body_DL = TweenSpace.Physics._.body_DL; //__________________________________________________________________________________________________________________________
             
             tick();
             function tick()
             {
+                //console.log(_tickCounter);
                 _cancelAnimationFrame(_reqID);
-                if( queue_DL.length() > 0 )
+                if( queue_DL.length() > 0 || TweenSpace.Physics.active == true )
                 {
                     _reqID = _requestAnimationFrame(tick);
                 }
@@ -78,6 +80,9 @@
 
                 //Loop over tweens
                 TweenSpace._.updateTweens();
+                //Loop over bodies
+                /*if(TweenSpace.Physics.active == true)
+                    TweenSpace.Physics._.updateBodies();*/ //__________________________________________________________________________________________________________________________
 
                 _tickCounter++;
             }

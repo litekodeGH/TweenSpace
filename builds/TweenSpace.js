@@ -57,7 +57,7 @@ if(TweenSpace === undefined )
 (function ( TweenSpace ) {
     /**
      * DoublyList.
-     * @class Internal class that implements a circular linked list in both directions.
+     * @class Internal class that implements a circular bi-directional linked list in both directions.
      * @return {DoublyList} - DoublyList instance.
      * @private
      */
@@ -1073,7 +1073,7 @@ if(TweenSpace === undefined )
                                     window.mozRequestAnimationFrame || 
                                     window.webkitRequestAnimationFrame ||
                                     window.msRequestAnimationFrame,
-        _cancelAnimationFrame =   window.cancelAnimationFrame ||
+        _cancelAnimationFrame =     window.cancelAnimationFrame ||
                                     window.mozCancelAnimationFrame || 
                                     window.webkitCancelAnimationFrame ||
                                     window.msCancelAnimationFrame;
@@ -1095,12 +1095,14 @@ if(TweenSpace === undefined )
             _tickCounter = _eTime = _now = _dt = 0;
             _start_time = _then = window.performance.now();
             var queue_DL = TweenSpace._.queue_DL;
+            //var body_DL = TweenSpace.Physics._.body_DL; //__________________________________________________________________________________________________________________________
             
             tick();
             function tick()
             {
+                //console.log(_tickCounter);
                 _cancelAnimationFrame(_reqID);
-                if( queue_DL.length() > 0 )
+                if( queue_DL.length() > 0 || TweenSpace.Physics.active == true )
                 {
                     _reqID = _requestAnimationFrame(tick);
                 }
@@ -1118,6 +1120,9 @@ if(TweenSpace === undefined )
 
                 //Loop over tweens
                 TweenSpace._.updateTweens();
+                //Loop over bodies
+                /*if(TweenSpace.Physics.active == true)
+                    TweenSpace.Physics._.updateBodies();*/ //__________________________________________________________________________________________________________________________
 
                 _tickCounter++;
             }
@@ -1373,7 +1378,6 @@ if(TweenSpace === undefined )
         }
         
         
-            
         _props = params;
         
         /** If true, animation will be played backwards.
@@ -1519,9 +1523,9 @@ if(TweenSpace === undefined )
             
             return _delay;
         }
-        /** If true, tween is being played, otherwise it is either paused or not queued at all.
+        /** Returns true if tween is being played, otherwise it is either paused or not queued at all.
          *  @method playing 
-         *  @return {boolean} - True if tween is currently playing.
+         *  @return {boolean} - Returns true if tween is currently playing.
          *  @memberof Tween */
         this.playing = function()
         {
@@ -2859,6 +2863,14 @@ if(TweenSpace === undefined )
          *  @var onProgress 
          *  @memberof Timeline */
         this.onProgress = undefined;
+        /** Returns true, timeline is being played, otherwise it is either paused or not queued at all.
+         *  @method playing 
+         *  @return {boolean} - Returns true if tween is currently playing.
+         *  @memberof Timeline */
+        this.playing = function()
+        {
+            return _tweens[_tweens.length-1].playing();
+        }
         /** Adds tweens to a Timeline instance.
          *  @method addTweens
          *  @param {*} tweens - Tween or array of Tween instances.
@@ -4002,24 +4014,4 @@ if(TweenSpace === undefined )
     // Source: https://github.com/adobe-webplatform/Snap.svg
     // Author: Dmitry Baranovskiy (http://dmitry.baranovskiy.com/)
     //____________________________________________________________
-})(TweenSpace || {});
-/**Physics Module
-* @private */
-(function ( TweenSpace ) {
-    TweenSpace.Physics = function( params )
-    {
-        return new Physics(params);
-    }
-    
-    class Physics
-    {
-        constructor (params)
-        {
-            console.log('constructor');
-        }
-        PhysicsMethod1 ()
-        {
-            console.log('PhysicsMethod1');
-        }
-    }
 })(TweenSpace || {});

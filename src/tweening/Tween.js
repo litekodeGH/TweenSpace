@@ -246,7 +246,6 @@
         }
         
         
-            
         _props = params;
         
         /** If true, animation will be played backwards.
@@ -392,9 +391,9 @@
             
             return _delay;
         }
-        /** If true, tween is being played, otherwise it is either paused or not queued at all.
+        /** Returns true if tween is being played, otherwise it is either paused or not queued at all.
          *  @method playing 
-         *  @return {boolean} - True if tween is currently playing.
+         *  @return {boolean} - Returns true if tween is currently playing.
          *  @memberof Tween */
         this.playing = function()
         {

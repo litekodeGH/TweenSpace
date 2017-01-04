@@ -53,6 +53,14 @@
          *  @var onProgress 
          *  @memberof Timeline */
         this.onProgress = undefined;
+        /** Returns true, timeline is being played, otherwise it is either paused or not queued at all.
+         *  @method playing 
+         *  @return {boolean} - Returns true if tween is currently playing.
+         *  @memberof Timeline */
+        this.playing = function()
+        {
+            return _tweens[_tweens.length-1].playing();
+        }
         /** Adds tweens to a Timeline instance.
          *  @method addTweens
          *  @param {*} tweens - Tween or array of Tween instances.
