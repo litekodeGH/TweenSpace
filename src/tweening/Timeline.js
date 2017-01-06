@@ -61,6 +61,14 @@
         {
             return _tweens[_tweens.length-1].playing();
         }
+        /** Returns an array of Tween objects.
+         *  @method tweens 
+         *  @return {Array} - Array of Tween objects.
+         *  @memberof Timeline */
+        this.tweens = function()
+        {
+            return _tweens;
+        }
         /** Adds tweens to a Timeline instance.
          *  @method addTweens
          *  @param {*} tweens - Tween or array of Tween instances.

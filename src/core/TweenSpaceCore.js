@@ -123,7 +123,8 @@
     }
     /**
      * Private method that plays a group of tweens that share common animated properties. These tweens will be played sequentially
-     * with an offset in time based on the delay property.
+     * with an offset in time based on the delay property. TweenSpace.sequentialTo() returns a timeline object 
+     * while TweenSpace.sequential() returns an array of tweens.
      * @private */
     function _sequential( params, play )
     {
@@ -173,6 +174,7 @@
                 }
 
                 var length = elements.length;
+                
                 for(var i=0; i<length; i++)
                 {
                     for (var param in tsParams)
@@ -181,23 +183,22 @@
                     params.elements = elements[i];
                     params.delay = delayInc;
                     params.duration = duration;
-
+                    
                     tweens.push( TweenSpace.Tween( params ) );
                     delayInc += delay;
-
-                    if( play == true && shuffle == false )
-                        tweens[tweens.length-1].play();
                 }
 
-                if( play == true && shuffle == true )
-                {    
-                    shuffleDelay( tweens, seed );
-
-                    for(var x=0; x<tweens.length; x++)
-                        tweens[x].play();
-                }
-
-                return tweens;
+                if(shuffle == true)
+                    tweens = shuffleDelay( tweens, seed );
+                
+                if( play == true )
+                {
+                    var timeline = TweenSpace.Timeline({tweens:tweens});
+                    timeline.play();
+                    return timeline;
+                }  
+                else
+                    return tweens;
             }
         }
         else
@@ -567,6 +568,8 @@
             array[i].delay( array[j].delay() );
             array[j].delay(temp);
         }
+        
+        return array;
     }
 
         /**
@@ -638,8 +641,9 @@
         };
         /** Static method that returns an array of Tween instances. In contrast to the static method sequentialTo,
         * this method does not start the animation. When the time comes to animate the same properties on multiple objects
-        * this method reduces multiple tweens instantiation into one. Moreover, it can be used in conjunction with Timeline objects
-        * to get playback controls over time. Besides common custom properties such as
+        * this method reduces multiple tweens instantiation into one. Control the amount of delayed time between each tween using the 'delay' parameter.
+        * If delay parameter is set to cero or just not declared, all tweens will start at the same time. If delay parameter is greater than cero, 
+        * objects will play with a delayed start time between each tween.
         * @method sequential
         * @param {object} params -  An object containing the common destination values of css properties and TweenSpace parameters defined in TweenSpace.params.
         *                           The following properties are exclusive for this method. For more additional TweenSpace custom properties please go to TweenSpace.to() method description.
@@ -652,17 +656,18 @@
         {
             return _sequential( params );
         };
-        /** Static method that returns an array of Tween instances. In contrast to the static method sequential,
+        /** Static method that returns Timeline object that contains a sequence of tweens. In contrast to the static method sequential,
         * this method plays the animation right after instantiation. When the time comes to animate the same properties on multiple objects
-        * this method reduces multiple tweens instantiation into one. Moreover, it can be used in conjunction with Timeline objects
-        * to get playback controls over time.
+        * this method reduces multiple tweens instantiation into one. Control the amount of delayed time between each tween using the 'delay' parameter.
+        * If delay parameter is set to cero or just not declared, all tweens will start at the same time. If delay parameter is greater than cero, 
+        * objects will play with a delayed start time between each tween.
         * @method sequentialTo
         * @param {object} params -  An object containing the common destination values of css properties and TweenSpace parameters defined in TweenSpace.params.
         *                           The following properties are exclusive for this method. For more additional TweenSpace custom properties please go to TweenSpace.to() method description.
         * @property {int} params.delay - Is the time offset between each tween. The delay amount will increment linearly as the tweens are played.
         * @property {boolean} params.shuffle - If shuffle is set to true, the tweens are going to be played in a deterministic random fashion.
         * @property {int} params.seed - Change this value in order to get different random behaviors.
-        * @return {array} - Array of Tween instances.
+        * @return {Timeline} - Timeline object.
         * @memberof TweenSpace */
         TweenSpace.sequentialTo = function( params )
         {
@@ -891,7 +896,7 @@
 
         /** TweenSpace Engine version.
          *  @memberof TweenSpace */
-        TweenSpace.version = '1.8.0.0'; //release.major.minor.dev_stage
+        TweenSpace.version = '1.8.1.0'; //release.major.minor.dev_stage
         /** Useful under a debugging enviroment for faster revisiones.
          *  If true, the engine will assign destination values immediately and no animation will be performed.
          *  @memberof TweenSpace */
