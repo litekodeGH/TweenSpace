@@ -1033,7 +1033,7 @@ if(TweenSpace === undefined )
         TweenSpace._.queue_paused_DL = _queue_paused_DL;
         TweenSpace._.PI = function() { return _pi };
 
-        /** TweenSpace Engine version.
+        /** TweenSpace Engine current version: 1.8.1.0
          *  @memberof TweenSpace */
         TweenSpace.version = '1.8.1.0'; //release.major.minor.dev_stage
         /** Useful under a debugging enviroment for faster revisiones.
