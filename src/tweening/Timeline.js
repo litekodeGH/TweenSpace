@@ -134,6 +134,8 @@
                 _apply( 'useDelay', true );
                 _apply( 'timelineParent', _this );
             }
+            
+            return _this;
         }
         /** Timeline class constructor. @private*/
         this.constructor = new function()

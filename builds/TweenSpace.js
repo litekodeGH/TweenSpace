@@ -1326,7 +1326,7 @@ if(TweenSpace === undefined )
         {
             paramDefinedLoop:for ( var paramDefined in TweenSpace.params )
             {
-                //CHECK IF PARAM IS TWEENSPACE CUSTOM
+                //CHECK IF PARAM IS TWEENSPACE CUSTOM SUCH AS delay, duration, repeat, yoyo, ease, etc.
                 if( param == paramDefined)
                 { 
                     _options[param] = params[param];
@@ -1336,7 +1336,7 @@ if(TweenSpace === undefined )
                 }
                 else
                 {
-                    //CHECK IF PARAM IS TWEENSPACE EFFECT
+                    //CHECK IF PARAM IS TWEENSPACE EFFECT SUCH AS wiggle, 
                     var effectFound = false;
                     effectLoop:for ( var effect in TweenSpace.params.effects )
                     {
@@ -1345,6 +1345,8 @@ if(TweenSpace === undefined )
                             effectFound = true;
                             var effectObjects = { [param]:{} };
                             var effectProps = [];
+                            
+                            //Iterate over effect object parameters
                             effectParamLoop:for ( var effectParam in params[param] )
                             {
                                 var effectParamFound = false;
@@ -1379,15 +1381,15 @@ if(TweenSpace === undefined )
                                 delete params[param];
                                 break paramDefinedLoop;
                             }
-                            
                         }
                     }
                 }
             }
         }
         
-        
-        _props = params;
+        for (var attrname in params)
+            _props[attrname] = params[attrname];
+        //_props = params;
         
         /** If true, animation will be played backwards.
          * @private */
@@ -1943,7 +1945,7 @@ if(TweenSpace === undefined )
                 if( tween.props[prop].constructor === Object )
                 {
                     effects = {};
-
+                    
                     if( tween.props[prop]['wiggle'] != undefined )
                         effects['wiggle'] = TweenSpace._.PerlinNoise(tween.props[prop]['wiggle'].amplitude, tween.props[prop]['wiggle'].frequency, tween.props[prop]['wiggle'].seed);
                     else if( tween.props[prop]['wave'] != undefined )
@@ -2615,7 +2617,7 @@ if(TweenSpace === undefined )
                 var _units = this.values[property].units;
                 var _transform = this.values[property].transform;
                 var _effects = this.values[property].effects;
-
+                
                 var toLength, value, last_value, effectValue, rotate = 0;
                 var result = '', newValues = '';
                 
@@ -2953,6 +2955,8 @@ if(TweenSpace === undefined )
                 _apply( 'useDelay', true );
                 _apply( 'timelineParent', _this );
             }
+            
+            return _this;
         }
         /** Timeline class constructor. @private*/
         this.constructor = new function()
