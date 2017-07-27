@@ -1186,7 +1186,7 @@ if(TweenSpace === undefined )
     *                                       offsetY : Offsets the current moving object's position in the y axis. This value will be considered in pixel units only,
     *                                       therefore only numerical values will be accepted.<br>
     *                                       'align' : Rotates automatically the moving object accordingly to the path's orientation using the current css transform-origin values.<br>
-    *                                       http://codepen.io/TweenSpace/pen/qaRVKK
+    *                                       https://codepen.io/TweenSpace/pen/OjyRyP
     *                                       </p>
     * @property {object} params.morphSVG -  Morphs from one SVG Element to another. morphSVG will match the necessary amount of points for both paths,
     *                                       besides, it provides handy properties like reverse, shapeIndex and debug. Accepted SVG Elemets are circle, rect, ellipse, polygon, and path.
@@ -1198,7 +1198,7 @@ if(TweenSpace === undefined )
     *                                       while the red one is the destination path. Also, a larger dot indicates the end point and the max amount of points,
     *                                       while a smaller dot represents either a 25% of length of the path or a user shapeIndex on the path. Notice that
     *                                       the smaller dot indicates the direction of the path which is useful when matching dots positions.<br>
-    *                                       Please go here for more info: http://codepen.io/TweenSpace/pen/KMpedd
+    *                                       Please go here for more info: https://codepen.io/TweenSpace/pen/xLwOyp
     *                                       </p>                    
     * @return {Tween} - Tween instance.
     * @memberof TweenSpace
@@ -1251,7 +1251,7 @@ if(TweenSpace === undefined )
     *                                       offsetY : Offsets the current moving object's position in the y axis. This value will be considered in pixel units only,
     *                                       therefore only numerical values will be accepted.<br>
     *                                       'align' : Rotates automatically the moving object accordingly to the path's orientation using the current css transform-origin values.<br>
-    *                                       http://codepen.io/TweenSpace/pen/qaRVKK
+    *                                       https://codepen.io/TweenSpace/pen/OjyRyP
     *                                       </p>
     * @property {object} params.morphSVG -  Morphs from one SVG Element to another. morphSVG will match the necessary amount of points for both paths,
     *                                       besides, it provides handy properties like reverse, shapeIndex and debug. Accepted SVG Elemets are circle, rect, ellipse, polygon, and path.
@@ -1263,7 +1263,7 @@ if(TweenSpace === undefined )
     *                                       while the red one is the destination path. Also, a larger dot indicates the end point and the max amount of points,
     *                                       while a smaller dot represents either a 25% of length of the path or a user shapeIndex on the path. Notice that
     *                                       the smaller dot indicates the direction of the path which is useful when matching dots positions.<br>
-    *                                       Please go here for more info: http://codepen.io/TweenSpace/pen/KMpedd
+    *                                       Please go here for more info: https://codepen.io/TweenSpace/pen/xLwOyp
     *                                       </p>
     * @return {Tween} - Tween instance.
     * @memberof Tween

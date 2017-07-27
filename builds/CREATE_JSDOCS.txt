@@ -1,4 +1,4 @@
-Use command prompt where the js file is located.
+Use NodeJS command prompt where the js file is located.
 
 HTML:
 jsdoc TweenSpace.js
