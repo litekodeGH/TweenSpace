@@ -82,6 +82,7 @@
                 elementArray[i] = nodeList.item(i);
         }
         else if( elements.constructor === Array ) elementArray = elements;
+        else if( elements.constructor === Object ) elementArray.push(elements);
         else elementArray.push(elements);
 
         return elementArray;

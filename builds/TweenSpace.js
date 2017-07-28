@@ -221,6 +221,7 @@ if(TweenSpace === undefined )
                 elementArray[i] = nodeList.item(i);
         }
         else if( elements.constructor === Array ) elementArray = elements;
+        else if( elements.constructor === Object ) elementArray.push(elements);
         else elementArray.push(elements);
 
         return elementArray;
@@ -2000,7 +2001,14 @@ if(TweenSpace === undefined )
                     else if( prop == 'numberTo' )
                         _numberTo = tw.tweenStep(prop, time);
                     else
-                        tw.element.style[prop] = tw.tweenStep(prop, time);
+                    {
+                        //Animate custom objects. I.e. {x:0, y:1}
+                        if(tw.element.constructor == Object)
+                            tw.element[prop] = tw.tweenStep(prop, time);
+                        //Animate CSS properties
+                        else
+                            tw.element.style[prop] = tw.tweenStep(prop, time);
+                    }    
                 }
             }
             
@@ -2026,8 +2034,21 @@ if(TweenSpace === undefined )
             //color vars
             var nameMatch, name, initName, rgb;
             
+            
+            
             //Store initial values
-            var styles = (_isNumberTo == true)?{}:window.getComputedStyle(tween.element, null);
+            //var styles = (_isNumberTo == true)?{}:window.getComputedStyle(tween.element, null);
+            var styles;
+            if(_isNumberTo == true)
+                styles = {};
+            else
+            {
+                if(tween.element.constructor == Object)
+                    styles = tween.element;
+                else
+                    styles = window.getComputedStyle(tween.element, null); 
+            }
+                
             
             for ( var prop in tween.props )
             {
@@ -2486,7 +2507,6 @@ if(TweenSpace === undefined )
                     units.push((matchResult) ? matchResult[0] : "");
                 }
                 
-                console.log(_isFrom);
                 if(_isFrom == false)
                     tween.values[prop] = new PropValues(name, fromValues, toValues, units, transform, effects);
                 else
