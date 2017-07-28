@@ -781,6 +781,74 @@ if(TweenSpace === undefined )
 
             return tween;
         };
+        /**
+        * Static method that creates and plays a Tween instance which holds starting values and other properties.
+        * In contrast with the 'to()' method, the input values will be used as starting values while the current ones will be considered destination values.
+        * @method from
+        * @param {object} params - An object containing the starting values of css properties and TweenSpace parameters defined in TweenSpace.params.
+        * @property {*} params.elements - Element or elements whose properties should be animated.
+                                Accepted arguments are a DOM element, an array of elements or CSS selection string.
+        * @property {int} params.duration - Tween duration in milliseconds. Check this link: http://codepen.io/TweenSpace/pen/mVwBdY
+        * @property {int} params.delay - Amount of time in milliseconds to wait before starting the animation. http://codepen.io/TweenSpace/pen/BjZJdb
+        * @property {boolean} params.yoyo - If true, yoyo() property will play the animation back and forth based on repeat property amount. Try this example: http://codepen.io/TweenSpace/pen/GoEyQP
+        * @property {int} params.repeat - Amount of times that the animation will be played. http://codepen.io/TweenSpace/pen/pgwpdj
+        * @property {int} params.timescale -  Sets and returns the timescale value. timescale() is a factor used to scale time in the animation.
+        *                                   While a value of 1 represents normal speed, lower values makes the faster as well as greater values
+        *                                   makes the animation slower. Please go to: http://codepen.io/TweenSpace/pen/OMzegL and http://codepen.io/TweenSpace/pen/WrOMQx
+        * @property {function} params.ease - Easing function that describes the rate of change of a parameter over time. http://codepen.io/TweenSpace/pen/qbjxZJ
+        *                                  Equations used were developed by Robert Penner.
+        * @property {function} params.onProgress - Callback dispatched every engine tick while animation is running. http://codepen.io/TweenSpace/pen/dMeVYR
+        * @property {function} params.onComplete - Callback dispatched when the animation has finished. http://codepen.io/TweenSpace/pen/vGjeEe
+        * @property {function} params.onRepeat - Callback dispatched when the animation starts a repetition.
+        * @property {object} params.wiggle - Adds deterministic randomness to property values. Use amplitude property to modify the magnitude of the effect and frequency property to change the speed.
+        *                                    You can also change the seed property to obtain different deterministic random behaviors. wiggle can be used in two ways.
+        *                                    For setting multiple css properties at once use the following approach:
+        *                                    http://codepen.io/TweenSpace/pen/PGWzoV
+        *                                    When setting css properties separately follow this example:
+        *                                    http://codepen.io/TweenSpace/pen/XjpKJp
+        * @property {object} params.wave - Adds oscilatory to property values. Use amplitude property to modify the magnitude of the effect and frequency property to change the speed.
+        *                                   http://codepen.io/TweenSpace/pen/QKKbJy
+        * @property {string} params.drawSVG - Value or set of values that allows you to animate an svg stroke length. Values can be provided as percentages as well as numbers.
+        *                                   Try this example: http://codepen.io/TweenSpace/pen/yORjYO
+        * @property {object} params.motionPathSVG - Makes any html element move along an SVG path. 'motionPathSVG' object contains the following properties:<br>
+        *                                       <p style="padding-left:40px;">
+        *                                       path : SVG object which serves as the trajectory.<br>
+        *                                       'from' : Starting position on curve based on percentage of length or a value between 0 and curve length.<br>
+        *                                       'to' : Destination position on curve based on percentage of length or a value between 0 and curve length.<br>
+        *                                       rotationOffset : Offsets current rotation in degrees for custom purposes.<br>
+        *                                       pivotX : Adjusts the current moving object's pivot in the x axis. This value will be considered in pixel units only,
+        *                                       therefore only numerical values will be accepted.<br>
+        *                                       pivotY : Adjusts the current moving object's pivot in the y axis. This value will be considered in pixel units only,
+        *                                       therefore only numerical values will be accepted.<br>
+        *                                       offsetX : Offsets the current moving object's position in the x axis. This value will be considered in pixel units only,
+        *                                       therefore only numerical values will be accepted.<br>
+        *                                       offsetY : Offsets the current moving object's position in the y axis. This value will be considered in pixel units only,
+        *                                       therefore only numerical values will be accepted.<br>
+        *                                       'align' : Rotates automatically the moving object accordingly to the path's orientation using the current css transform-origin values.<br>
+        *                                       http://codepen.io/TweenSpace/pen/qaRVKK
+        *                                       </p>
+        * @property {object} params.morphSVG -  Morphs from one SVG Element to another. morphSVG will match the necessary amount of points for both paths,
+        *                                       besides, it provides handy properties like reverse, shapeIndex and debug. Accepted SVG Elemets are circle, rect, ellipse, polygon, and path.
+        *                                       'morphSVG' object contains the following properties:
+        *                                       <p style="padding-left:40px;">
+        *                                       reverse : Changes the direction of the destination path. <br>
+        *                                       shapeIndex : Offsets the points along the destination path. <br>
+        *                                       debug : Shows graphics regarding initial and destination path for setup purposes. When debug is true, the green path is the initial path
+        *                                       while the red one is the destination path. Also, a larger dot indicates the end point and the max amount of points,
+        *                                       while a smaller dot represents either a 25% of length of the path or a user shapeIndex on the path. Notice that
+        *                                       the smaller dot indicates the direction of the path which is useful when matching dots positions.<br>
+        *                                       Please go here for more info: http://codepen.io/TweenSpace/pen/KMpedd
+        *                                       </p>
+        * @return {Tween} - Tween instance.
+        * @memberof TweenSpace */
+        TweenSpace.from = function( params )
+        {
+            params[TweenSpace.params.isFrom] = true;
+            var tween = TweenSpace.Tween( params );
+            tween.play();
+
+            return tween;
+        };
         /** Static method that returns an array of Tween instances. In contrast to the static method sequentialTo,
         * this method does not start the animation. When the time comes to animate the same properties on multiple objects
         * this method reduces multiple tweens instantiation into one. Control the amount of delayed time between each tween using the tweenDelay parameter.
@@ -813,6 +881,24 @@ if(TweenSpace === undefined )
         * @memberof TweenSpace */
         TweenSpace.sequentialTo = function( params )
         {
+            return _sequential( params, true );
+        };
+        /** Static method that returns Timeline object that contains a sequence of tweens. This method plays the animation right after instantiation.
+        * en the time comes to animate the same properties on multiple objects this method reduces multiple tweens instantiation into one.
+        * Control the amount of delayed time between each tween using the tweenDelay parameter.
+        * If tweenDelay parameter is set to cero or just not declared, all tweens will start at the same time. If tweenDelay parameter is greater than cero, 
+        * objects will play with a delayed start time between each tween.
+        * @method sequentialFrom
+        * @param {object} params -  An object containing the common starting values of css properties and TweenSpace parameters defined in TweenSpace.params.
+        *                           The following properties are exclusive for this method. For more additional TweenSpace custom properties please go to TweenSpace.to() method description.
+        * @property {int} params.tweenDelay - Is the time offset between each tween. The tweenDelay amount will increment linearly as the tweens are played.
+        * @property {boolean} params.shuffle - If shuffle is set to true, the tweens are going to be played in a deterministic random fashion.
+        * @property {int} params.seed - Change this value in order to get different random behaviors.
+        * @return {Timeline} - Timeline object.
+        * @memberof TweenSpace */
+        TweenSpace.sequentialFrom = function( params )
+        {
+            params[TweenSpace.params.isFrom] = true;
             return _sequential( params, true );
         };
         /** Static method that pauses all tweens and timelines.
@@ -870,6 +956,7 @@ if(TweenSpace === undefined )
             repeat: 'repeat',
             timescale: 'timescale',
             debug: 'debug',
+            isFrom: 'isFrom',
             ease:
             {
                 //Robert Penner's Easing Equations
@@ -1464,6 +1551,9 @@ if(TweenSpace === undefined )
         /** Check if an specific element's property is being played by multiple tweens. If so, the last call will prevail.
          *  @private */
         var _checkConflict = (_options.checkConflict!=undefined)?_options.checkConflict : true;
+        /** If true, Tween instance used by Timeline parent to execute important tasks such as onProgress and onComplete callbacks.
+         *  @private */
+        var _isFrom = _options.isFrom || false;
         /** Callback dispatched when the animation has finished.
          *  @var  onComplete 
          *  @memberof Tween */
@@ -2396,7 +2486,11 @@ if(TweenSpace === undefined )
                     units.push((matchResult) ? matchResult[0] : "");
                 }
                 
-                tween.values[prop] = new PropValues(name, fromValues, toValues, units, transform, effects);
+                console.log(_isFrom);
+                if(_isFrom == false)
+                    tween.values[prop] = new PropValues(name, fromValues, toValues, units, transform, effects);
+                else
+                    tween.values[prop] = new PropValues(name, toValues, fromValues, units, transform, effects);
                 
                 effects = undefined;
             }

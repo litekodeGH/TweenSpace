@@ -323,6 +323,9 @@
         /** Check if an specific element's property is being played by multiple tweens. If so, the last call will prevail.
          *  @private */
         var _checkConflict = (_options.checkConflict!=undefined)?_options.checkConflict : true;
+        /** If true, Tween instance used by Timeline parent to execute important tasks such as onProgress and onComplete callbacks.
+         *  @private */
+        var _isFrom = _options.isFrom || false;
         /** Callback dispatched when the animation has finished.
          *  @var  onComplete 
          *  @memberof Tween */
@@ -1255,7 +1258,11 @@
                     units.push((matchResult) ? matchResult[0] : "");
                 }
                 
-                tween.values[prop] = new PropValues(name, fromValues, toValues, units, transform, effects);
+                console.log(_isFrom);
+                if(_isFrom == false)
+                    tween.values[prop] = new PropValues(name, fromValues, toValues, units, transform, effects);
+                else
+                    tween.values[prop] = new PropValues(name, toValues, fromValues, units, transform, effects);
                 
                 effects = undefined;
             }
