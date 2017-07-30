@@ -2153,7 +2153,7 @@ if(TweenSpace === undefined )
                             }
                             else if(    match[1] == 'translateX' || match[1] == 'translateY' || match[1] == 'translateZ' || 
                                         match[1] == 'rotateX' || match[1] == 'rotateY' || match[1] == 'rotateZ' ||
-                                        match[1] == 'skewX' || match[1] == 'skewY')
+                                        match[1] == 'skewX' || match[1] == 'skewY' || match[1] == 'perspective' )
                             {
                                 transform[ match[1] ].fromValues[0] = 0;
                             }
@@ -2748,7 +2748,7 @@ if(TweenSpace === undefined )
                                                 _transform[prop].fromValues[w],
                                                 _transform[prop].toValues[w],
                                                 _duration );
-
+                            
                             if( _effects != undefined )
                             {
                                 for ( var tweenEffects in _effects )
