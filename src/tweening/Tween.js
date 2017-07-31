@@ -1273,8 +1273,16 @@
                 else
                 {
                     matchResult = String(inputPropString).match( /em|ex|px|in|cm|mm|%|rad|deg/ );
-                    fromValues.push(parseFloat(initProp));
-                    toValues.push(parseFloat(inputPropString));
+                    var fromVal = parseFloat(initProp), toVal;
+                    fromValues.push(fromVal);
+                    
+                    //!Check function-based values___________________________
+                    toVal = _functionBasedValues(fromVal, inputPropString); 
+                    if(toVal == null)
+                        toVal = parseFloat(inputPropString)
+                    //Check function-based values___________________________!
+                    
+                    toValues.push(toVal);
                     units.push((matchResult) ? matchResult[0] : "");
                 }
                 
@@ -1287,6 +1295,27 @@
             }
             
             return tween;
+        }
+        /** Method that manages function based values such as +=, -=, *= and /=. 
+         * @private*/
+        function _functionBasedValues(fromVal, toVal)
+        {
+            var prefix = toVal.match( /\+=|-=|\*=|\/=/ );
+            toVal = parseFloat  ( toVal.split("=").pop() );
+            
+            if( prefix == null )
+                return null;
+            else
+            {
+                if(prefix[0] == '+=')
+                    return fromVal += toVal;
+                else if(prefix[0] == '-=')
+                    return fromVal -= toVal;
+                else if(prefix[0] == '*=')
+                    return fromVal *= toVal;
+                else if(prefix[0] == '/=')
+                    return fromVal /= toVal;
+            }
         }
         /** Method that updates props values. 
          * @private*/

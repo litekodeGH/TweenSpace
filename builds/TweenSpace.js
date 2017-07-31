@@ -1125,9 +1125,9 @@ if(TweenSpace === undefined )
         TweenSpace._.queue_paused_DL = _queue_paused_DL;
         TweenSpace._.PI = function() { return _pi };
 
-        /** TweenSpace Engine current version: 1.8.1.0
+        /** TweenSpace Engine current version: 1.8.3.0
          *  @memberof TweenSpace */
-        TweenSpace.version = '1.8.1.0'; //release.major.minor.dev_stage
+        TweenSpace.version = '1.8.3.0'; //release.major.minor.dev_stage
         /** Useful under a debugging enviroment for faster revisiones.
          *  If true, the engine will assign destination values immediately and no animation will be performed.
          *  @memberof TweenSpace */
@@ -2502,8 +2502,16 @@ if(TweenSpace === undefined )
                 else
                 {
                     matchResult = String(inputPropString).match( /em|ex|px|in|cm|mm|%|rad|deg/ );
-                    fromValues.push(parseFloat(initProp));
-                    toValues.push(parseFloat(inputPropString));
+                    var fromVal = parseFloat(initProp), toVal;
+                    fromValues.push(fromVal);
+                    
+                    //!Check function-based values___________________________
+                    toVal = _functionBasedValues(fromVal, inputPropString); 
+                    if(toVal == null)
+                        toVal = parseFloat(inputPropString)
+                    //Check function-based values___________________________!
+                    
+                    toValues.push(toVal);
                     units.push((matchResult) ? matchResult[0] : "");
                 }
                 
@@ -2516,6 +2524,27 @@ if(TweenSpace === undefined )
             }
             
             return tween;
+        }
+        /** Method that manages function based values such as +=, -=, *= and /=. 
+         * @private*/
+        function _functionBasedValues(fromVal, toVal)
+        {
+            var prefix = toVal.match( /\+=|-=|\*=|\/=/ );
+            toVal = parseFloat  ( toVal.split("=").pop() );
+            
+            if( prefix == null )
+                return null;
+            else
+            {
+                if(prefix[0] == '+=')
+                    return fromVal += toVal;
+                else if(prefix[0] == '-=')
+                    return fromVal -= toVal;
+                else if(prefix[0] == '*=')
+                    return fromVal *= toVal;
+                else if(prefix[0] == '/=')
+                    return fromVal /= toVal;
+            }
         }
         /** Method that updates props values. 
          * @private*/
