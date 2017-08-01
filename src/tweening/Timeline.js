@@ -5,6 +5,9 @@
      * @method Timeline
      * @param {object} params - An object containing Timeline properties.
      * @property {*} params.tweens - A Tween or an array of Tween instances whose properties should be animated.
+     * @property {*} params.timescale - Sets and returns the timescale value. timescale() is a factor used to scale time in the animation.
+     *                                  While a value of 1 represents normal speed, lower values makes the faster as well as greater values
+     *                                  makes the animation slower.
      * @property {function} params.onProgress - Callback dispatched every engine tick while the Timeline instance is running.
      * @property {function} params.onComplete - Callback dispatched when the animation of all the Tween instances that belongs to a Timeline object has finished.
      * @return {Timeline} - Timeline instance.
@@ -18,6 +21,9 @@
      * @class Timeline class is capable of controlling playback operations and time management on groups of tweens.
      * @param {object} params - An object containing Timeline properties.
      * @property {*} params.tweens - A Tween or an array of Tween instances whose properties should be animated.
+     * @property {*} params.timescale - Sets and returns the timescale value. timescale() is a factor used to scale time in the animation.
+     *                                  While a value of 1 represents normal speed, lower values makes the faster as well as greater values
+     *                                  makes the animation slower.
      * @property {function} params.onProgress - Callback dispatched every engine tick while the Timeline instance is running.
      * @property {function} params.onComplete - Callback dispatched when the animation of all the Tween instances that belongs to a Timeline object has finished.
      * @return {Timeline} - Timeline instance.
@@ -44,6 +50,16 @@
         this.currentTime = function()
         {
             return _tweens[_tweens.length-1].currentTime() + _tweens[_tweens.length-1].delay();
+        }
+        /** Scales the time of all tweens in the Timeline. While a value of 1 represents normal speed, lower values
+         *  makes the faster as well as greater values makes the animation slower.
+         *  @method timescale
+         *  @param {float} value - Amount of time scale.
+         *  @memberof Timeline */
+        this.timescale = function( value )
+        {
+            _apply( 'timescale', value, false );
+            _autoTrim();
         }
         /** Callback dispatched when the animation has finished.
          *  @var  onComplete 
@@ -145,6 +161,7 @@
                 _this.onProgress = params.onProgress || undefined;
                 _this.onComplete = params.onComplete || undefined;
                 _this.addTweens( params.tweens || undefined );
+                _this.timescale( params.timescale || undefined );
             }
         }
         /** Removes tweens to a Timeline instance.
@@ -230,16 +247,6 @@
         this.reverse = function( playhead )
         {
             _apply( 'reverse', playhead, true );
-        }
-        /** Scales the time of all tweens in the Timeline. While a value of 1 represents normal speed, lower values
-         *  makes the faster as well as greater values makes the animation slower.
-         *  @method timescale
-         *  @param {float} value - Amount of time scale.
-         *  @memberof Timeline */
-        this.timescale = function( value )
-        {
-            _apply( 'timescale', value, false );
-            _autoTrim();
         }
         /** Pauses sequence playback.
          *  @method pause
