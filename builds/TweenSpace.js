@@ -268,7 +268,8 @@ if(TweenSpace === undefined )
      * @private */
     function _sequential( params, play )
     {
-        var elements, tsParams = {}, delay, tweenDelay, delayInc, duration, tweens = [], shuffle, seed;
+        var elements, tsParams = {}, delay, tweenDelay, delayInc, duration, tweens = [], shuffle, seed, paramsInc = [], 
+            val = 'val', prefix = 'prefix', suffix = 'suffix', valInc = 'valInc';
         play = (play != undefined)?play:false;
 
         if( params.shuffle != undefined )
@@ -312,7 +313,7 @@ if(TweenSpace === undefined )
 
                 
                 elements = TweenSpace._.getElements( params.elements );
-
+                
                 for ( var param in params )
                 {
                     paramDefinedLoop:for ( var paramDefined in TweenSpace.params )
@@ -320,15 +321,42 @@ if(TweenSpace === undefined )
                         if( param == paramDefined)
                         { 
                             tsParams[param] = params[param];
+                            //delete params[param];
                             break paramDefinedLoop;
                         }
                     }
                 }
-
-                var length = elements.length;
                 
+                var length = elements.length;
                 for(var i=0; i<length; i++)
                 {
+                    //Loop over NON TS params only
+                    for ( var param in params )
+                    {
+                        if(params[param].constructor == String)
+                        {
+                            //Is function-based value
+                            if(params[param].match( /\+=|-=|\*=|\/=/ ) != null)
+                            {
+                                if( paramsInc[param] == undefined)
+                                {
+                                    paramsInc[param] = {};
+                                    paramsInc[param][prefix] = params[param].match( /\+=|-=|\*=|\/=/ );
+                                    paramsInc[param][suffix] = params[param].match( /em|ex|px|in|cm|mm|%|rad|deg/ );
+                                    paramsInc[param][val] = parseFloat( params[param].split("=").pop() );
+                                    paramsInc[param][valInc] = (paramsInc[param][prefix] == '+=' || paramsInc[param][prefix] == '-=')?0:1;
+                                    
+                                }
+                                else
+                                {
+                                    paramsInc[param][valInc] = TweenSpace._.functionBasedValues(paramsInc[param][val], params[param] );
+                                    params[param] = paramsInc[param][prefix] + String(paramsInc[param][valInc]) + paramsInc[param][suffix];
+                                }
+                            }    
+                        }    
+                    }   
+                    
+                    //Restore deleted TS params
                     for (var param in tsParams)
                         params[param] = tsParams[param];
 

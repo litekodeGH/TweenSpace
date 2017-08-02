@@ -661,7 +661,7 @@
          * @private*/
         function _reset()
         {
-            _repeat = (_repeat<0)?_MAX_NUMBER:_repeat;
+            _repeat = (_repeat<0)?TweenSpace._.MAX_NUMBER:_repeat;
             _durationTotal = _durationRepeat = _durRepeat_init = _durExtended_init = (_repeat * _duration) + _duration;
             _this.timescale(_timescale);
         }
