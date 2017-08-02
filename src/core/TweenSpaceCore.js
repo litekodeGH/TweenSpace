@@ -153,6 +153,7 @@
             else
             {
                 duration = params.duration;
+                delayInc = 0;
                 
                 if( params.tweenDelay == undefined)
                 {    
@@ -160,9 +161,17 @@
                     tweenDelay = 0;
                 }
                 else
+                {
                     tweenDelay = params.tweenDelay;
+                    
+                    //Check if tweenDelay is function-based
+                    if(tweenDelay.constructor == String)
+                        //If *=, add 1 to delayInc, otherwise will be multiply by 0 and will never increment. 
+                        if( TweenSpace._.functionBasedValues(0, tweenDelay) == 0)
+                            delayInc = 1;
+                }       
 
-                delayInc = 0;
+                
                 elements = TweenSpace._.getElements( params.elements );
 
                 for ( var param in params )
@@ -189,7 +198,13 @@
                     params.duration = duration;
                     
                     tweens.push( TweenSpace.Tween( params ) );
-                    delayInc += tweenDelay;
+                    if(tweenDelay.constructor == String)
+                    {    
+                        delayInc = TweenSpace._.functionBasedValues(delayInc, tweenDelay);
+                        console.log(delayInc);
+                    }
+                    else
+                        delayInc += tweenDelay;
                 }
 
                 if(shuffle == true)
@@ -985,6 +1000,28 @@
         TweenSpace._.queue_DL = _queue_DL;
         TweenSpace._.queue_paused_DL = _queue_paused_DL;
         TweenSpace._.PI = function() { return _pi };
+    
+        /** Method that manages function based values such as +=, -=, *= and /=. 
+         * @private*/
+        TweenSpace._.functionBasedValues = function (fromVal, toVal)
+        {
+            var prefix = toVal.match( /\+=|-=|\*=|\/=/ );
+            toVal = parseFloat  ( toVal.split("=").pop() );
+            
+            if( prefix == null )
+                return null;
+            else
+            {
+                if(prefix[0] == '+=')
+                    return fromVal += toVal;
+                else if(prefix[0] == '-=')
+                    return fromVal -= toVal;
+                else if(prefix[0] == '*=')
+                    return fromVal *= toVal;
+                else if(prefix[0] == '/=')
+                    return fromVal /= toVal;
+            }
+        }
 
         /** TweenSpace Engine current version: 1.8.3.0
          *  @memberof TweenSpace */
