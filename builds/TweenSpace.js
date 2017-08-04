@@ -3376,7 +3376,6 @@ if(TweenSpace === undefined )
         {
             if(_repeat>0)
             {
-                console.log('A', _this.currentTime(), _repeat_inc, playhead, _this.duration());
                 //Quick fix that should be revisited. Can't play a repeated timeline in reverse from the durationTotal() or the last millisecond.
                 if( playhead == _this.durationTotal() )
                     playhead -= 1;
@@ -3389,11 +3388,10 @@ if(TweenSpace === undefined )
                 _repeat_inc = parseInt(playhead/_this.duration());
                 if( _yoyo == true )
                     _yoyo_isOdd = (_repeat_inc%2 == 1)?true:false;
-                console.log('-',_this.currentTime(), _repeat_inc, playhead, _this.duration());
+                
                 playhead = Math.abs((_repeat_inc*_this.duration()) - playhead );
                 if( _yoyo_isOdd == true)
                     playhead = Math.abs(_this.duration() - playhead );
-                console.log('B',_this.currentTime(), _repeat_inc, playhead, _this.duration());
             }
             
             return playhead;
