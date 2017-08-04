@@ -622,9 +622,15 @@
                 }
                 
                 if(_playing == false)
+                {
                     if( _this.timelineParent().onComplete != undefined )
                         _this.timelineParent().onComplete();
+                    
+                    if(_timelineParent != null)
+                        _timelineParent._.manageRepeatCycles();
+                }    
             }
+            
             //TIMELINE CALLBACKS____________________________________
         }
         /** Removes all elements from DOM as well as its references stored in 'elements'.
@@ -810,8 +816,8 @@
             //Store initial values
             //var styles = (_isNumberTo == true)?{}:window.getComputedStyle(tween.element, null);
             var styles;
-            if(_isNumberTo == true)
-                styles = {};
+            if( _isNumberTo == true )
+            {    styles = {}; }
             else
             {
                 if(tween.element.constructor == Object)
@@ -1296,27 +1302,6 @@
             
             return tween;
         }
-        /** Method that manages function based values such as +=, -=, *= and /=. 
-         * @private*/
-        /*function _functionBasedValues(fromVal, toVal)
-        {
-            var prefix = toVal.match( /\+=|-=|\*=|\/=/ );
-            toVal = parseFloat  ( toVal.split("=").pop() );
-            
-            if( prefix == null )
-                return null;
-            else
-            {
-                if(prefix[0] == '+=')
-                    return fromVal += toVal;
-                else if(prefix[0] == '-=')
-                    return fromVal -= toVal;
-                else if(prefix[0] == '*=')
-                    return fromVal *= toVal;
-                else if(prefix[0] == '/=')
-                    return fromVal /= toVal;
-            }
-        }*/
         /** Method that updates props values. 
          * @private*/
         function _updateSubTweenProps( newProps )

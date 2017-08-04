@@ -93,14 +93,14 @@
      * @private */
     function _updateTweens()
     {
-        _tween = null;
+        TweenSpace._.current_tween = _tween = null;
 
         //Loop over tweens
         var curr_node = _queue_DL.head;
         var j=0;
         for( ; j<_queue_DL.length(); j++ )
         {
-            _tween = curr_node.data;
+            TweenSpace._.current_tween = _tween = curr_node.data;
 
             if( _tween.playing() == true )
                 _tween.tick();
@@ -1026,7 +1026,8 @@
     TweenSpace._.queue_paused_DL = _queue_paused_DL;
     TweenSpace._.PI = function() { return _pi };
     TweenSpace._.MAX_NUMBER = function() { return _MAX_NUMBER };
-
+    TweenSpace._.current_tween = _tween;
+    
 
 
     /** Method that manages function based values such as +=, -=, *= and /=. 
@@ -1053,7 +1054,7 @@
 
     /** TweenSpace Engine current version: 1.8.3.0
      *  @memberof TweenSpace */
-    TweenSpace.version = '1.8.3.0'; //release.major.minor.dev_stage
+    TweenSpace.version = '1.8.5.0'; //release.major.minor.dev_stage
     /** Useful under a debugging enviroment for faster revisiones.
      *  If true, the engine will assign destination values immediately and no animation will be performed.
      *  @memberof TweenSpace */

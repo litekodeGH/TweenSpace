@@ -232,14 +232,14 @@ if(TweenSpace === undefined )
      * @private */
     function _updateTweens()
     {
-        _tween = null;
+        TweenSpace._.current_tween = _tween = null;
 
         //Loop over tweens
         var curr_node = _queue_DL.head;
         var j=0;
         for( ; j<_queue_DL.length(); j++ )
         {
-            _tween = curr_node.data;
+            TweenSpace._.current_tween = _tween = curr_node.data;
 
             if( _tween.playing() == true )
                 _tween.tick();
@@ -1165,7 +1165,8 @@ if(TweenSpace === undefined )
     TweenSpace._.queue_paused_DL = _queue_paused_DL;
     TweenSpace._.PI = function() { return _pi };
     TweenSpace._.MAX_NUMBER = function() { return _MAX_NUMBER };
-
+    TweenSpace._.current_tween = _tween;
+    
 
 
     /** Method that manages function based values such as +=, -=, *= and /=. 
@@ -1192,7 +1193,7 @@ if(TweenSpace === undefined )
 
     /** TweenSpace Engine current version: 1.8.3.0
      *  @memberof TweenSpace */
-    TweenSpace.version = '1.8.3.0'; //release.major.minor.dev_stage
+    TweenSpace.version = '1.8.5.0'; //release.major.minor.dev_stage
     /** Useful under a debugging enviroment for faster revisiones.
      *  If true, the engine will assign destination values immediately and no animation will be performed.
      *  @memberof TweenSpace */
@@ -1916,9 +1917,15 @@ if(TweenSpace === undefined )
                 }
                 
                 if(_playing == false)
+                {
                     if( _this.timelineParent().onComplete != undefined )
                         _this.timelineParent().onComplete();
+                    
+                    if(_timelineParent != null)
+                        _timelineParent._.manageRepeatCycles();
+                }    
             }
+            
             //TIMELINE CALLBACKS____________________________________
         }
         /** Removes all elements from DOM as well as its references stored in 'elements'.
@@ -2104,8 +2111,8 @@ if(TweenSpace === undefined )
             //Store initial values
             //var styles = (_isNumberTo == true)?{}:window.getComputedStyle(tween.element, null);
             var styles;
-            if(_isNumberTo == true)
-                styles = {};
+            if( _isNumberTo == true )
+            {    styles = {}; }
             else
             {
                 if(tween.element.constructor == Object)
@@ -2590,27 +2597,6 @@ if(TweenSpace === undefined )
             
             return tween;
         }
-        /** Method that manages function based values such as +=, -=, *= and /=. 
-         * @private*/
-        /*function _functionBasedValues(fromVal, toVal)
-        {
-            var prefix = toVal.match( /\+=|-=|\*=|\/=/ );
-            toVal = parseFloat  ( toVal.split("=").pop() );
-            
-            if( prefix == null )
-                return null;
-            else
-            {
-                if(prefix[0] == '+=')
-                    return fromVal += toVal;
-                else if(prefix[0] == '-=')
-                    return fromVal -= toVal;
-                else if(prefix[0] == '*=')
-                    return fromVal *= toVal;
-                else if(prefix[0] == '/=')
-                    return fromVal /= toVal;
-            }
-        }*/
         /** Method that updates props values. 
          * @private*/
         function _updateSubTweenProps( newProps )
@@ -3062,7 +3048,13 @@ if(TweenSpace === undefined )
     {
         var _this = this,
             _tweens = [],
-            _duration = 0;
+            _repeat = 0,
+            _repeat_inc = 0,
+            _repeat_direction = true, //true = forward, false = backwards
+            _yoyo_isOdd = false,
+            _yoyo = false,
+            _duration = 0,
+            _reversed = false;
         
         /** Returns Timeline instance duration in milliseconds.
          *  @method duration
@@ -3071,6 +3063,34 @@ if(TweenSpace === undefined )
         this.duration = function()
         {
             return _duration;
+        }
+        /** Returns Timeline instance total duration in milliseconds, considering the repeat value.
+         *  @method durationTotal
+         *  @return {int} - Total duration in milliseconds considering the repeat value.
+         *  @memberof Timeline */
+        this.durationTotal = function()
+        {
+            return _duration + (_duration*_repeat);
+        }
+        /** Set or Gets Timeline repeat amount.
+         *  @method repeat
+         *  @return {int} - Repeat amount.
+         *  @memberof Timeline */
+        this.repeat = function( int )
+        {
+            if(int != undefined)
+                _repeat = int;
+            return _repeat;
+        }
+        /** Set or Gets Timeline yoyo behavior.
+         *  @method yoyo
+         *  @return {bool} - Yoyo behavior
+         *  @memberof Timeline */
+        this.yoyo = function( bool )
+        {
+            if(bool != undefined)
+                _yoyo = bool;
+            return _yoyo;
         }
         /** Returns current time in milliseconds.
          *  @method currentTime
@@ -3089,6 +3109,14 @@ if(TweenSpace === undefined )
         {
             _apply( 'timescale', value, false );
             _autoTrim();
+        }
+        /** Returns true if Timeline animation is reversed.
+        *@method reversed
+        *@return {boolean} - If true, animation is reversed.
+        * @memberof Timeline */
+        this.reversed = function()
+        {
+            return _reversed;
         }
         /** Callback dispatched when the animation has finished.
          *  @var  onComplete 
@@ -3191,6 +3219,8 @@ if(TweenSpace === undefined )
                 _this.onComplete = params.onComplete || undefined;
                 _this.addTweens( params.tweens || undefined );
                 _this.timescale( params.timescale || undefined );
+                _this.repeat( params.repeat || undefined );
+                _this.yoyo( params.yoyo || undefined );
             }
         }
         /** Removes tweens to a Timeline instance.
@@ -3243,7 +3273,11 @@ if(TweenSpace === undefined )
          *  @memberof Timeline */
         this.play = function( playhead )
         {
-            _apply( 'play', playhead, true );
+            _reversed = false;
+            _repeat_direction = true;
+            playhead  = _checkPlayhead( playhead );
+            playhead  = _adjustRepeatPlayhead( playhead );
+            _apply( (_yoyo_isOdd == false)?'play':'reverse', playhead, true );
         }
         /** Resumes sequence playback.
          *  @method resume
@@ -3251,7 +3285,9 @@ if(TweenSpace === undefined )
          *  @memberof Timeline */
         this.resume = function( playhead )
         {
-            _apply( 'resume', playhead, true );
+            playhead  = _checkPlayhead( playhead );
+            _apply( (_reversed == false)?'play':'reverse', playhead, true );
+            //_apply( 'resume', playhead, true );
         }
         /** Moves playhead to an specified time.
          *  @method seek
@@ -3259,6 +3295,7 @@ if(TweenSpace === undefined )
          *  @memberof Timeline */
         this.seek = function( playhead )
         {
+            playhead  = _adjustRepeatPlayhead( playhead );
             var adjustedPlayhead;
             var q=0;
             for(; q < _tweens.length; q++)
@@ -3275,7 +3312,14 @@ if(TweenSpace === undefined )
          *  @memberof Timeline */
         this.reverse = function( playhead )
         {
-            _apply( 'reverse', playhead, true );
+            _reversed = true;
+            _repeat_direction = false;
+            playhead  = _checkPlayhead( playhead );
+            playhead  = _adjustRepeatPlayhead( playhead );
+            if(_yoyo_isOdd == false)
+                _apply( 'reverse', playhead, true );   
+            else
+                _apply( 'play', playhead, true );
         }
         /** Pauses sequence playback.
          *  @method pause
@@ -3284,6 +3328,8 @@ if(TweenSpace === undefined )
          *  @memberof Timeline */
         this.pause = function( playhead )
         {
+            playhead  = _checkPlayhead( playhead );
+            //playhead  = _adjustRepeatPlayhead( playhead );
             _apply( 'pause', playhead, true );
         }
         /** Stops sequence playback.
@@ -3293,6 +3339,8 @@ if(TweenSpace === undefined )
          *  @memberof Timeline */
         this.stop = function( playhead )
         {
+            playhead  = _checkPlayhead( playhead );
+            //playhead  = _adjustRepeatPlayhead( playhead );
             _apply( 'stop', playhead, true );
         }
         /**
@@ -3310,6 +3358,45 @@ if(TweenSpace === undefined )
                 
                 _tweens[q][operation](adjustedValue);
             }
+        }
+        /**
+         * Check playhead.
+         * @private */
+        function _checkPlayhead( playhead )
+        {
+            if( isNaN(playhead) == true || playhead == undefined )
+                playhead = _this.currentTime();
+            
+            return playhead;
+        }
+        /**
+         * Adjust playhead for repeat feature.
+         * @private */
+        function _adjustRepeatPlayhead( playhead )
+        {
+            if(_repeat>0)
+            {
+                console.log('A', _this.currentTime(), _repeat_inc, playhead, _this.duration());
+                //Quick fix that should be revisited. Can't play a repeated timeline in reverse from the durationTotal() or the last millisecond.
+                if( playhead == _this.durationTotal() )
+                    playhead -= 1;
+                else if(playhead > _this.durationTotal() )
+                {
+                    console.warn('TweenSpace.js Warning: playhead '+playhead+'ms is greater than Timeline total duration. Playhead has been set to '+_this.durationTotal()+'ms.');
+                    playhead = _this.durationTotal()-1;
+                }    
+                
+                _repeat_inc = parseInt(playhead/_this.duration());
+                if( _yoyo == true )
+                    _yoyo_isOdd = (_repeat_inc%2 == 1)?true:false;
+                console.log('-',_this.currentTime(), _repeat_inc, playhead, _this.duration());
+                playhead = Math.abs((_repeat_inc*_this.duration()) - playhead );
+                if( _yoyo_isOdd == true)
+                    playhead = Math.abs(_this.duration() - playhead );
+                console.log('B',_this.currentTime(), _repeat_inc, playhead, _this.duration());
+            }
+            
+            return playhead;
         }
         /**
          * Set values to specified property of elements within a Tween instance.
@@ -3334,6 +3421,41 @@ if(TweenSpace === undefined )
             
             for(q=0; q < _tweens.length; q++)
                 _tweens[q].durationTotal( _duration - (_tweens[q].delay() + _tweens[q].duration()) + _tweens[q].duration() );
+        }
+        
+        this._ = {};
+        this._.manageRepeatCycles = function()
+        {
+            //Repeat is enabled
+            if( _this.repeat() > 0 && _repeat_inc >=0 && _repeat_inc <= _this.repeat() )
+            {
+                    //Timeline in point
+                    if( _this.currentTime() <= 0 )
+                    {
+                        if( _repeat_inc == 0 && _repeat_direction == false)
+                            return;
+                        
+                        (_repeat_direction == true ) ? _repeat_inc++ : _repeat_inc--;
+                        
+                        if( _yoyo == true )
+                            _apply( 'play', 0, true );
+                        else
+                            _apply( 'reverse', _this.duration()-1, true );
+                    }
+                    //Timeline out point
+                    else if( _this.currentTime() >= _this.duration() )
+                    {
+                        if( _repeat_inc == _this.repeat() && _repeat_direction == true)
+                            return;
+                        
+                        (_repeat_direction == true ) ? _repeat_inc++ : _repeat_inc--;
+                        
+                        if( _yoyo == true )
+                            _apply( 'reverse', _this.duration()-1, true );
+                        else
+                            _apply( 'play', 0, true );
+                    }
+            }
         }
          
         return this;
