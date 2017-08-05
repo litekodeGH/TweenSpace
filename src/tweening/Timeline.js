@@ -57,7 +57,7 @@
         {
             return _duration + (_duration*_repeat);
         }
-        /** Set or Gets Timeline repeat amount.
+        /** Sets or returns Timeline repeat amount.
          *  @method repeat
          *  @return {int} - Repeat amount.
          *  @memberof Timeline */
@@ -67,7 +67,7 @@
                 _repeat = int;
             return _repeat;
         }
-        /** Set or Gets Timeline yoyo behavior.
+        /** Set or returns Timeline yoyo behavior.
          *  @method yoyo
          *  @return {bool} - Yoyo behavior
          *  @memberof Timeline */
