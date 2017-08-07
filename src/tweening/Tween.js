@@ -611,7 +611,10 @@
             }
             
             _tick_logic();
-            _tick_draw(_dTime);
+            
+            //Make drawing calls only when needed
+            if( _mTime >= _sTime  || _dTime <= _duration )
+                _tick_draw(_dTime);
             
             //TIMELINE CALLBACKS____________________________________
             if( _keyTween == true )
@@ -751,7 +754,7 @@
          * @private*/
         function _tick_draw( time )
         {
-            var i, tw, units;
+            var i, tw, units;            
             for( i=0; i<_subTweens.length; i++ )
             {
                 tw = _subTweens[i];
@@ -852,7 +855,7 @@
                 
                 nameMatch = name = initName = rgb = '';
                 
-                if( prop == 'transform' )
+                if( prop == 'transform' || prop=='filter' )
                 {
                     var regex = /(\w+)\((.+?)\)/g, match;
                     transform = {};
@@ -871,7 +874,7 @@
                     {
                         //Get destination values
                         transform[ match[1] ] = { fromValues:[], toValues:String(match[2]).split(','), units:[] }; //(matchResult) ? matchResult[0] : ""
-                        
+
                         length = transform[ match[1] ].toValues.length;
                         for( q=0; q < length; q++ )
                         {
@@ -931,6 +934,12 @@
                             else if(    match[1] == 'translateX' || match[1] == 'translateY' || match[1] == 'translateZ' || 
                                         match[1] == 'rotateX' || match[1] == 'rotateY' || match[1] == 'rotateZ' ||
                                         match[1] == 'skewX' || match[1] == 'skewY' || match[1] == 'perspective' )
+                            {
+                                transform[ match[1] ].fromValues[0] = 0;
+                            }
+                            else if(    match[1] == 'blur' || match[1] == 'brightness' || match[1] == 'contrast' || 
+                                        match[1] == 'grayscale' || match[1] == 'hueRotate' || match[1] == 'invert' ||
+                                        match[1] == 'opacity' || match[1] == 'saturate' || match[1] == 'sepia' )
                             {
                                 transform[ match[1] ].fromValues[0] = 0;
                             }
@@ -1521,7 +1530,7 @@
                 var result = '', newValues = '';
                 
                 var w;
-                if( property == 'transform' )
+                if( property == 'transform' || property=='filter')
                 {
                     for(var prop in _transform)
                     {
@@ -1548,7 +1557,7 @@
                                     value += effectValue;
                                 }
                             }
-
+                            
                             newValues += String( value )+_transform[prop].units[w];
                             
                             if(w<toLength-1) newValues += ',';

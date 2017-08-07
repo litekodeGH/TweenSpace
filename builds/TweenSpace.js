@@ -1193,7 +1193,7 @@ if(TweenSpace === undefined )
 
     /** TweenSpace Engine current version: 1.8.3.0
      *  @memberof TweenSpace */
-    TweenSpace.version = '1.8.5.0'; //release.major.minor.dev_stage
+    TweenSpace.version = '1.8.6.0'; //release.major.minor.dev_stage
     /** Useful under a debugging enviroment for faster revisiones.
      *  If true, the engine will assign destination values immediately and no animation will be performed.
      *  @memberof TweenSpace */
@@ -1906,7 +1906,10 @@ if(TweenSpace === undefined )
             }
             
             _tick_logic();
-            _tick_draw(_dTime);
+            
+            //Make drawing calls only when needed
+            if( _mTime >= _sTime  || _dTime <= _duration )
+                _tick_draw(_dTime);
             
             //TIMELINE CALLBACKS____________________________________
             if( _keyTween == true )
@@ -2046,7 +2049,7 @@ if(TweenSpace === undefined )
          * @private*/
         function _tick_draw( time )
         {
-            var i, tw, units;
+            var i, tw, units;            
             for( i=0; i<_subTweens.length; i++ )
             {
                 tw = _subTweens[i];
@@ -2147,7 +2150,7 @@ if(TweenSpace === undefined )
                 
                 nameMatch = name = initName = rgb = '';
                 
-                if( prop == 'transform' )
+                if( prop == 'transform' || prop=='filter' )
                 {
                     var regex = /(\w+)\((.+?)\)/g, match;
                     transform = {};
@@ -2166,7 +2169,7 @@ if(TweenSpace === undefined )
                     {
                         //Get destination values
                         transform[ match[1] ] = { fromValues:[], toValues:String(match[2]).split(','), units:[] }; //(matchResult) ? matchResult[0] : ""
-                        
+
                         length = transform[ match[1] ].toValues.length;
                         for( q=0; q < length; q++ )
                         {
@@ -2226,6 +2229,12 @@ if(TweenSpace === undefined )
                             else if(    match[1] == 'translateX' || match[1] == 'translateY' || match[1] == 'translateZ' || 
                                         match[1] == 'rotateX' || match[1] == 'rotateY' || match[1] == 'rotateZ' ||
                                         match[1] == 'skewX' || match[1] == 'skewY' || match[1] == 'perspective' )
+                            {
+                                transform[ match[1] ].fromValues[0] = 0;
+                            }
+                            else if(    match[1] == 'blur' || match[1] == 'brightness' || match[1] == 'contrast' || 
+                                        match[1] == 'grayscale' || match[1] == 'hueRotate' || match[1] == 'invert' ||
+                                        match[1] == 'opacity' || match[1] == 'saturate' || match[1] == 'sepia' )
                             {
                                 transform[ match[1] ].fromValues[0] = 0;
                             }
@@ -2816,7 +2825,7 @@ if(TweenSpace === undefined )
                 var result = '', newValues = '';
                 
                 var w;
-                if( property == 'transform' )
+                if( property == 'transform' || property=='filter')
                 {
                     for(var prop in _transform)
                     {
@@ -2843,7 +2852,7 @@ if(TweenSpace === undefined )
                                     value += effectValue;
                                 }
                             }
-
+                            
                             newValues += String( value )+_transform[prop].units[w];
                             
                             if(w<toLength-1) newValues += ',';
