@@ -1166,7 +1166,6 @@ if(TweenSpace === undefined )
     TweenSpace._.PI = function() { return _pi };
     TweenSpace._.MAX_NUMBER = function() { return _MAX_NUMBER };
     TweenSpace._.current_tween = _tween;
-    
 
 
     /** Method that manages function based values such as +=, -=, *= and /=. 
@@ -1908,7 +1907,7 @@ if(TweenSpace === undefined )
             _tick_logic();
             
             //Make drawing calls only when needed
-            if( _mTime >= _sTime  || _dTime <= _duration )
+            if( _mTime >= _sTime-(2*TweenSpace._.dt()) && _dTime <= _duration+(2*TweenSpace._.dt()) )
                 _tick_draw(_dTime);
             
             //TIMELINE CALLBACKS____________________________________
@@ -2083,7 +2082,7 @@ if(TweenSpace === undefined )
                         //Animate CSS properties
                         else
                             tw.element.style[prop] = tw.tweenStep(prop, time);
-                    }    
+                    } 
                 }
             }
             
@@ -2108,9 +2107,7 @@ if(TweenSpace === undefined )
             
             //color vars
             var nameMatch, name, initName, rgb;
-            
-            
-            
+
             //Store initial values
             //var styles = (_isNumberTo == true)?{}:window.getComputedStyle(tween.element, null);
             var styles;
@@ -2640,17 +2637,16 @@ if(TweenSpace === undefined )
          * @private*/
         function _pauseQueue()
         {
-            var q;
-            _node = TweenSpace._.queue_DL.head;
+            var q, node = TweenSpace._.queue_DL.head;
             for(q=0; q < TweenSpace._.queue_DL.length(); q++)
             {
-                if( _node.data == _this )
+                if( node.data == _this )
                 {
-                    TweenSpace._.queue_paused_DL.push(_node.data);
-                    TweenSpace._.queue_DL.remove(_node);
+                    TweenSpace._.queue_paused_DL.push(node.data);
+                    TweenSpace._.queue_DL.remove(node);
                     break;
                 }
-                _node = _node.next;
+                node = node.next;
             }
         }
         /** Method that stops playing and paused tweens.
@@ -2659,30 +2655,28 @@ if(TweenSpace === undefined )
         {
             if(_paused == false)
             {
-                var q;
-                _node = TweenSpace._.queue_DL.head;
+                var q, node = TweenSpace._.queue_DL.head;
                 for(q=0; q < TweenSpace._.queue_DL.length(); q++)
                 {
-                    if( _node.data == _this )
+                    if( node.data == _this )
                     {
-                        TweenSpace._.queue_DL.remove(_node);
+                        TweenSpace._.queue_DL.remove(node);
                         break;
                     }
-                    _node = _node.next;
+                    node = node.next;
                 }
             }
             else
             {
-                var r;
-                _node_paused = TweenSpace._.queue_paused_DL.head;
+                var r, node_paused = TweenSpace._.queue_paused_DL.head;
                 for(r=0; r < TweenSpace._.queue_paused_DL.length(); r++)
                 {
-                    if( _node_paused.data == _this )
+                    if( node_paused.data == _this )
                     {
-                        TweenSpace._.queue_paused_DL.remove(_node_paused);
+                        TweenSpace._.queue_paused_DL.remove(node_paused);
                         break;
                     }
-                    _node_paused = _node_paused.next;
+                    node_paused = node_paused.next;
                 }
             }
             
@@ -2699,20 +2693,19 @@ if(TweenSpace === undefined )
             if( _reversed == direction)
                 _reversed = !direction;
             
-            var q;
-            _node_paused = TweenSpace._.queue_paused_DL.head;
+            var q, node_paused = TweenSpace._.queue_paused_DL.head;
             for(q=0; q < TweenSpace._.queue_paused_DL.length(); q++)
             {
-                if( _node_paused.data == _this )
+                if( node_paused.data == _this )
                 {
-                    TweenSpace._.queue_paused_DL.remove(_node_paused);
+                    TweenSpace._.queue_paused_DL.remove(node_paused);
                     break;
                 }
             }
             
             if(_checkConflict==true)
                 checkConflicts();
-                
+            
             _playing = true;
             TweenSpace._.queue_DL.push( _this );
             

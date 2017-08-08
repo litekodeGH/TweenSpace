@@ -1027,7 +1027,6 @@
     TweenSpace._.PI = function() { return _pi };
     TweenSpace._.MAX_NUMBER = function() { return _MAX_NUMBER };
     TweenSpace._.current_tween = _tween;
-    
 
 
     /** Method that manages function based values such as +=, -=, *= and /=. 
