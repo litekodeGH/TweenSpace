@@ -283,6 +283,8 @@ if(TweenSpace === undefined )
             delay = params.delay;
         else delay = 0;
 
+        params.elements = TweenSpace._.alternativeParams('elements', params);
+        
         if( params.elements != undefined)
         {
             if( params.duration == undefined )
@@ -397,6 +399,8 @@ if(TweenSpace === undefined )
      * @private */
     function _set( params )
     {
+        params.elements = TweenSpace._.alternativeParams('elements', params);
+        
         if(params.elements == undefined )
         {
             console.warn('TweenSpace.js Warning: Tween() has no elements to affect!');
@@ -433,6 +437,8 @@ if(TweenSpace === undefined )
         var tween;
         if( params != undefined )
         {
+            params.elements = TweenSpace._.alternativeParams('elements', params);
+            
             //Temporary property to make Tween class know that this call comes from numberTo method.
             params.numberTo = 'numberTo';
             if(params.elements != undefined)
@@ -990,6 +996,11 @@ if(TweenSpace === undefined )
 
         //Exclusive Paramenters for TweenSpace.Tween()
         elements: 'elements',
+        element: 'element',
+        item: 'item',
+        items: 'items',
+        object: 'object',
+        objects: 'objects',
         duration: 'duration',
         checkConflict: 'checkConflict',
         delay: 'delay',
@@ -1189,10 +1200,17 @@ if(TweenSpace === undefined )
                 return fromVal /= toVal;
         }
     }
+    TweenSpace._.alternativeParams = function ( paramName, alternativeParams )
+    {
+        if(paramName=='elements')
+        {
+            return alternativeParams.elements || alternativeParams.element || alternativeParams.item || alternativeParams.items || alternativeParams.object || alternativeParams.objects;
+        }
+    }
 
     /** TweenSpace Engine current version: 1.8.3.0
      *  @memberof TweenSpace */
-    TweenSpace.version = '1.8.6.0'; //release.major.minor.dev_stage
+    TweenSpace.version = '1.8.7.0'; //release.major.minor.dev_stage
     /** Useful under a debugging enviroment for faster revisiones.
      *  If true, the engine will assign destination values immediately and no animation will be performed.
      *  @memberof TweenSpace */
@@ -1442,6 +1460,8 @@ if(TweenSpace === undefined )
         var _isNumberTo = false;
         var _numberTo = 0;
         
+        params.elements = TweenSpace._.alternativeParams('elements', params);
+        
         //CHECK PARAMS
         if(params.elements == undefined)
         {
@@ -1641,7 +1661,7 @@ if(TweenSpace === undefined )
          *  @method elements
          *  @return {array} - Array of animated elements.
          *  @memberof Tween */
-        this.elements = function()
+        this.elements = this.element = this.item = this.items = this.object = this.objects = function()
         {
             return _elements;
         }
@@ -4372,4 +4392,88 @@ if(TweenSpace === undefined )
     // Source: https://github.com/adobe-webplatform/Snap.svg
     // Author: Dmitry Baranovskiy (http://dmitry.baranovskiy.com/)
     //____________________________________________________________
+})(TweenSpace || {});
+/**SplitText Module
+* @private */
+(function ( TweenSpace ) {
+    TweenSpace.SplitText = function( params )
+    {
+        return new SplitText(params);
+    }
+    
+    class SplitText
+    {
+        constructor (params)
+        {     
+            if(params == undefined)
+                params = {};
+            params.elements = TweenSpace._.alternativeParams('elements', params);
+            
+            this.chars = [];
+            this.words = [];
+            this.lines = [];
+            this.elements = this.element = this.item = this.items = this.object = this.objects = function( elements )
+            {
+                
+                if(elements != undefined)
+                    this._._elements = TweenSpace._.getElements(elements);
+                
+                return this._._elements;
+            }
+            
+            //PRIVATE MEMBERS
+            this._ = 
+            {
+                _isSplit: false,
+                _elements: (params.elements!= undefined)?TweenSpace._.getElements(params.elements):undefined
+            }
+            
+            if( this._._elements != undefined )
+                this.split();
+        }
+        
+        split()
+        {
+            if( this._._isSplit == false)
+            {
+                this._._isSplit = true;
+                var elems = this._._elements;
+                
+                
+                if(elems!= undefined)
+                {
+                    var i = 0, j = 0;
+                    //Loop over elements
+                    for(;i<elems.length;i++)
+                    {
+                        //Loop over elements' childNodes looking for text elements only
+                        for(;j<elems[i].childNodes.length;j++)
+                        {
+                            console.log( elems[i].childNodes );
+                            //Loop over characters
+                            if(elems[i].childNodes[j].data != undefined)
+                            {
+                                var str = elems[i].childNodes[j].data;
+                                var chars = str.split('');
+                                var words = str.split(' ');
+                                var lines = str.split('<br>');
+                                
+                            }
+                        }
+                        
+                    }
+                }
+                    
+            }
+        }
+        
+        unsplit()
+        {
+            if( this._._isSplit == true)
+            {
+                this._._isSplit = false;
+            }
+        } 
+    }
+    
 })(TweenSpace || {});

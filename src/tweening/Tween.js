@@ -148,6 +148,8 @@
         var _isNumberTo = false;
         var _numberTo = 0;
         
+        params.elements = TweenSpace._.alternativeParams('elements', params);
+        
         //CHECK PARAMS
         if(params.elements == undefined)
         {
@@ -347,7 +349,7 @@
          *  @method elements
          *  @return {array} - Array of animated elements.
          *  @memberof Tween */
-        this.elements = function()
+        this.elements = this.element = this.item = this.items = this.object = this.objects = function()
         {
             return _elements;
         }

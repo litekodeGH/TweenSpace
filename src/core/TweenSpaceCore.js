@@ -144,6 +144,8 @@
             delay = params.delay;
         else delay = 0;
 
+        params.elements = TweenSpace._.alternativeParams('elements', params);
+        
         if( params.elements != undefined)
         {
             if( params.duration == undefined )
@@ -258,6 +260,8 @@
      * @private */
     function _set( params )
     {
+        params.elements = TweenSpace._.alternativeParams('elements', params);
+        
         if(params.elements == undefined )
         {
             console.warn('TweenSpace.js Warning: Tween() has no elements to affect!');
@@ -294,6 +298,8 @@
         var tween;
         if( params != undefined )
         {
+            params.elements = TweenSpace._.alternativeParams('elements', params);
+            
             //Temporary property to make Tween class know that this call comes from numberTo method.
             params.numberTo = 'numberTo';
             if(params.elements != undefined)
@@ -851,6 +857,11 @@
 
         //Exclusive Paramenters for TweenSpace.Tween()
         elements: 'elements',
+        element: 'element',
+        item: 'item',
+        items: 'items',
+        object: 'object',
+        objects: 'objects',
         duration: 'duration',
         checkConflict: 'checkConflict',
         delay: 'delay',
@@ -1050,10 +1061,17 @@
                 return fromVal /= toVal;
         }
     }
+    TweenSpace._.alternativeParams = function ( paramName, alternativeParams )
+    {
+        if(paramName=='elements')
+        {
+            return alternativeParams.elements || alternativeParams.element || alternativeParams.item || alternativeParams.items || alternativeParams.object || alternativeParams.objects;
+        }
+    }
 
     /** TweenSpace Engine current version: 1.8.3.0
      *  @memberof TweenSpace */
-    TweenSpace.version = '1.8.6.0'; //release.major.minor.dev_stage
+    TweenSpace.version = '1.8.7.0'; //release.major.minor.dev_stage
     /** Useful under a debugging enviroment for faster revisiones.
      *  If true, the engine will assign destination values immediately and no animation will be performed.
      *  @memberof TweenSpace */
