@@ -169,6 +169,11 @@
                             i++;
                         }
                     }
+                    /*if( _tweens.length == 0)
+                    {
+                        console.warn('TweenSpace.js Warning: Timeline method "addTweens()" contains an empty array parameter');
+                        return;
+                    }*/
 
                     loop1:for(; i < tweens.length; i++)
                     {

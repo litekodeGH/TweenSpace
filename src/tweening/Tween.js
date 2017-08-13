@@ -1,5 +1,5 @@
 /*Tween Module*/
-(function ( TweenSpace ) {
+(function (TweenSpace) {
     
     /**
     * Static method that creates Tween instances which are responsible of handling animations on single and multiple objects. The Tween class is geared up
@@ -7,7 +7,7 @@
     * @method Tween
     * @param {object} params - An object containing the destination values of css properties and TweenSpace parameters defined in TweenSpace.params.
     * @property {*} params.elements - Element or elements whose properties should be animated.
-                            Accepted arguments are a DOM element, an array of elements or CSS selection string.
+                            Accepted arguments are a DOM element, an array of elements or query selection string.
     * @property {int} params.duration - Tween duration in milliseconds. Check this link: http://codepen.io/TweenSpace/pen/mVwBdY
     * @property {int} params.delay - Amount of time in milliseconds to wait before starting the animation. http://codepen.io/TweenSpace/pen/BjZJdb
     * @property {boolean} params.yoyo - If true, yoyo() property will play the animation back and forth based on repeat property amount. Try this example: http://codepen.io/TweenSpace/pen/GoEyQP
@@ -62,7 +62,7 @@
     * @return {Tween} - Tween instance.
     * @memberof TweenSpace
     * */
-    TweenSpace.Tween = function( params )
+    TweenSpace.Tween = function (params)
     {
         return new Tween(params);
     }
@@ -72,7 +72,7 @@
     * with usefull methods to control your animations in many different ways. Animations can be delayed, reversed, timescaled, repeated, etc. 
     * @param {object} params - An object containing the destination values of css properties and TweenSpace parameters defined in TweenSpace.params.
     * @property {*} params.elements - Element or elements whose properties should be animated.
-                            Accepted arguments are a DOM element, an array of elements or CSS selection string.
+                            Accepted arguments are a DOM element, an array of elements or query selection string.
     * @property {int} params.duration - Tween duration in milliseconds. Check this link: http://codepen.io/TweenSpace/pen/mVwBdY
     * @property {int} params.delay - Amount of time in milliseconds to wait before starting the animation. http://codepen.io/TweenSpace/pen/BjZJdb
     * @property {boolean} params.yoyo - If true, yoyo() property will play the animation back and forth based on repeat property amount. Try this example: http://codepen.io/TweenSpace/pen/GoEyQP

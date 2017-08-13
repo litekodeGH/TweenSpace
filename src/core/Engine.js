@@ -80,6 +80,7 @@
 
                 //Loop over tweens
                 TweenSpace._.updateTweens();
+                
                 //Loop over bodies
                 /*if(TweenSpace.Physics.active == true)
                     TweenSpace.Physics._.updateBodies();*/ //__________________________________________________________________________________________________________________________

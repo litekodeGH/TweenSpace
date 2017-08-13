@@ -176,6 +176,11 @@
 
                 
                 elements = TweenSpace._.getElements( params.elements );
+                if( elements.length == 0)
+                {
+                    console.warn('TweenSpace.js Warning: "sequential()" method has no elements to animate. Either "elements" paramater is empty or assigned value has failed.');
+                    return null;
+                }
                 
                 for ( var param in params )
                 {
