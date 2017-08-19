@@ -182,6 +182,17 @@
             delete params.duration;
         }
         
+        params.isFrom = TweenSpace._.alternativeParams('isFrom', params);
+        
+        /** Used to store starting values When using "TweenSpace.fromTo()" method.
+         * @private */
+        var _fromProps;
+        if(params.fromParams != undefined)
+        {
+            _fromProps = params.fromParams;
+            delete params.fromParams;
+        }
+        
         //SPLIT PARAMS INTO PROPS AND OPTIONS
         paramLoop:for ( var param in params )
         {
@@ -250,8 +261,7 @@
         
         for (var attrname in params)
             _props[attrname] = params[attrname];
-        //_props = params;
-        
+
         /** If true, animation will be played backwards.
          * @private */
         var _reversed = false;
@@ -817,7 +827,6 @@
             var nameMatch, name, initName, rgb;
 
             //Store initial values
-            //var styles = (_isNumberTo == true)?{}:window.getComputedStyle(tween.element, null);
             var styles;
             if( _isNumberTo == true )
             {    styles = {}; }
@@ -828,10 +837,11 @@
                 else
                     styles = window.getComputedStyle(tween.element, null); 
             }
-                
             
             for ( var prop in tween.props )
             {
+                initProp = undefined;
+                
                 //CHECK OBJECT TYPE ARGUMENTS_______________________________________
                 if( tween.props[prop].constructor === Object )
                 {
@@ -846,23 +856,45 @@
                         inputPropString = String( tween.props[prop]['to'] );
                     else
                         inputPropString = styles[prop];
+                    
+                    if( tween.props[prop]['from'] != undefined )
+                        initProp = String( tween.props[prop]['from'] );
                 }
                 else
                     inputPropString = String(tween.props[prop]);
                 
                 names = [], fromValues = [], toValues = [], units = [];
-                initProp = styles[prop];
+                
+                //If "_fromProps" exists, "TweenSpace.fromTo()" has been called.
+                if(_fromProps!=undefined)
+                {
+                    if( _fromProps[prop].match( /\+=|-=|\*=|\/=/ ) == null )
+                        initProp = _fromProps[prop];
+                    else
+                        initProp = TweenSpace._.functionBasedValues( parseFloat(styles[prop]), _fromProps[prop] );
+                }    
+                else
+                {
+                    //if "initProp" exists, it means that it was define by the "effects override" using the "from" parameter.
+                    if(initProp == undefined)
+                        initProp = styles[prop];
+                }
                 
                 nameMatch = name = initName = rgb = '';
                 
-                if( prop == 'transform' || prop=='filter' )
+                if( prop == 'transform' || prop == 'filter' )
                 {
                     var regex = /(\w+)\((.+?)\)/g, match;
                     transform = {};
                     initTransform = {};
                     
                     //Get current transform
-                    var initTransformString = tween.element.style.transform;
+                    var initTransformString;
+                    if(_fromProps!=undefined)
+                        initTransformString = _fromProps['transform'] || _fromProps['filter'] || tween.element.style.transform;
+                    else
+                        initTransformString = tween.element.style.transform;
+                    
                     if( initTransformString != '' )
                     {
                         while(match = regex.exec(initTransformString))
@@ -881,8 +913,15 @@
                             matchResult = String( transform[ match[1] ].toValues[q] ).match( /em|ex|px|in|cm|mm|%|rad|deg/ );
                             transform[ match[1] ].toValues[q] = parseFloat(transform[ match[1] ].toValues[q]);
                             
-                            if(match[1] == 'rotate' || match[1] == 'rotate3d')
+                            if(match[1] == 'rotate' )
                                 transform[ match[1] ].units[q] = (matchResult) ? matchResult[0] : "deg";
+                            else if(match[1] == 'rotate' || match[1] == 'rotate3d')
+                            {
+                                if(q<3)
+                                    transform[ match[1] ].units[q] = "";
+                                else
+                                    transform[ match[1] ].units[q] = (matchResult) ? matchResult[0] : "deg";
+                            }    
                             else
                                 transform[ match[1] ].units[q] = (matchResult) ? matchResult[0] : "";
                         }
@@ -927,9 +966,9 @@
                             else if( match[1] == 'rotate3d')
                             {
                                 transform[ match[1] ].fromValues[0] = 0;
-                                transform[ match[1] ].fromValues[0] = 0;
-                                transform[ match[1] ].fromValues[0] = 0;
-                                transform[ match[1] ].fromValues[0] = 0;
+                                transform[ match[1] ].fromValues[1] = 0;
+                                transform[ match[1] ].fromValues[2] = 0;
+                                transform[ match[1] ].fromValues[3] = 0;
                             }
                             else if(    match[1] == 'translateX' || match[1] == 'translateY' || match[1] == 'translateZ' || 
                                         match[1] == 'rotateX' || match[1] == 'rotateY' || match[1] == 'rotateZ' ||
@@ -995,6 +1034,7 @@
                         rgb = String(initProp).slice( String(initProp).indexOf('(')+1, String(initProp).indexOf(')') ).split(',');
                         fromValues.push(parseFloat(rgb[0])); fromValues.push(parseFloat(rgb[1])); fromValues.push(parseFloat(rgb[2]));
                         units.push(''); units.push(''); units.push('');
+                        
                         if( toValues.length > 3)
                         {
                             if( rgb.length > 3 ) fromValues.push(parseFloat(rgb[3]));
@@ -1009,53 +1049,83 @@
                     //matchResult = String(inputPropString).match( /px|%/ );
                     units.push('px', 'px', 'px');
                     
+                    var drawToValues;
+                    
                     //fromValues and toValues: [0] = strokeDashoffset, [1] = strokeDasharray first value, [2] = strokeDasharray second value
-                    fromValues.push(parseFloat(styles['strokeDashoffset']));
-                    if( styles['strokeDasharray'] == 'none')
-                    {    
-                        fromValues.push(pathLength);
-                        fromValues.push(0);
+                    //"TweenSpace.fromTo()" has been called.
+                    if( _fromProps != undefined )
+                    {
+                        //from values
+                        drawToValues = String(_fromProps[prop]).split(' ');
+                        setValues( drawToValues, fromValues );
+                    }
+                    //parameter has been declared as an object. i.e. {from:"", to:""}
+                    else if( tween.props[prop].constructor === Object )
+                    {
+                        //from values
+                        drawToValues = String(tween.props[prop]['from']).split(' ');
+                        setValues( drawToValues, fromValues );
                     }
                     else
-                    {    
-                        var drawFromValues = String(styles['strokeDasharray']).split(' ');
-                        
-                        if(drawFromValues.length > 1)
-                            fromValues.push(parseFloat( drawFromValues[0] ), parseFloat( drawFromValues[1] ));
+                    {
+                        fromValues.push(parseFloat(styles['strokeDashoffset']));
+                        if( styles['strokeDasharray'] == 'none')
+                        {    
+                            fromValues.push(pathLength);
+                            fromValues.push(0);
+                        }
                         else
-                            fromValues.push(parseFloat( drawFromValues[0] ), 0 );
+                        {    
+                            var drawFromValues = String(styles['strokeDasharray']).split(' ');
+
+                            if(drawFromValues.length > 1)
+                                fromValues.push(parseFloat( drawFromValues[0] ), parseFloat( drawFromValues[1] ));
+                            else
+                                fromValues.push(parseFloat( drawFromValues[0] ), 0 );
+                        }
                     }
                     
-                    var drawToValues = String(inputPropString).split(' ');
-                    if( String(inputPropString).match( /%/ ) != null )
+                    //to values
+                    if( tween.props[prop].constructor === Object )
+                        inputPropString = tween.props[prop]['to'];
+                    
+                    drawToValues = String(inputPropString).split(' ');
+                    setValues( drawToValues, toValues );
+                        
+                    function setValues( drawValues, values )
                     {
-                        if(drawToValues.length > 1)
+                        if( String(inputPropString).match( /%/ ) != null )
                         {
-                            toValues.push( -( parseFloat(drawToValues[0] )*0.01*pathLength ) );
-                            toValues.push( Math.abs(parseFloat(drawToValues[0])-parseFloat(drawToValues[1]))*0.01*pathLength );
-                            toValues.push( (100-Math.abs(parseFloat(drawToValues[0])-parseFloat(drawToValues[1])))*0.01*pathLength );
+                            if(drawValues.length > 1)
+                            {
+                                values.push( -( parseFloat(drawValues[0] )*0.01*pathLength ) );
+                                values.push( Math.abs(parseFloat(drawValues[0])-parseFloat(drawValues[1]))*0.01*pathLength );
+                                values.push( (100-Math.abs(parseFloat(drawValues[0])-parseFloat(drawValues[1])))*0.01*pathLength );
+                            }
+                            else
+                            {
+                                values.push( 0 );
+                                values.push( Math.abs(parseFloat(drawValues[0]))*0.01*pathLength );
+                                values.push( (Math.abs(100-parseFloat(drawValues[0]))*0.01*pathLength) );
+                            }
                         }
                         else
                         {
-                            toValues.push( 0 );
-                            toValues.push( Math.abs(parseFloat(drawToValues[0]))*0.01*pathLength );
-                            toValues.push( (Math.abs(100-parseFloat(drawToValues[0]))*0.01*pathLength) );
+                            if(drawValues.length > 1)
+                            {
+                                values.push( -( parseFloat(drawValues[0] ) ) );
+                                values.push( Math.abs(parseFloat(drawValues[0])-parseFloat(drawValues[1])) );
+                                values.push( (pathLength-Math.abs(parseFloat(drawValues[0])-parseFloat(drawValues[1]))) );
+                            }
+                            else
+                            {
+                                values.push( 0 );
+                                values.push( parseFloat(drawValues[0]) );
+                                values.push( pathLength-parseFloat(drawValues[0]) );
+                            }
                         }
-                    }
-                    else
-                    {
-                        if(drawToValues.length > 1)
-                        {
-                            toValues.push( -( parseFloat(drawToValues[0] ) ) );
-                            toValues.push( Math.abs(parseFloat(drawToValues[0])-parseFloat(drawToValues[1])) );
-                            toValues.push( (pathLength-Math.abs(parseFloat(drawToValues[0])-parseFloat(drawToValues[1]))) );
-                        }
-                        else
-                        {
-                            toValues.push( 0 );
-                            toValues.push( parseFloat(drawToValues[0]) );
-                            toValues.push( pathLength-parseFloat(drawToValues[0]) );
-                        }
+                        
+                        return [drawValues, values];
                     }
                 }
                 else if( prop == 'motionPathSVG' )
@@ -1651,11 +1721,17 @@
                 {
                     toLength = _toValues.length;
                     newValues = '';
-
+                    
                     for(w=0; w < toLength; w++)
                     {
                         value = _this.ease( TweenSpace._.min(elapesedTime, _duration), _fromValues[w], _toValues[w], _duration );
                         
+                        /*An object can be assigned to any CSS property in order to create effects such as wiggle and wave. 
+                        i.e ( left:{ wiggle:{amplitude:10, frequency:1.2, seed:123}, from:"100px",  to:"100px"} ).
+                        Having that implementation working, we are kind of overriding it and just using the "from" and "to"
+                        when no effect (wiggle or wave) has been declared as a property of the parameter object.
+                        That being said, if the parameter object contains "from" and "to" properties but not effect,
+                        it'll take "from" property as starting values as well as "to" as destination values.*/ 
                         if( _effects != undefined )
                         {
                             for ( var tweenEffects in _effects )
@@ -1678,8 +1754,6 @@
                                 value += effectValue;
                             }
                         }
-                        
-                        
                         
                         //rgba case: r g b values need to be integer, however alpha needs to be decimal
                         if( _names )

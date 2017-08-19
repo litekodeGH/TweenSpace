@@ -268,8 +268,8 @@ if (TweenSpace === undefined)
      * @private */
     function _sequential( params, play )
     {
-        var elements, tsParams = {}, delay, tweenDelay, delayInc, duration, tweens = [], shuffle, seed, paramsInc = [], 
-            val = 'val', prefix = 'prefix', suffix = 'suffix', valInc = 'valInc';
+        var elements, tsParams = {}, delay, tweenDelay, delayInc, duration, tweens = [], shuffle, seed,
+            fromParamsInc = [], toParamsInc = [], val = 'val', prefix = 'prefix', suffix = 'suffix', valInc = 'valInc';
         play = (play != undefined)?play:false;
 
         if( params.shuffle != undefined )
@@ -312,7 +312,6 @@ if (TweenSpace === undefined)
                         if( TweenSpace._.functionBasedValues(0, tweenDelay) == 0)
                             delayInc = 1;
                 }       
-
                 
                 elements = TweenSpace._.getElements( params.elements );
                 if( elements.length == 0)
@@ -335,33 +334,42 @@ if (TweenSpace === undefined)
                 }
                 
                 var length = elements.length;
+                if(params.fromParams != undefined)
+                    var clonedFromParams = JSON.parse(JSON.stringify(params.fromParams));
                 for(var i=0; i<length; i++)
                 {
+                    if(params.fromParams != undefined)
+                        manageFromToValues(clonedFromParams, fromParamsInc);
+                    
+                    manageFromToValues(params, toParamsInc);
+                    
                     //Loop over NON TS params only
-                    for ( var param in params )
+                    function manageFromToValues(inputParams, arrayInc)
                     {
-                        if(params[param].constructor == String)
+                        for ( var param in inputParams )
                         {
-                            //Is function-based value
-                            if(params[param].match( /\+=|-=|\*=|\/=/ ) != null)
+                            if(inputParams[param].constructor == String)
                             {
-                                if( paramsInc[param] == undefined)
+                                //Is function-based value
+                                if(inputParams[param].match( /\+=|-=|\*=|\/=/ ) != null)
                                 {
-                                    paramsInc[param] = {};
-                                    paramsInc[param][prefix] = params[param].match( /\+=|-=|\*=|\/=/ );
-                                    paramsInc[param][suffix] = params[param].match( /em|ex|px|in|cm|mm|%|rad|deg/ );
-                                    paramsInc[param][val] = parseFloat( params[param].split("=").pop() );
-                                    paramsInc[param][valInc] = (paramsInc[param][prefix] == '+=' || paramsInc[param][prefix] == '-=')?0:1;
-                                    
-                                }
-                                else
-                                {
-                                    paramsInc[param][valInc] = TweenSpace._.functionBasedValues(paramsInc[param][val], params[param] );
-                                    params[param] = paramsInc[param][prefix] + String(paramsInc[param][valInc]) + paramsInc[param][suffix];
-                                }
+                                    if( arrayInc[param] == undefined)
+                                    {
+                                        arrayInc[param] = {};
+                                        arrayInc[param][prefix] = inputParams[param].match( /\+=|-=|\*=|\/=/ );
+                                        arrayInc[param][suffix] = inputParams[param].match( /em|ex|px|in|cm|mm|%|rad|deg/ );
+                                        arrayInc[param][val] = parseFloat( inputParams[param].split("=").pop() );
+                                        arrayInc[param][valInc] = (arrayInc[param][prefix][0] == '+=' || arrayInc[param][prefix][0] == '-=')?0:1;
+                                    }
+                                    else
+                                    {
+                                        arrayInc[param][valInc] = TweenSpace._.functionBasedValues(arrayInc[param][val], inputParams[param] );
+                                        inputParams[param] = arrayInc[param][prefix] + String(arrayInc[param][valInc]) + arrayInc[param][suffix];
+                                    }
+                                }   
                             }    
-                        }    
-                    }   
+                        } 
+                    } 
                     
                     //Restore deleted TS params
                     for (var param in tsParams)
@@ -370,6 +378,7 @@ if (TweenSpace === undefined)
                     params.elements = elements[i];
                     params.delay = delayInc + delay;
                     params.duration = duration;
+                    params.fromParams = clonedFromParams;
                     
                     tweens.push( TweenSpace.Tween( params ) );
                     if(tweenDelay.constructor == String)
@@ -861,36 +870,6 @@ if (TweenSpace === undefined)
     * @property {object} params.wave - Adds oscilatory to property values. Use amplitude property to modify the magnitude of the effect and frequency property to change the speed.
     *                                   http://codepen.io/TweenSpace/pen/QKKbJy
     * @property {string} params.drawSVG - Value or set of values that allows you to animate an svg stroke length. Values can be provided as percentages as well as numbers.
-    *                                   Try this example: http://codepen.io/TweenSpace/pen/yORjYO
-    * @property {object} params.motionPathSVG - Makes any html element move along an SVG path. 'motionPathSVG' object contains the following properties:<br>
-    *                                       <p style="padding-left:40px;">
-    *                                       path : SVG object which serves as the trajectory.<br>
-    *                                       'from' : Starting position on curve based on percentage of length or a value between 0 and curve length.<br>
-    *                                       'to' : Destination position on curve based on percentage of length or a value between 0 and curve length.<br>
-    *                                       rotationOffset : Offsets current rotation in degrees for custom purposes.<br>
-    *                                       pivotX : Adjusts the current moving object's pivot in the x axis. This value will be considered in pixel units only,
-    *                                       therefore only numerical values will be accepted.<br>
-    *                                       pivotY : Adjusts the current moving object's pivot in the y axis. This value will be considered in pixel units only,
-    *                                       therefore only numerical values will be accepted.<br>
-    *                                       offsetX : Offsets the current moving object's position in the x axis. This value will be considered in pixel units only,
-    *                                       therefore only numerical values will be accepted.<br>
-    *                                       offsetY : Offsets the current moving object's position in the y axis. This value will be considered in pixel units only,
-    *                                       therefore only numerical values will be accepted.<br>
-    *                                       'align' : Rotates automatically the moving object accordingly to the path's orientation using the current css transform-origin values.<br>
-    *                                       http://codepen.io/TweenSpace/pen/qaRVKK
-    *                                       </p>
-    * @property {object} params.morphSVG -  Morphs from one SVG Element to another. morphSVG will match the necessary amount of points for both paths,
-    *                                       besides, it provides handy properties like reverse, shapeIndex and debug. Accepted SVG Elemets are circle, rect, ellipse, polygon, and path.
-    *                                       'morphSVG' object contains the following properties:
-    *                                       <p style="padding-left:40px;">
-    *                                       reverse : Changes the direction of the destination path. <br>
-    *                                       shapeIndex : Offsets the points along the destination path. <br>
-    *                                       debug : Shows graphics regarding initial and destination path for setup purposes. When debug is true, the green path is the initial path
-    *                                       while the red one is the destination path. Also, a larger dot indicates the end point and the max amount of points,
-    *                                       while a smaller dot represents either a 25% of length of the path or a user shapeIndex on the path. Notice that
-    *                                       the smaller dot indicates the direction of the path which is useful when matching dots positions.<br>
-    *                                       Please go here for more info: http://codepen.io/TweenSpace/pen/KMpedd
-    *                                       </p>
     * @return {Tween} - Tween instance.
     * @memberof TweenSpace */
     TweenSpace.from = function( params )
@@ -900,6 +879,65 @@ if (TweenSpace === undefined)
         tween.play();
 
         return tween;
+    };
+    /**
+    * Static method that creates and plays a Tween instance which holds starting and destination values as well as other properties.
+    * @method fromTo
+    * @param {object} fromParams - An object containing the starting values of css properties and TweenSpace parameters defined in TweenSpace.params.
+    * @param {object} toParams - An object containing the destination values of css properties and TweenSpace parameters defined in TweenSpace.params.
+    * @property {*} (fromParams or toParams).elements - Element or elements whose properties should be animated.
+                            Accepted arguments are a DOM element, an array of elements or CSS selection string.
+    * @property {int} (fromParams or toParams).duration - Tween duration in milliseconds. Check this link: http://codepen.io/TweenSpace/pen/mVwBdY
+    * @property {int} (fromParams or toParams).delay - Amount of time in milliseconds to wait before starting the animation. http://codepen.io/TweenSpace/pen/BjZJdb
+    * @property {boolean} (fromParams or toParams).yoyo - If true, yoyo() property will play the animation back and forth based on repeat property amount. Try this example: http://codepen.io/TweenSpace/pen/GoEyQP
+    * @property {int} (fromParams or toParams).repeat - Amount of times that the animation will be played. http://codepen.io/TweenSpace/pen/pgwpdj
+    * @property {int} (fromParams or toParams).timescale -  Sets and returns the timescale value. timescale() is a factor used to scale time in the animation.
+    *                                   While a value of 1 represents normal speed, lower values makes the faster as well as greater values
+    *                                   makes the animation slower. Please go to: http://codepen.io/TweenSpace/pen/OMzegL and http://codepen.io/TweenSpace/pen/WrOMQx
+    * @property {function} (fromParams or toParams).ease - Easing function that describes the rate of change of a parameter over time. http://codepen.io/TweenSpace/pen/qbjxZJ
+    *                                  Equations used were developed by Robert Penner.
+    * @property {function} (fromParams or toParams).onProgress - Callback dispatched every engine tick while animation is running. http://codepen.io/TweenSpace/pen/dMeVYR
+    * @property {function} (fromParams or toParams).onComplete - Callback dispatched when the animation has finished. http://codepen.io/TweenSpace/pen/vGjeEe
+    * @property {function} (fromParams or toParams).onRepeat - Callback dispatched when the animation starts a repetition.
+    * @property {object} (fromParams or toParams).wiggle - Adds deterministic randomness to property values. Use amplitude property to modify the magnitude of the effect and frequency property to change the speed.
+    *                                    You can also change the seed property to obtain different deterministic random behaviors. wiggle can be used in two ways.
+    *                                    For setting multiple css properties at once use the following approach:
+    *                                    http://codepen.io/TweenSpace/pen/PGWzoV
+    *                                    When setting css properties separately follow this example:
+    *                                    http://codepen.io/TweenSpace/pen/XjpKJp
+    * @property {object} (fromParams or toParams).wave - Adds oscilatory to property values. Use amplitude property to modify the magnitude of the effect and frequency property to change the speed.
+    *                                   http://codepen.io/TweenSpace/pen/QKKbJy
+    * @property {string} (fromParams or toParams).drawSVG - Value or set of values that allows you to animate an svg stroke length. Values can be provided as percentages as well as numbers.
+    *                                   Try this example: http://codepen.io/TweenSpace/pen/yORjYO
+    * @return {Tween} - Tween instance.
+    * @memberof TweenSpace */
+    TweenSpace.fromTo = function( fromParams, toParams )
+    {
+        if(toParams == undefined)
+        {
+            console.warn("TweenSpace.sequentialFromTo(): Destination values has not been set. Please add an object "+
+                        "with properties as a 2nd parameter. I.e. {css_property:'value'}");
+            
+            return;
+        }
+        
+        //Loop over TweenSpace parameters
+        for ( var tsProp in TweenSpace.params )
+        {
+            //TweenSpace parameters declarared in fromParams will prevail over the ones in toParams
+            if(fromParams[tsProp] != undefined || toParams[tsProp] != undefined)
+             {
+                 toParams[tsProp] = fromParams[tsProp] || toParams[tsProp];
+                 if(fromParams[tsProp] != undefined)
+                     delete fromParams[tsProp];
+             }    
+        }    
+        
+        toParams[TweenSpace.params.isFrom] = false;
+        toParams.fromParams = fromParams;
+        
+        var tween = TweenSpace.Tween( toParams );
+        tween.play();
     };
     /** Static method that returns an array of Tween instances. In contrast to the static method sequentialTo,
     * this method does not start the animation. When the time comes to animate the same properties on multiple objects
@@ -952,6 +990,47 @@ if (TweenSpace === undefined)
     {
         params[TweenSpace.params.isFrom] = true;
         return _sequential( params, true );
+    };
+    /** Static method that returns Timeline object that contains a sequence of tweens. This method plays the animation right after instantiation.
+    * en the time comes to animate the same properties on multiple objects this method reduces multiple tweens instantiation into one.
+    * Control the amount of delayed time between each tween using the tweenDelay parameter.
+    * If tweenDelay parameter is set to cero or just not declared, all tweens will start at the same time. If tweenDelay parameter is greater than cero, 
+    * objects will play with a delayed start time between each tween.
+    * @method sequentialFromTo
+    * @param {object} fromParams - An object containing the common starting values of css properties and TweenSpace parameters defined in TweenSpace.params.
+    * @param {object} toParams - An object containing the common destination values of css properties and TweenSpace parameters defined in TweenSpace.params.
+    *                            The following properties are exclusive for this method. For more additional TweenSpace custom properties please go to TweenSpace.to() method description.
+    * @property {int} (fromParams or toParams).tweenDelay - Is the time offset between each tween. The tweenDelay amount will increment linearly as the tweens are played.
+    * @property {boolean} (fromParams or toParams).shuffle - If shuffle is set to true, the tweens are going to be played in a deterministic random fashion.
+    * @property {int} (fromParams or toParams).seed - Change this value in order to get different random behaviors.
+    * @return {Timeline} - Timeline object.
+    * @memberof TweenSpace */
+    TweenSpace.sequentialFromTo = function( fromParams, toParams )
+    {
+        if(toParams == undefined)
+        {
+            console.warn("TweenSpace.sequentialFromTo(): Destination values has not been set. Please add an object "+
+                        "with properties as a 2nd parameter. I.e. {css_property:'value'}");
+            
+            return;
+        }
+        
+        //Loop over TweenSpace parameters
+        for ( var tsProp in TweenSpace.params )
+        {
+            //TweenSpace parameters declarared in fromParams will prevail over the ones in toParams
+            if(fromParams[tsProp] != undefined || toParams[tsProp] != undefined)
+             {
+                 toParams[tsProp] = fromParams[tsProp] || toParams[tsProp];
+                 if(fromParams[tsProp] != undefined)
+                     delete fromParams[tsProp];
+             }    
+        }    
+        
+        toParams[TweenSpace.params.isFrom] = false;
+        toParams.fromParams = fromParams;
+        
+        return _sequential( toParams, true );
     };
     /** Static method that pauses all tweens and timelines.
     * @method pauseAll
@@ -1014,6 +1093,7 @@ if (TweenSpace === undefined)
         timescale: 'timescale',
         debug: 'debug',
         isFrom: 'isFrom',
+        fromParams: 'fromParams', //for internal use only
         ease:
         {
             //Robert Penner's Easing Equations
@@ -1183,7 +1263,6 @@ if (TweenSpace === undefined)
     TweenSpace._.MAX_NUMBER = function() { return _MAX_NUMBER };
     TweenSpace._.current_tween = _tween;
 
-
     /** Method that manages function based values such as +=, -=, *= and /=. 
      * @private*/
     TweenSpace._.functionBasedValues = function (fromVal, toVal)
@@ -1205,17 +1284,24 @@ if (TweenSpace === undefined)
                 return fromVal /= toVal;
         }
     }
+    
+    /** Manage TS properties seudonames. 
+     * @private*/
     TweenSpace._.alternativeParams = function ( paramName, alternativeParams )
     {
         if(paramName=='elements')
         {
             return alternativeParams.elements || alternativeParams.element || alternativeParams.item || alternativeParams.items || alternativeParams.object || alternativeParams.objects;
         }
+        else if(paramName=='isFrom')
+        {
+            return alternativeParams.isFrom || alternativeParams.from || false;
+        }
     }
 
     /** TweenSpace Engine current version: 1.8.3.0
      *  @memberof TweenSpace */
-    TweenSpace.version = '1.8.7.0'; //release.major.minor.dev_stage
+    TweenSpace.version = '1.9.1.0'; //release.major.minor.dev_stage
     /** Useful under a debugging enviroment for faster revisiones.
      *  If true, the engine will assign destination values immediately and no animation will be performed.
      *  @memberof TweenSpace */
@@ -1500,6 +1586,17 @@ if (TweenSpace === undefined)
             delete params.duration;
         }
         
+        params.isFrom = TweenSpace._.alternativeParams('isFrom', params);
+        
+        /** Used to store starting values When using "TweenSpace.fromTo()" method.
+         * @private */
+        var _fromProps;
+        if(params.fromParams != undefined)
+        {
+            _fromProps = params.fromParams;
+            delete params.fromParams;
+        }
+        
         //SPLIT PARAMS INTO PROPS AND OPTIONS
         paramLoop:for ( var param in params )
         {
@@ -1568,8 +1665,7 @@ if (TweenSpace === undefined)
         
         for (var attrname in params)
             _props[attrname] = params[attrname];
-        //_props = params;
-        
+
         /** If true, animation will be played backwards.
          * @private */
         var _reversed = false;
@@ -2135,7 +2231,6 @@ if (TweenSpace === undefined)
             var nameMatch, name, initName, rgb;
 
             //Store initial values
-            //var styles = (_isNumberTo == true)?{}:window.getComputedStyle(tween.element, null);
             var styles;
             if( _isNumberTo == true )
             {    styles = {}; }
@@ -2146,10 +2241,11 @@ if (TweenSpace === undefined)
                 else
                     styles = window.getComputedStyle(tween.element, null); 
             }
-                
             
             for ( var prop in tween.props )
             {
+                initProp = undefined;
+                
                 //CHECK OBJECT TYPE ARGUMENTS_______________________________________
                 if( tween.props[prop].constructor === Object )
                 {
@@ -2164,23 +2260,45 @@ if (TweenSpace === undefined)
                         inputPropString = String( tween.props[prop]['to'] );
                     else
                         inputPropString = styles[prop];
+                    
+                    if( tween.props[prop]['from'] != undefined )
+                        initProp = String( tween.props[prop]['from'] );
                 }
                 else
                     inputPropString = String(tween.props[prop]);
                 
                 names = [], fromValues = [], toValues = [], units = [];
-                initProp = styles[prop];
+                
+                //If "_fromProps" exists, "TweenSpace.fromTo()" has been called.
+                if(_fromProps!=undefined)
+                {
+                    if( _fromProps[prop].match( /\+=|-=|\*=|\/=/ ) == null )
+                        initProp = _fromProps[prop];
+                    else
+                        initProp = TweenSpace._.functionBasedValues( parseFloat(styles[prop]), _fromProps[prop] );
+                }    
+                else
+                {
+                    //if "initProp" exists, it means that it was define by the "effects override" using the "from" parameter.
+                    if(initProp == undefined)
+                        initProp = styles[prop];
+                }
                 
                 nameMatch = name = initName = rgb = '';
                 
-                if( prop == 'transform' || prop=='filter' )
+                if( prop == 'transform' || prop == 'filter' )
                 {
                     var regex = /(\w+)\((.+?)\)/g, match;
                     transform = {};
                     initTransform = {};
                     
                     //Get current transform
-                    var initTransformString = tween.element.style.transform;
+                    var initTransformString;
+                    if(_fromProps!=undefined)
+                        initTransformString = _fromProps['transform'] || _fromProps['filter'] || tween.element.style.transform;
+                    else
+                        initTransformString = tween.element.style.transform;
+                    
                     if( initTransformString != '' )
                     {
                         while(match = regex.exec(initTransformString))
@@ -2199,8 +2317,15 @@ if (TweenSpace === undefined)
                             matchResult = String( transform[ match[1] ].toValues[q] ).match( /em|ex|px|in|cm|mm|%|rad|deg/ );
                             transform[ match[1] ].toValues[q] = parseFloat(transform[ match[1] ].toValues[q]);
                             
-                            if(match[1] == 'rotate' || match[1] == 'rotate3d')
+                            if(match[1] == 'rotate' )
                                 transform[ match[1] ].units[q] = (matchResult) ? matchResult[0] : "deg";
+                            else if(match[1] == 'rotate' || match[1] == 'rotate3d')
+                            {
+                                if(q<3)
+                                    transform[ match[1] ].units[q] = "";
+                                else
+                                    transform[ match[1] ].units[q] = (matchResult) ? matchResult[0] : "deg";
+                            }    
                             else
                                 transform[ match[1] ].units[q] = (matchResult) ? matchResult[0] : "";
                         }
@@ -2245,9 +2370,9 @@ if (TweenSpace === undefined)
                             else if( match[1] == 'rotate3d')
                             {
                                 transform[ match[1] ].fromValues[0] = 0;
-                                transform[ match[1] ].fromValues[0] = 0;
-                                transform[ match[1] ].fromValues[0] = 0;
-                                transform[ match[1] ].fromValues[0] = 0;
+                                transform[ match[1] ].fromValues[1] = 0;
+                                transform[ match[1] ].fromValues[2] = 0;
+                                transform[ match[1] ].fromValues[3] = 0;
                             }
                             else if(    match[1] == 'translateX' || match[1] == 'translateY' || match[1] == 'translateZ' || 
                                         match[1] == 'rotateX' || match[1] == 'rotateY' || match[1] == 'rotateZ' ||
@@ -2313,6 +2438,7 @@ if (TweenSpace === undefined)
                         rgb = String(initProp).slice( String(initProp).indexOf('(')+1, String(initProp).indexOf(')') ).split(',');
                         fromValues.push(parseFloat(rgb[0])); fromValues.push(parseFloat(rgb[1])); fromValues.push(parseFloat(rgb[2]));
                         units.push(''); units.push(''); units.push('');
+                        
                         if( toValues.length > 3)
                         {
                             if( rgb.length > 3 ) fromValues.push(parseFloat(rgb[3]));
@@ -2327,53 +2453,83 @@ if (TweenSpace === undefined)
                     //matchResult = String(inputPropString).match( /px|%/ );
                     units.push('px', 'px', 'px');
                     
+                    var drawToValues;
+                    
                     //fromValues and toValues: [0] = strokeDashoffset, [1] = strokeDasharray first value, [2] = strokeDasharray second value
-                    fromValues.push(parseFloat(styles['strokeDashoffset']));
-                    if( styles['strokeDasharray'] == 'none')
-                    {    
-                        fromValues.push(pathLength);
-                        fromValues.push(0);
+                    //"TweenSpace.fromTo()" has been called.
+                    if( _fromProps != undefined )
+                    {
+                        //from values
+                        drawToValues = String(_fromProps[prop]).split(' ');
+                        setValues( drawToValues, fromValues );
+                    }
+                    //parameter has been declared as an object. i.e. {from:"", to:""}
+                    else if( tween.props[prop].constructor === Object )
+                    {
+                        //from values
+                        drawToValues = String(tween.props[prop]['from']).split(' ');
+                        setValues( drawToValues, fromValues );
                     }
                     else
-                    {    
-                        var drawFromValues = String(styles['strokeDasharray']).split(' ');
-                        
-                        if(drawFromValues.length > 1)
-                            fromValues.push(parseFloat( drawFromValues[0] ), parseFloat( drawFromValues[1] ));
+                    {
+                        fromValues.push(parseFloat(styles['strokeDashoffset']));
+                        if( styles['strokeDasharray'] == 'none')
+                        {    
+                            fromValues.push(pathLength);
+                            fromValues.push(0);
+                        }
                         else
-                            fromValues.push(parseFloat( drawFromValues[0] ), 0 );
+                        {    
+                            var drawFromValues = String(styles['strokeDasharray']).split(' ');
+
+                            if(drawFromValues.length > 1)
+                                fromValues.push(parseFloat( drawFromValues[0] ), parseFloat( drawFromValues[1] ));
+                            else
+                                fromValues.push(parseFloat( drawFromValues[0] ), 0 );
+                        }
                     }
                     
-                    var drawToValues = String(inputPropString).split(' ');
-                    if( String(inputPropString).match( /%/ ) != null )
+                    //to values
+                    if( tween.props[prop].constructor === Object )
+                        inputPropString = tween.props[prop]['to'];
+                    
+                    drawToValues = String(inputPropString).split(' ');
+                    setValues( drawToValues, toValues );
+                        
+                    function setValues( drawValues, values )
                     {
-                        if(drawToValues.length > 1)
+                        if( String(inputPropString).match( /%/ ) != null )
                         {
-                            toValues.push( -( parseFloat(drawToValues[0] )*0.01*pathLength ) );
-                            toValues.push( Math.abs(parseFloat(drawToValues[0])-parseFloat(drawToValues[1]))*0.01*pathLength );
-                            toValues.push( (100-Math.abs(parseFloat(drawToValues[0])-parseFloat(drawToValues[1])))*0.01*pathLength );
+                            if(drawValues.length > 1)
+                            {
+                                values.push( -( parseFloat(drawValues[0] )*0.01*pathLength ) );
+                                values.push( Math.abs(parseFloat(drawValues[0])-parseFloat(drawValues[1]))*0.01*pathLength );
+                                values.push( (100-Math.abs(parseFloat(drawValues[0])-parseFloat(drawValues[1])))*0.01*pathLength );
+                            }
+                            else
+                            {
+                                values.push( 0 );
+                                values.push( Math.abs(parseFloat(drawValues[0]))*0.01*pathLength );
+                                values.push( (Math.abs(100-parseFloat(drawValues[0]))*0.01*pathLength) );
+                            }
                         }
                         else
                         {
-                            toValues.push( 0 );
-                            toValues.push( Math.abs(parseFloat(drawToValues[0]))*0.01*pathLength );
-                            toValues.push( (Math.abs(100-parseFloat(drawToValues[0]))*0.01*pathLength) );
+                            if(drawValues.length > 1)
+                            {
+                                values.push( -( parseFloat(drawValues[0] ) ) );
+                                values.push( Math.abs(parseFloat(drawValues[0])-parseFloat(drawValues[1])) );
+                                values.push( (pathLength-Math.abs(parseFloat(drawValues[0])-parseFloat(drawValues[1]))) );
+                            }
+                            else
+                            {
+                                values.push( 0 );
+                                values.push( parseFloat(drawValues[0]) );
+                                values.push( pathLength-parseFloat(drawValues[0]) );
+                            }
                         }
-                    }
-                    else
-                    {
-                        if(drawToValues.length > 1)
-                        {
-                            toValues.push( -( parseFloat(drawToValues[0] ) ) );
-                            toValues.push( Math.abs(parseFloat(drawToValues[0])-parseFloat(drawToValues[1])) );
-                            toValues.push( (pathLength-Math.abs(parseFloat(drawToValues[0])-parseFloat(drawToValues[1]))) );
-                        }
-                        else
-                        {
-                            toValues.push( 0 );
-                            toValues.push( parseFloat(drawToValues[0]) );
-                            toValues.push( pathLength-parseFloat(drawToValues[0]) );
-                        }
+                        
+                        return [drawValues, values];
                     }
                 }
                 else if( prop == 'motionPathSVG' )
@@ -2969,11 +3125,17 @@ if (TweenSpace === undefined)
                 {
                     toLength = _toValues.length;
                     newValues = '';
-
+                    
                     for(w=0; w < toLength; w++)
                     {
                         value = _this.ease( TweenSpace._.min(elapesedTime, _duration), _fromValues[w], _toValues[w], _duration );
                         
+                        /*An object can be assigned to any CSS property in order to create effects such as wiggle and wave. 
+                        i.e ( left:{ wiggle:{amplitude:10, frequency:1.2, seed:123}, from:"100px",  to:"100px"} ).
+                        Having that implementation working, we are kind of overriding it and just using the "from" and "to"
+                        when no effect (wiggle or wave) has been declared as a property of the parameter object.
+                        That being said, if the parameter object contains "from" and "to" properties but not effect,
+                        it'll take "from" property as starting values as well as "to" as destination values.*/ 
                         if( _effects != undefined )
                         {
                             for ( var tweenEffects in _effects )
@@ -2996,8 +3158,6 @@ if (TweenSpace === undefined)
                                 value += effectValue;
                             }
                         }
-                        
-                        
                         
                         //rgba case: r g b values need to be integer, however alpha needs to be decimal
                         if( _names )
