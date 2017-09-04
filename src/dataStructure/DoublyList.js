@@ -20,7 +20,7 @@
 
         this.push = function (value)
         {
-            _temp_node = TweenSpace._.Node(value);
+            _temp_node = (value.__proto__.constructor.name == 'Node')?value:TweenSpace._.Node(value);
 
             if (_length > 0)
             {
@@ -63,11 +63,11 @@
                 this.tail = null;
             }
 
-            node = null;
+            //node = null;
             _length--;
             _length = (_length > 0)?_length:0;
 
-            return _temp_node;
+            return node;
         }
 
         return this;

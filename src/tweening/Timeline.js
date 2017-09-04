@@ -169,11 +169,6 @@
                             i++;
                         }
                     }
-                    /*if( _tweens.length == 0)
-                    {
-                        console.warn('TweenSpace.js Warning: Timeline method "addTweens()" contains an empty array parameter');
-                        return;
-                    }*/
 
                     loop1:for(; i < tweens.length; i++)
                     {
@@ -216,9 +211,11 @@
         /** Removes tweens to a Timeline instance.
          *  @method removeTweens
          *  @param {Tween} tweens - Tween or array of Tween instances.
+         *  @return {Array} - Array of removed Tween objects.
          *  @memberof Timeline */
         this.removeTweens = function( tweens )
         {
+            var removed_tweens = [];
             if(_tweens.length > 0)
             {    
                 _tweens[_tweens.length-1].keyTween(false);
@@ -226,13 +223,13 @@
             }
             
             var i = 0, j = 0;
-            if( Tween.prototype.isPrototypeOf(tweens) === true )
+            if( tweens.__proto__.constructor.name === 'Tween' )
             {
                 for(; i < _tweens.length; i++)
                 {
                     if(_tweens[i] == tweens)
                     {
-                        _tweens.splice(i, 1);
+                        removed_tweens = removed_tweens.concat( _tweens.splice(i, 1) );
                         break;
                     }
                 }
@@ -245,7 +242,7 @@
                     {
                         if(tweens[i] == _tweens[j])
                         {
-                            _tweens.splice(j, 1);
+                            removed_tweens = removed_tweens.concat( _tweens.splice(j, 1) );
                             break loop2;
                         }
                     }
@@ -256,10 +253,13 @@
             _tweens[_tweens.length-1].timelineParent(_this);
             
             _autoTrim();
+            
+            return removed_tweens;
         }
         /** Starts sequence playback.
          *  @method play
          *  @param {int} playhead - Forward playback from specified time in milliseconds.
+         *  @return {Timeline} - A Timeline instance.
          *  @memberof Timeline */
         this.play = function( playhead )
         {
@@ -268,6 +268,8 @@
             playhead  = _checkPlayhead( playhead );
             playhead  = _adjustRepeatPlayhead( playhead );
             _apply( (_yoyo_isOdd == false)?'play':'reverse', playhead, true );
+            
+            return _this;
         }
         /** Resumes sequence playback.
          *  @method resume
@@ -285,6 +287,7 @@
          *  @memberof Timeline */
         this.seek = function( playhead )
         {
+            playhead  = _checkPlayhead( playhead );
             playhead  = _adjustRepeatPlayhead( playhead );
             var adjustedPlayhead;
             var q=0;
@@ -295,6 +298,47 @@
                 
                 _tweens[q]['seek'](adjustedPlayhead);
             }
+            
+            /*playhead  = _checkPlayhead( playhead );
+            playhead  = _adjustRepeatPlayhead( playhead );
+            var adjustedPlayhead;
+            var a = 0,
+                twn_length = _tweens.length,
+                b = a, aa, bb,
+                tween_A, tween_B, elements_A, elements_B;
+            
+            //tween_A
+            for(;a<twn_length;a++)
+            {
+                b=0;
+                //tween_B
+                for(;b<twn_length;b++)
+                {
+                    //elements_A = _tweens[a].elements();
+                    
+                    //elements_B = _tweens[b].elements();
+                    
+                    
+                    
+//                    aa = elements_A.length;
+//                    bb = elements_B.length;
+//                    
+//                    //elements_A
+//                    for(;aa--;)
+//                    {
+//                        //elements_B
+//                        for(;bb--;)
+//                        {
+//                            //if(elements_A[aa].UID() == elements_B[bb].UID())
+//                               console.log(elements_A[aa].id, elements_B[bb].id); 
+//                            
+//                        }
+//                    }
+                    console.log( a, b );
+                }
+                 
+            }*/
+            
         }
         /** Reverses sequence playback.
          *  @method reverse
@@ -314,24 +358,34 @@
         /** Pauses sequence playback.
          *  @method pause
          *  @param {int} playhead - Pauses playback at specified time in milliseconds.
-         *  If no argument is passed, animation will be paused at current playhead. Negative values represents delay time.
+         *  If no argument is passed, animation will be paused at current playhead.
+         *  @return {Timeline} - Returns itself for chaining purposes.
          *  @memberof Timeline */
         this.pause = function( playhead )
         {
-            playhead  = _checkPlayhead( playhead );
-            //playhead  = _adjustRepeatPlayhead( playhead );
+            if(playhead)
+            {
+                playhead  = _checkPlayhead( playhead );
+                playhead  = _adjustRepeatPlayhead( playhead );
+            }
+            
             _apply( 'pause', playhead, true );
+            
+            return _this;
         }
         /** Stops sequence playback.
          *  @method stop
          *  @param {int} playhead - Stops playback at specified time in milliseconds.
-         *  If no argument is passed, animation will stop at current playhead. Negative values represents delay time.
+         *  If no argument is passed, animation will stop at current playhead.
+         *  @return {Timeline} - Returns itself for chaining purposes.
          *  @memberof Timeline */
         this.stop = function( playhead )
         {
             playhead  = _checkPlayhead( playhead );
             //playhead  = _adjustRepeatPlayhead( playhead );
             _apply( 'stop', playhead, true );
+            
+            return _this;
         }
         /**
          * Set values to specified method of a Tween instance.

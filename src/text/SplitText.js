@@ -124,14 +124,14 @@
                                 var k = 0;
                                 wordInc++;
                                 var div_word = document.createElement('div');
-                                div_word.id = 'word_'+wordInc;
+                                div_word.id = 'word_'+TweenSpace._.UID();//'word_'+wordInc;
                                 div_word.style.position = "relative";
                                 div_word.style.display = "inline-block";
                                 forChar:for(;k<str.length;k++)
                                 {
                                     var div_char;
                                     div_char = document.createElement('div');
-                                    div_char.id = 'char_'+charInc;
+                                    div_char.id = 'char_'+TweenSpace._.UID();//'char_'+charInc;
                                     div_char.style.position = "relative";
                                     div_char.style.display = "inline-block";
                                     
@@ -171,7 +171,7 @@
                                         
                                         wordInc++;
                                         div_word = document.createElement('div');
-                                        div_word.id = 'word_'+wordInc;
+                                        div_word.id = 'word_'+TweenSpace._.UID();//'word_'+wordInc;
                                         div_word.style.position = "relative";
                                         div_word.style.display = "inline-block";
                                     }
@@ -205,7 +205,7 @@
                                             if( wordWidthInc >= this._.round(parseFloat(parent_style.width), 2) || k == str.length-1 )
                                             {
                                                 var div_line = document.createElement('div');
-                                                div_line.id = 'line_'+lineInc;
+                                                div_line.id = 'line_'+TweenSpace._.UID();//'line_'+lineInc;
                                                 div_line.style.position = "relative";
                                                 div_line.style.display = "inline-block";
                                                 
@@ -248,7 +248,7 @@
                                                     wordsInLineInc = 0;
                                                     
                                                     var div_line = document.createElement('div');
-                                                    div_line.id = 'line_'+lineInc;
+                                                    div_line.id = 'line_'+TweenSpace._.UID();//'line_'+lineInc;
                                                     div_line.style.position = "relative";
                                                     div_line.style.display = "inline-block";
                                                     
