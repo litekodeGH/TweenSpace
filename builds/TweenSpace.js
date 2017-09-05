@@ -76,6 +76,9 @@ if (TweenSpace === undefined)
 
         this.push = function (value)
         {
+            if(value==undefined)
+                return;
+            
             _temp_node = (value.__proto__.constructor.name == 'Node')?value:TweenSpace._.Node(value);
 
             if (_length > 0)
@@ -1360,9 +1363,9 @@ if (TweenSpace === undefined)
     /** Increment number for debugging purposes only. 
      * @private*/
     TweenSpace._.counter = 0;
-    /** TweenSpace Engine current version: 1.9.2.0
+    /** TweenSpace Engine current version: 1.9.3.0
      *  @memberof TweenSpace */
-    TweenSpace.version = '1.9.2.0'; //release.major.minor.dev_stage
+    TweenSpace.version = '1.9.3.0'; //release.major.minor.dev_stage
     /** Useful under a debugging enviroment for faster revisiones.
      *  If true, the engine will assign destination values immediately and no animation will be performed.
      *  @memberof TweenSpace */
@@ -2222,9 +2225,8 @@ if (TweenSpace === undefined)
         };
         /** Method that draws the objects that are being animated.
          * @method tick_draw */
-        this.tick_draw = function( time, setInitValues )
+        this.tick_draw = function( time, setInitValues, updateDOM )
         {  
-            //console.log(TweenSpace._.counter++, time);
             var i = _subTweens.length, j, subtween, prop, 
                 subtween_element, subtween_element_style, subtween_props,
                 subtween_values_DL, subtween_values_node,
@@ -2248,49 +2250,53 @@ if (TweenSpace === undefined)
                     
                     if( subtween_values_node_data.halted == false )
                     {
-                        if( prop == TweenSpace.params.svg.drawSVG )
-                        {    
-                            var drawValues = subtween.tick_prop(prop, time, setInitValues);
-                            subtween_element_style.strokeDashoffset = drawValues[0];
-
-                            if(drawValues.length > 2)
-                                subtween_element_style.strokeDasharray = drawValues[1]+', '+drawValues[2];
-                            else
-                                subtween_element_style.strokeDasharray = drawValues[1];
+                        if(updateDOM==false)
+                        {
+                            subtween.tick_prop(prop, time, setInitValues);
                         }
-                        else if( prop == 'motionPathSVG' )
-                        {    
-                            subtween_element_style.transformOrigin = (subtween_props[prop]['pivotX'])+'px '+(subtween_props[prop]['pivotY']+'px ');
-                            subtween_element_style.transform = subtween.tick_prop(prop, time, setInitValues);
-                        }
-                        else if( prop == 'morphSVG' )
-                            subtween_element.setAttribute('d', subtween.tick_prop(prop, time, setInitValues) );
-                        else if( prop == 'numberTo' )
-                            _numberTo = subtween.tick_prop(prop, time, setInitValues);
                         else
                         {
-                            //Animate custom objects. I.e. {x:0, y:1}
-                            if(subtween_element.constructor == Object)
-                                subtween_element[prop] = subtween.tick_prop(prop, time, setInitValues);
-                            //Animate CSS properties
+                            if( prop == TweenSpace.params.svg.drawSVG )
+                            {    
+                                var drawValues = subtween.tick_prop(prop, time, setInitValues);
+                                subtween_element_style.strokeDashoffset = drawValues[0];
+
+                                if(drawValues.length > 2)
+                                    subtween_element_style.strokeDasharray = drawValues[1]+', '+drawValues[2];
+                                else
+                                    subtween_element_style.strokeDasharray = drawValues[1];
+                            }
+                            else if( prop == 'motionPathSVG' )
+                            {    
+                                subtween_element_style.transformOrigin = (subtween_props[prop]['pivotX'])+'px '+(subtween_props[prop]['pivotY']+'px ');
+                                subtween_element_style.transform = subtween.tick_prop(prop, time, setInitValues);
+                            }
+                            else if( prop == 'morphSVG' )
+                                subtween_element.setAttribute('d', subtween.tick_prop(prop, time, setInitValues) );
+                            else if( prop == 'numberTo' )
+                                _numberTo = subtween.tick_prop(prop, time, setInitValues);
                             else
                             {
-                                if(_useCSSText)
-                                    cssText += prop +":"+ subtween.tick_prop(prop, time, setInitValues)+";";
+                                //Animate custom objects. I.e. {x:0, y:1}
+                                if(subtween_element.constructor == Object)
+                                    subtween_element[prop] = subtween.tick_prop(prop, time, setInitValues);
+                                //Animate CSS properties
                                 else
-                                    subtween_element_style[prop] = subtween.tick_prop(prop, time, setInitValues);
+                                {
+                                    if(_useCSSText)
+                                        cssText += prop +":"+ subtween.tick_prop(prop, time, setInitValues)+";";
+                                    else
+                                        subtween_element_style[prop] = subtween.tick_prop(prop, time, setInitValues);
+
+                                }
                             }
-                            
-//                            if(_elements[0].id=='holder')
-//                            console.log(_mTime, _dTime, subtween_element_style[prop]);
                         }
-                             
                     }
                     
                     subtween_values_node = subtween_values_node.next;
                 }
                 
-                if(_useCSSText)
+                if(_useCSSText && updateDOM!=false)
                     subtween_element_style.cssText = cssText;
             }
             
@@ -2450,7 +2456,6 @@ if (TweenSpace === undefined)
                 }    
                 
                 _dTime = _mTime;
-                //console.log('lala___________________', _playing, _reversed, _mTime, _dTime);
             }
             else if( _mTime > _durationTotal )
             {
@@ -2459,8 +2464,6 @@ if (TweenSpace === undefined)
                 
             }
             //ADJUST time______________________________________
-            
-            
             
             _manageRepeatCycles();
         }
@@ -2542,6 +2545,13 @@ if (TweenSpace === undefined)
             
             _paused = false;
             _playing = true;
+            
+            /*If playhead is specified in any of the playback method,
+            the tween will start intentionally from that value. If playhead 
+            is not specified, and 'checkConflict' is true, the animation
+            will start from current value.*/
+            if(playhead!=undefined)
+                _this.tick_draw(-_delay, true, false);
             
             TweenSpace._.engine();
         }
@@ -2714,6 +2724,7 @@ if (TweenSpace === undefined)
                 var w;
                 if( property == 'transform' || property=='filter')
                 {
+                    
                     for(var prop in _transform)
                     {
                         var _prop_transform = _transform[prop];
@@ -2747,6 +2758,10 @@ if (TweenSpace === undefined)
                         }
                         result += prop+'('+newValues+') ';
                     }
+                    
+                    //Set initial string value if value is 'none'.
+                    if(_prop_values.initValues=='none')
+                        _prop_values.initValues = result;
                 }
                 else if( property == TweenSpace.params.svg.drawSVG )
                 {
@@ -2981,17 +2996,24 @@ if (TweenSpace === undefined)
                         //if "initProp" exists, it means that it was define by the "effects override" using the "from" parameter.
                         if( initProp == undefined)
                         {
+                            
                             if( this.values[prop] == undefined )
                                 initProp =  newPropVals.initValues = styles[prop];
                             else
                             {
-                                if(_isFrom != true)
+                                /*if(_isFrom != true)
+                                    initProp = newPropVals.initValues = styles[prop];
+                                else
+                                    initProp = newPropVals.initValues = this.values[prop].initValues;*/
+                                if(_checkConflict == true)
                                     initProp = styles[prop];
                                 else
                                     initProp = newPropVals.initValues = this.values[prop].initValues;
                             }
                         } 
                     }
+                    
+                    
                     
                     nameMatch = name = initName = rgb = '';
                     if( prop == 'transform' || prop == 'filter' )
@@ -3129,8 +3151,8 @@ if (TweenSpace === undefined)
                                 }
                             }
                         }
-
-                        initTransform = null;
+                        
+                        //initTransform = null;
                     }
                     else if( prop.match( /color|fill|^stroke$/i ) )
                     {
@@ -3485,7 +3507,6 @@ if (TweenSpace === undefined)
                         newPropVals.units.push((matchResult) ? matchResult[0] : "");
                     }
 
-                    //console.log(prop, newPropVals.fromValues, newPropVals.toValues);
                     
                     this.values[prop] = new PropValues(prop, name, newPropVals.fromValues, newPropVals.toValues, 
                                                        newPropVals.units, transform, newPropVals.effects, 
@@ -3493,6 +3514,7 @@ if (TweenSpace === undefined)
 
                     this.values_DL.push(this.values[prop]);
                     newPropVals.effects = undefined;
+
                 } 
                 
                 return this;
@@ -3504,6 +3526,7 @@ if (TweenSpace === undefined)
             
             function _manageSubTween()
             {
+                
                 return _st_this.manageSubTween();
             }
             
@@ -3838,47 +3861,6 @@ if (TweenSpace === undefined)
                 
                 _tweens[q]['seek'](adjustedPlayhead);
             }
-            
-            /*playhead  = _checkPlayhead( playhead );
-            playhead  = _adjustRepeatPlayhead( playhead );
-            var adjustedPlayhead;
-            var a = 0,
-                twn_length = _tweens.length,
-                b = a, aa, bb,
-                tween_A, tween_B, elements_A, elements_B;
-            
-            //tween_A
-            for(;a<twn_length;a++)
-            {
-                b=0;
-                //tween_B
-                for(;b<twn_length;b++)
-                {
-                    //elements_A = _tweens[a].elements();
-                    
-                    //elements_B = _tweens[b].elements();
-                    
-                    
-                    
-//                    aa = elements_A.length;
-//                    bb = elements_B.length;
-//                    
-//                    //elements_A
-//                    for(;aa--;)
-//                    {
-//                        //elements_B
-//                        for(;bb--;)
-//                        {
-//                            //if(elements_A[aa].UID() == elements_B[bb].UID())
-//                               console.log(elements_A[aa].id, elements_B[bb].id); 
-//                            
-//                        }
-//                    }
-                    console.log( a, b );
-                }
-                 
-            }*/
-            
         }
         /** Reverses sequence playback.
          *  @method reverse

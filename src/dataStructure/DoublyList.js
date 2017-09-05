@@ -20,6 +20,9 @@
 
         this.push = function (value)
         {
+            if(value==undefined)
+                return;
+            
             _temp_node = (value.__proto__.constructor.name == 'Node')?value:TweenSpace._.Node(value);
 
             if (_length > 0)

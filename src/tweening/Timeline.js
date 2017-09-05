@@ -298,47 +298,6 @@
                 
                 _tweens[q]['seek'](adjustedPlayhead);
             }
-            
-            /*playhead  = _checkPlayhead( playhead );
-            playhead  = _adjustRepeatPlayhead( playhead );
-            var adjustedPlayhead;
-            var a = 0,
-                twn_length = _tweens.length,
-                b = a, aa, bb,
-                tween_A, tween_B, elements_A, elements_B;
-            
-            //tween_A
-            for(;a<twn_length;a++)
-            {
-                b=0;
-                //tween_B
-                for(;b<twn_length;b++)
-                {
-                    //elements_A = _tweens[a].elements();
-                    
-                    //elements_B = _tweens[b].elements();
-                    
-                    
-                    
-//                    aa = elements_A.length;
-//                    bb = elements_B.length;
-//                    
-//                    //elements_A
-//                    for(;aa--;)
-//                    {
-//                        //elements_B
-//                        for(;bb--;)
-//                        {
-//                            //if(elements_A[aa].UID() == elements_B[bb].UID())
-//                               console.log(elements_A[aa].id, elements_B[bb].id); 
-//                            
-//                        }
-//                    }
-                    console.log( a, b );
-                }
-                 
-            }*/
-            
         }
         /** Reverses sequence playback.
          *  @method reverse
