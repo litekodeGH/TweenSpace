@@ -1245,6 +1245,7 @@
                     for(w=0; w < toLength; w++)
                     {    
                         //result.push( _this.ease( Math.min(elapsedTime, _duration), _fromValues[w], _toValues[w], _duration )+_units[w] );
+                        
                         value = _this.ease( Math.min(elapsedTime, _duration), _fromValues[w], _toValues[w], _duration );
                         if(w!=1)
                         {
@@ -1404,7 +1405,7 @@
                         forLoopInitProps:for ( var p in this.props )
                         {
                             //If destination props were inline declared in advanced
-                            //don't compute style. It is very  CPU intensive.
+                            //don't compute style. It is very CPU intensive.
                             if(this.props[TweenSpace.params.svg.drawSVG] !== undefined)
                                 styles = window.getComputedStyle(this.element, null);
                             else if( this.element.style[p] == "" )
@@ -1417,7 +1418,7 @@
                         }    
                     }
                 }
-
+                
                 var props_value;
                 for ( var prop in this.props )
                 {
@@ -1486,7 +1487,6 @@
                             }
                         } 
                     }
-                    
                     
                     
                     nameMatch = name = initName = rgb = '';
@@ -1693,6 +1693,16 @@
                                     newPropVals.fromValues.push(parseFloat( drawFromValues[0] ), 0 );
                             }
                         }
+                        
+                        if( this.values[prop] == undefined )
+                        {
+                            var length = newPropVals.fromValues.length;
+                            newPropVals.initValues = [];
+                            var c = 0;
+                            for(;c<length;c++)
+                                newPropVals.initValues.push( newPropVals.fromValues[c] );
+                        }
+                        
 
                         //to values
                         if( props_value.constructor === Object )
@@ -1700,7 +1710,7 @@
 
                         drawToValues = String(inputPropString).split(' ');
                         setValues( drawToValues, newPropVals.toValues );
-
+                        
                         function setValues( drawValues, values )
                         {
                             if( String(inputPropString).match( /%/ ) != null )
@@ -1987,6 +1997,7 @@
                                                        newPropVals.initValues);
 
                     this.values_DL.push(this.values[prop]);
+                    
                     newPropVals.effects = undefined;
 
                 } 
