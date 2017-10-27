@@ -133,7 +133,7 @@
 
         _tickCounter++;
         
-//        if(_tickCounter%60==0)
+//        if(_tickCounter%20==0)
 //            console.log('fps: ', 1000/_dt, _queue_DL.length() );
     }
     

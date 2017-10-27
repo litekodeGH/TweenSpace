@@ -1221,9 +1221,9 @@
     /** Increment number for debugging purposes only. 
      * @private*/
     TweenSpace._.counter = 0;
-    /** TweenSpace Engine current version: 1.9.4.0
+    /** TweenSpace Engine current version: 1.9.5.0
      *  @memberof TweenSpace */
-    TweenSpace.version = '1.9.4.0'; //release.major.minor.dev_stage
+    TweenSpace.version = '1.9.5.0'; //release.major.minor.dev_stage
     /** Useful under a debugging enviroment for faster revisiones.
      *  If true, the engine will assign destination values immediately and no animation will be performed.
      *  @memberof TweenSpace */

@@ -315,6 +315,7 @@
         /** Animation playhead in milliseconds. Negative values represent delay time.
          * @private */
         var _mTime = -(_delay);
+        var _last_mTime = -1;
         /** Drawing animation playhead in milliseconds.
          * @private */
         var _dTime = 0;
@@ -360,10 +361,10 @@
         /** Variable for current transform property values.
          *  @private */
         var _currentPropValues = new PropValues();
+        
         /** Returns Tween instance unique id number.
          *  @private */
         this.UID = function(){return _UID;};
-        
         /** Sets to undefined the reference to the node where this Tween instance is stored as data property.
          * @private */
         this.resetNode = function()
@@ -492,7 +493,7 @@
             
             return _timelineParent;
         };
-        /** Returns the duration in milliseconds including. Neither repeat cycles nor delays are included.
+        /** Returns the duration in milliseconds. Neither repeat cycles nor delays are included.
          *  @method duration
          *  @param {int} value - Duration. 
          *  @return {int} - Duration in milliseconds.
@@ -507,7 +508,15 @@
             
             return _duration;
         };
-        /** Returns the total duration in milliseconds including repeat cycles. However delays are not considered.
+        /** Returns the duration in milliseconds including repeat cycles durations.
+         *  @method durationRepeat
+         *  @return {int} - Duration in milliseconds.
+         *  @memberof Tween*/
+        this.durationRepeat = function()
+        {
+            return _durationRepeat;
+        };
+        /** Returns the total duration in milliseconds including repeat cycles durations and extra tail frames when this Tween is part of Timeline. However delays are not considered.
          *  @method durationTotal
          *  @param {int} value - Total duration which is calculated internally. 
          *  @return {int} - Total duration in milliseconds.
@@ -615,13 +624,27 @@
         *@method seek
         *@param {int} playhead - Moves playhead at specified time in milliseconds.
         * @memberof Tween */
-        this.seek = function( playhead )
+        this.seek = function( playhead, updateDOM, doTick )
+        {
+            if(doTick == undefined)
+                doTick = true;
+            
+            if( playhead != undefined )
+            {
+                if( _adjustPlayhead(playhead) != undefined )
+                {   
+                    if(doTick==true)
+                        _this.tick(16.67, false, updateDOM);
+                }
+            }
+        };
+        this.tick_logic = function( playhead, setInitValues, prop, subtween, checkConflict )
         {
             if( playhead != undefined )
             {
                 if( _adjustPlayhead(playhead) != undefined )
                 {   
-                    _this.tick(16.67, false);
+                    _tick_logic(TweenSpace._.interval());
                 }
             }
         };
@@ -658,7 +681,7 @@
         /** Calculates values over time. @private
         * @method tick
         * @private*/
-        this.tick = function(dt, useCallbacks)
+        this.tick = function(dt, useCallbacks, updateDOM)
         {
             if(TweenSpace.debug == true)
             {
@@ -671,24 +694,31 @@
             //Make drawing calls only when needed except for last frame
             if( _mTime >= _sTime && _mTime <= _durationRepeat ) //-TweenSpace._.dt() _durationTotal
             {
+//                if(_elements[0].id == 'holder' && _this.UID() == 33 )
+//                console.log('_manageConflicts', _mTime.toFixed(2), _dTime.toFixed(3), TweenSpace._.dt().toFixed(3) );
+                
                 //First drawing frame
-                if( _dTime == _sTime ) 
+                if( _dTime == _sTime || (_last_mTime < 0 && _mTime >= 0)) 
                 {    
-                    if( _reversed == false )
+                    if( _reversed == false )  //&& updateDOM == true
+                    {
+//                        if(_elements[0].id == 'holder')
+//                            console.log('holder');
+                        
                         _manageConflicts();
-                    /*if( _reversed == false )
-                        console.log( 'started', _elements[0].id, _dTime );*/
+                    }
                 }
                 //Last drawing frame
-                else if ( _dTime == _durationRepeat  ) //_durationTotal
+                else if ( _dTime == _durationRepeat ) //_durationTotal
                 {
                     /*if( _reversed == true )
                         _manageConflicts();*/
+                    
                     /*if( _reversed == true )
                         console.log( 'complete', _elements[0].id, _dTime );*/
                 }
-                
-                _this.tick_draw(_dTime);
+                _last_mTime = _mTime;
+                _this.tick_draw(_dTime, false, updateDOM);
             }
             
             if(TweenSpace.debug == false  && _playing == true)
@@ -716,12 +746,10 @@
                 j = subtween_values_DL.length();
                 subtween_values_node = subtween_values_DL.head;
                 
-                
                 for ( ;j--; )
                 {   
                     subtween_values_node_data = subtween_values_node.data;
                     prop = subtween_values_node_data.prop;
-                    
                     if( subtween_values_node_data.halted == false )
                     {
                         if(updateDOM==false)
@@ -730,40 +758,7 @@
                         }
                         else
                         {
-                            if( prop == TweenSpace.params.svg.drawSVG )
-                            {    
-                                var drawValues = subtween.tick_prop(prop, time, setInitValues);
-                                subtween_element_style.strokeDashoffset = drawValues[0];
-
-                                if(drawValues.length > 2)
-                                    subtween_element_style.strokeDasharray = drawValues[1]+', '+drawValues[2];
-                                else
-                                    subtween_element_style.strokeDasharray = drawValues[1];
-                            }
-                            else if( prop == 'motionPathSVG' )
-                            {    
-                                subtween_element_style.transformOrigin = (subtween_props[prop]['pivotX'])+'px '+(subtween_props[prop]['pivotY']+'px ');
-                                subtween_element_style.transform = subtween.tick_prop(prop, time, setInitValues);
-                            }
-                            else if( prop == 'morphSVG' )
-                                subtween_element.setAttribute('d', subtween.tick_prop(prop, time, setInitValues) );
-                            else if( prop == 'numberTo' )
-                                _numberTo = subtween.tick_prop(prop, time, setInitValues);
-                            else
-                            {
-                                //Animate custom objects. I.e. {x:0, y:1}
-                                if(subtween_element.constructor == Object)
-                                    subtween_element[prop] = subtween.tick_prop(prop, time, setInitValues);
-                                //Animate CSS properties
-                                else
-                                {
-                                    if(_useCSSText)
-                                        cssText += prop +":"+ subtween.tick_prop(prop, time, setInitValues)+";";
-                                    else
-                                        subtween_element_style[prop] = subtween.tick_prop(prop, time, setInitValues);
-
-                                }
-                            }
+                            cssText = this.tick_draw_prop(prop, time, setInitValues, subtween, cssText);
                         }
                     }
                     
@@ -776,6 +771,50 @@
             
             
         };
+        this.tick_draw_prop = function(prop, time, setInitValues, subtween, cssText)
+        {
+            if( prop == TweenSpace.params.svg.drawSVG )
+            {    
+                var drawValues = subtween.tick_prop(prop, _dTime, setInitValues);
+                subtween.elementStyle.strokeDashoffset = drawValues[0];
+
+                if(drawValues.length > 2)
+                    subtween.elementStyle.strokeDasharray = drawValues[1]+', '+drawValues[2];
+                else
+                    subtween.elementStyle.strokeDasharray = drawValues[1];
+            }
+            else if( prop == 'motionPathSVG' )
+            {    
+                subtween.elementStyle.transformOrigin = (subtween.props[prop]['pivotX'])+'px '+(subtween.props[prop]['pivotY']+'px ');
+                subtween.elementStyle.transform = subtween.tick_prop(prop, _dTime, setInitValues);
+            }
+            else if( prop == 'morphSVG' )
+                subtween.element.setAttribute('d', subtween.tick_prop(prop, _dTime, setInitValues) );
+            else if( prop == 'numberTo' )
+                _numberTo = subtween.tick_prop(prop, _dTime, setInitValues);
+            else
+            {
+                //Animate custom objects. I.e. {x:0, y:1}
+                if(subtween.element.constructor == Object)
+                    subtween.element[prop] = subtween.tick_prop(prop, _dTime, setInitValues);
+                //Animate CSS properties
+                else
+                {
+                    if(_useCSSText)
+                        cssText += prop +":"+ subtween.tick_prop(prop, _dTime, setInitValues)+";";
+                    else
+                    {
+                        //subtween.elementStyle[prop] = subtween.tick_prop(prop, time, setInitValues);
+                        subtween.elementStyle[prop] = subtween.tick_prop(prop, _dTime, setInitValues);
+                        
+//                        if(subtween.element.id=='title_outlines_bottom')
+//                            console.log('tick_draw_prop', prop, subtween.elementStyle[prop]);
+                    }
+                }
+            }
+            
+            return cssText;
+        }
         /** Removes all elements from DOM as well as its references stored in 'elements'.
         *@method destroy
         * @memberof Tween */
@@ -811,7 +850,6 @@
         {
             if( _mTime >= _sTime && _mTime <= _durationRepeat )
             {
-                
                 //TWEEN CALLBACKS____________________________________
                 if( _this.onProgress )
                     _this.onProgress();
@@ -846,7 +884,7 @@
         {   
             var i = _elements.length;
             for(;i--;)
-                _subTweens[i].manageSubTween();
+                _subTweens[i].manageSubTween(true);
         }
         /** Reset settings.
          * @private*/
@@ -957,7 +995,7 @@
                         {    
                             //Modify existing prop
                             _subTweens[p].props[oldProp] = newProps[newProp];
-                            _subTweens[p].manageSubTween();
+                            _subTweens[p].manageSubTween(true);
                             found = true;
                             break oldPropsLoop;
                         }
@@ -966,7 +1004,7 @@
                     {    
                         //Add new prop 
                         _subTweens[p].props[newProp] = newProps[newProp];
-                        _subTweens[p].manageSubTween();
+                        _subTweens[p].manageSubTween(true);
                     }
                 }
             }
@@ -1016,6 +1054,7 @@
             }
             
             _manageImmediateRender();
+            _unhaltSubTweens();
             
             _paused = false;
             _playing = true;
@@ -1027,7 +1066,16 @@
             if(playhead!=undefined)
                 _this.tick_draw(-_delay, true, false);
             
+            //console.log('playhead', playhead, _subTweens[0].UID());
+            
             TweenSpace._.engine();
+        }
+        function _unhaltSubTweens()
+        {
+            var i = _subTweens.length;
+            for(;i--;)
+                for( var prop in _subTweens[i].props )
+                    _subTweens[i].values[prop].halted = false;
         }
         /** Calculates current playhead in repeat situations.
          * @private*/
@@ -1094,7 +1142,7 @@
                         currNode.data.subTweens()[k];
                         
                         //Check which Tween is most recent 
-                        if(_subTweens[i].UID() > currNode.data.subTweens()[k].UID() )
+                        if( _subTweens[i].UID() > currNode.data.subTweens()[k].UID() )
                             //Check if both Subtweens from different Tweens are targeting the same element
                             if( _subTweens[i].element == currNode.data.subTweens()[k].element )
                             {
@@ -1109,6 +1157,8 @@
                                             //the same element's property, has been queued.
                                             currNode.data.subTweens()[k].values[curr_prop].halted = true;
                                         }
+                                        else
+                                            currNode.data.subTweens()[k].values[curr_prop].halted = false;
                                     }
                                 }
                             }
@@ -1119,6 +1169,7 @@
                 }
             }
         }
+        
         /** Manages global and local conflict  declarations.
          * @private*/
         function _manageConflicts()
@@ -1147,7 +1198,10 @@
                     _this.tick_draw(_dTime);
             }
             else if( _immediateRender == true )
+            {
                 _this.tick_draw(_dTime);
+                //console.log(_elements[0].id);
+            }   
         }
         /**
          * SubTween.
@@ -1174,7 +1228,6 @@
             this.values_DL;
             
             
-            
             /** Returns SubTween instance unique id number.
              *  @private */
             this.UID = function(){return _UID;};
@@ -1184,7 +1237,7 @@
              *  @private */
             this.tick_prop = function( property, elapsedTime, setInitValues )
             {
-                var _prop_values = this.values[property];
+                var _prop_values = _st_this.values[property];
                 var _names = _prop_values.names;
                 var _toValues = (_isFrom === true) ? ((setInitValues==true)?_prop_values.initValues:_prop_values.fromValues) : _prop_values.toValues;
                 var _fromValues = (_isFrom === true) ? _prop_values.toValues : ((setInitValues==true)?_prop_values.initValues:_prop_values.fromValues);
@@ -1195,19 +1248,30 @@
                 var _transform = _prop_values.transform;
                 var _min = 0, _max = 0;
                 
+//                if(_st_this.element.id == 'wire_holder_1')
+//                        console.log('wire_holder_1', property, _prop_values.initValues);
+                
                 var w;
-                if( property == 'transform' || property=='filter')
+                if( property == 'transform' || property=='filter' )
                 {
-                    
                     for(var prop in _transform)
                     {
                         var _prop_transform = _transform[prop];
+                        
                         toLength = _prop_transform.toValues.length;
                         newValues = '';
+                        
                         for(w=0; w < toLength; w++)
                         {
+                            var _trans_prop_from;
+                            
+                            if(setInitValues == true)
+                                _trans_prop_from = _prop_transform.initValues[w];
+                            else
+                                _trans_prop_from = _prop_transform.fromValues[w];
+                               
                             value = _this.ease( Math.min(elapsedTime, _duration),
-                                                _prop_transform.fromValues[w],
+                                                _trans_prop_from,
                                                 _prop_transform.toValues[w],
                                                 _duration );
                             
@@ -1232,10 +1296,6 @@
                         }
                         result += prop+'('+newValues+') ';
                     }
-                    
-                    //Set initial string value if value is 'none'.
-                    if(_prop_values.initValues=='none')
-                        _prop_values.initValues = result;
                 }
                 else if( property == TweenSpace.params.svg.drawSVG )
                 {
@@ -1327,13 +1387,25 @@
                     result = _this.ease( Math.min(elapsedTime, _duration), _fromValues[0], _toValues[0], _duration );
                 }
                 else
-                {                    
+                {    
+                    
+                    
+                    if(_toValues.constructor != Array)
+                        if(isNaN(parseFloat(_toValues)) == false)
+                            _toValues = [parseFloat(_toValues)];
+                    
                     w = toLength = _toValues.length;
                     newValues = '';
                     
+                    if(_fromValues.constructor != Array)
+                        if(isNaN(parseFloat(_fromValues)) == false)
+                            _fromValues = [parseFloat(_fromValues)];
+                    
+                    
+                    
                     for(w=0; w < toLength; w++)
                     {
-                        value = _this.ease( Math.min(elapsedTime, _duration), _fromValues[w], _toValues[w], _duration );
+                        value = _this.ease( Math.min(elapsedTime, _duration), parseFloat(_fromValues[w]), parseFloat(_toValues[w]), _duration );
                         
                         if( _effects != undefined )
                         {
@@ -1373,14 +1445,22 @@
                     
                     if( _names ) result = _names+'('+newValues+')';
                     else result = newValues;
+                    
+//                    if(_st_this.element.id=='title_outlines_bottom')
+//                            console.log('tick_prop', result);
                 }
+                
+//                if(_st_this.element.id == 'holder' && _st_this.UID()==26 )
+//                    console.log('tick_prop', _transform.rotate3d);
+                
+                
                 
                 return result;
             };
             
             /** Method that manages subtweens.
              * @private*/
-            this.manageSubTween = function ()
+            this.manageSubTween = function (checkConflict, checkConflictProp)
             {
                 var length = 0, q = 0, r = 0;
                 var matchResult, inputPropString, initTransform, transform, initProp;
@@ -1393,7 +1473,7 @@
                 //Store initial values
                 var styles;
                 if( _isNumberTo == true )
-                {    styles = {}; }
+                    styles = {};
                 else
                 {
                     if(this.element.constructor == Object)
@@ -1464,29 +1544,50 @@
                                 initProp = lastInitProp;
                             else
                                 initProp = newInitProp;
-                        }    
+                        }
+                        
+                        
                     }    
                     else
                     {
                         //if "initProp" exists, it means that it was define by the "effects override" using the "from" parameter.
                         if( initProp == undefined)
                         {
-                            
                             if( this.values[prop] == undefined )
+                            {
                                 initProp =  newPropVals.initValues = styles[prop];
+                                
+//                                if(_st_this.element.id == 'wire_holder_1')
+//                        console.log('wire_holder_1', prop, newPropVals.initValues, initProp);
+                            }
                             else
                             {
-                                /*if(_isFrom != true)
-                                    initProp = newPropVals.initValues = styles[prop];
-                                else
-                                    initProp = newPropVals.initValues = this.values[prop].initValues;*/
-                                if(_checkConflict == true)
-                                    initProp = styles[prop];
+                                if(checkConflict == true)
+                                {
+                                    if(_isFrom == false )
+                                    {
+                                        //console.log(inputPropString);
+                                        if(inputPropString != undefined)
+                                            if(inputPropString.match( /\+=|-=|\*=|\/=/ ) != null)
+                                                initProp = this.values[prop].initValues;
+                                        else
+                                            initProp = styles[prop];
+                                    }
+                                    else
+                                    {
+                                        initProp = this.values[prop].initValues;
+                                    }
+                                }
                                 else
                                     initProp = newPropVals.initValues = this.values[prop].initValues;
+                                
+                                if( checkConflictProp )
+                                    if( checkConflictProp != prop )
+                                        initProp = this.values[prop].fromValues;
                             }
-                        } 
+                        }
                     }
+                    
                     
                     
                     nameMatch = name = initName = rgb = '';
@@ -1509,12 +1610,15 @@
                             while(match = regex.exec(initTransformString))
                                 initTransform[ match[1] ] = { fromValues:String(match[2]).split(',') };
                         }
+                        
+//                        if(_st_this.element.id == 'holder' && _st_this.UID()==26 )
+//                                    console.log('lala', this.element.style.transform, this.values);
 
                         //Set destination transform and eliminate initial transform properties that are not defined as destination values 
                         while(match = regex.exec(inputPropString))
                         {
                             //Get destination values
-                            transform[ match[1] ] = { fromValues:[], toValues:String(match[2]).split(','), units:[] }; //(matchResult) ? matchResult[0] : ""
+                            transform[ match[1] ] = { fromValues:[], toValues:String(match[2]).split(','), units:[], initValues:[] }; //(matchResult) ? matchResult[0] : ""
 
                             length = transform[ match[1] ].toValues.length;
                             for( q=0; q < length; q++ )
@@ -1534,7 +1638,7 @@
                                 else
                                     transform[ match[1] ].units[q] = (matchResult) ? matchResult[0] : "";
                             }
-
+                            
                             //Set initial values
                             if( initTransform[ match[1] ] != undefined )
                             {
@@ -1543,6 +1647,10 @@
                                     initTransform[ match[1] ].fromValues[q] = parseFloat(initTransform[ match[1] ].fromValues[q]);
 
                                 transform[ match[1] ].fromValues = initTransform[ match[1] ].fromValues;
+                                
+                                if( checkConflictProp )
+                                    if( checkConflictProp != prop )
+                                        transform[ match[1] ].fromValues = this.values[prop].transform[match[1]].fromValues.slice();
                             }
                             else
                             {
@@ -1624,6 +1732,19 @@
                                     transform[ match[1] ].fromValues[15] = 1;
                                 }
                             }
+                            
+                            if( this.values[prop] == undefined )   
+                            {
+                                transform[ match[1] ].initValues = transform[ match[1] ].fromValues.slice();
+                                
+                                
+                            }
+                            else
+                            {
+                                transform[ match[1] ].initValues = this.values[prop].transform[match[1]].initValues;
+                                
+                                
+                            }
                         }
                         
                         //initTransform = null;
@@ -1634,6 +1755,8 @@
                         name = nameMatch[0];
                         initName = String(initProp).match( /rgba|rgb/i );
 
+                        //console.log(name, initName);
+                        
                         if( name && initName)
                         {
                             rgb = String(inputPropString).slice( String(inputPropString).indexOf('(')+1, String(inputPropString).indexOf(')') ).split(',');
@@ -1650,7 +1773,31 @@
                                 else newPropVals.fromValues.push(1);
                                 newPropVals.units.push('');
                             }
+                            
+                            if(this.values[prop])
+                            {
+                                newPropVals.initValues = this.values[prop].initValues;
+                            }    
+                            else
+                                newPropVals.initValues = newPropVals.fromValues.slice();
                         }
+                        
+                        if(this.values[prop])
+                            if(this.values[prop].toValues.length > 0)
+                            {
+                                newPropVals.fromValues = this.values[prop].fromValues.slice();
+                                newPropVals.toValues = this.values[prop].toValues.slice();
+                                newPropVals.units = this.values[prop].units.slice();
+                            }
+                        
+                        /*if(_st_this.UID() == 7 || _st_this.UID() == 9)
+                        {    
+                            console.log( 'tick_prop', newPropVals.fromValues, newPropVals.toValues, 
+                                        (this.values[prop])?this.values[prop].fromValues:undefined, 
+                                        (this.values[prop])?this.values[prop].toValues:undefined );
+                        }*/
+                        
+                        
                     }
                     else if( prop == TweenSpace.params.svg.drawSVG )
                     {
@@ -1978,28 +2125,54 @@
                     else
                     {
                         matchResult = String(inputPropString).match( /em|ex|px|in|cm|mm|%|rad|deg/ );
+                        
                         var fromVal = parseFloat(initProp), toVal;
                         newPropVals.fromValues.push(fromVal);
                         
+                        if(newPropVals.initValues == '')
+                        {
+                            newPropVals.initValues = [];
+                            newPropVals.initValues.push(fromVal);
+                        }
+                            
+                        
+//                        if(_st_this.element.id == 'wire_holder_1')
+//                        console.log('wire_holder_1', prop, newPropVals.initValues == '', newPropVals.fromValues, initProp);
+                        
                         //!Check function-based values___________________________
-                        toVal = TweenSpace._.functionBasedValues(fromVal, inputPropString); 
-                        if(toVal == null)
-                            toVal = parseFloat(inputPropString)
+                        if(this.values[prop] != undefined )
+                            toVal = this.values[prop].toValues[0];
+                        else
+                            toVal = TweenSpace._.functionBasedValues(fromVal, inputPropString);
+                            
+                            
                         //Check function-based values___________________________!
-
+                        
+                        if( toVal == null )
+                            toVal = parseFloat(inputPropString);
+                        
                         newPropVals.toValues.push(toVal);
-                        newPropVals.units.push((matchResult) ? matchResult[0] : "");
+                        newPropVals.units.push((matchResult) ? matchResult[0] : "");  
                     }
-
+                    
+                    if(this.values[prop])
+                        newPropVals.initValues = this.values[prop].initValues;
+                    
+                    
                     
                     this.values[prop] = new PropValues(prop, name, newPropVals.fromValues, newPropVals.toValues, 
                                                        newPropVals.units, transform, newPropVals.effects, 
                                                        newPropVals.initValues);
-
+                    
                     this.values_DL.push(this.values[prop]);
                     
+                    /*if(_st_this.element.id == 'holder' && _st_this.UID()==26 )
+                    {
+                        console.log('manageSubTween B: ', transform.translate3d.fromValues, transform.translate3d.toValues,
+                       transform.rotate3d.fromValues, transform.rotate3d.toValues);
+                    }*/
+                    
                     newPropVals.effects = undefined;
-
                 } 
                 
                 return this;

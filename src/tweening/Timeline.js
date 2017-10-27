@@ -83,6 +83,7 @@
          *  @memberof Timeline */
         this.currentTime = function()
         {
+            //console.log('currentTime', _tweens[_tweens.length-1].currentTime() + _tweens[_tweens.length-1].delay());
             return _tweens[_tweens.length-1].currentTime() + _tweens[_tweens.length-1].delay();
         }
         /** Scales the time of all tweens in the Timeline. While a value of 1 represents normal speed, lower values
@@ -129,7 +130,7 @@
         }
         /** Adds tweens to a Timeline instance.
          *  @method addTweens
-         *  @param {*} tweens - Tween or array of Tween instances.
+         *  @param {*} tweens - Tween, Tween parameters object or array of Tween instances.
          *  @memberof Timeline */
         this.addTweens = function( tweens )
         {
@@ -144,19 +145,12 @@
                 var i = 0, j = 0;
                 if( tweens.__proto__.constructor.name === 'Tween' )
                 {
-                    tweens.useDelay(true);
-                    if( _tweens.length == 0)
-                        _tweens.push(tweens);
-                    else
-                    {
-                        for(; i < _tweens.length; i++)
-                        {
-                            if(_tweens[i] == tweens)
-                                break;
-                            if(i == _tweens.length - 1)
-                                _tweens.push(tweens);
-                        }
-                    }
+                    _pushTween(tweens);
+                }
+                else if( tweens.constructor === Object )
+                {
+                    tweens = new TweenSpace.Tween(tweens);
+                    _pushTween(tweens);
                 }
                 else if( tweens.constructor === Array )
                 {
@@ -170,6 +164,7 @@
                         }
                     }
 
+                    //Check if tween exists
                     loop1:for(; i < tweens.length; i++)
                     {
                         loop2:for(; j < _tweens.length; j++)
@@ -265,8 +260,12 @@
         {
             _reversed = false;
             _repeat_direction = true;
+            
             playhead  = _checkPlayhead( playhead );
             playhead  = _adjustRepeatPlayhead( playhead );
+            
+            //console.log('play', playhead);
+            
             _apply( (_yoyo_isOdd == false)?'play':'reverse', playhead, true );
             
             return _this;
@@ -287,18 +286,271 @@
          *  @memberof Timeline */
         this.seek = function( playhead )
         {
-            playhead  = _checkPlayhead( playhead );
-            playhead  = _adjustRepeatPlayhead( playhead );
-            var adjustedPlayhead;
-            var q=0;
-            for(; q < _tweens.length; q++)
+            /*playhead  = _checkPlayhead( playhead );
+            playhead  = _adjustRepeatPlayhead( playhead );*/
+            
+            var i = 0, j = 0, k = 0, l = 0, m = 0, p = 0;
+            var twn, stwn, stwnGroups = [], group_node1, group_node2, twn2;
+            
+            //Loop over Tweens and group subTweens
+            j = _tweens.length;
+            for(;j--;)
             {
-                if(playhead!=undefined)
-                    adjustedPlayhead = playhead + (-_tweens[q].delay());
+                twn = _tweens[j];
                 
-                _tweens[q]['seek'](adjustedPlayhead);
+                //Loop over this SubTweens
+                i = twn.subTweens().length;
+                for(;i--;)
+                {
+                    stwn = twn.subTweens()[i];
+                    //Add first DOM element and subTweens array
+                    if(stwnGroups.length == 0)
+                    {
+                        dl = TweenSpace._.DoublyList();
+                        dl.push( {tween:twn, subTween:stwn} );
+                        stwnGroups.push([stwn.element, dl] );//[{tween:twn, subTween:stwn}]]);
+                    }    
+                    else
+                    {
+                        //Loop over existing elements grouping subTweens
+                        var inserted = false;
+                        k = stwnGroups.length;
+                        loop_k:for(;k--;)
+                        {
+                            //If DOM element already exists, add subTween
+                            if(stwn.element == stwnGroups[k][0])
+                            {
+                                stwnGroups[k][1].push({tween:twn, subTween:stwn});
+                                inserted = true;
+                                break loop_k;
+                            }  
+                                
+                        }
+                        //If DOM element does not exist, add element and array containing first subTween
+                        if(inserted == false)
+                        {
+                            //console.log(stwnGroups[k][0].id, stwn.element.id, stwnGroups[k][0].id == stwn.element.id);
+                            dl = TweenSpace._.DoublyList();
+                            dl.push( {tween:twn, subTween:stwn} );
+                            stwnGroups.push([stwn.element, dl]);
+                        }
+                    }
+                } 
             }
+            
+            //Sort subTweens chronologically
+            var l = stwnGroups.length;
+            for(;l--;)
+            {
+                //Loop over subTweens, grouped by DOM element
+                m = stwnGroups[l][1].length();
+                if(m>1)
+                {
+                    var twn_delay, twn_dur;
+                    group_node1 = stwnGroups[l][1].head;
+                    var sorted_dl = TweenSpace._.DoublyList();
+                    for(;m--;)
+                    {
+                        twn = group_node1.data.tween;
+                        twn_delay = twn.delay();
+                        twn_dur = twn.delay()+twn.durationRepeat();
+                        p = sorted_dl.length();
+                        group_node2 = sorted_dl.tail;
+
+                        //Sort ascending by delay
+                        if(p==0)
+                            sorted_dl.push( group_node1.data );
+                        else
+                        {
+                            var added = false, twn2_delay, twn2_dur;
+
+                            loop_p:for(;p--;)
+                            {
+                                twn2 = group_node2.data.tween;
+                                twn2_delay = twn2.delay();
+                                twn2_dur = twn2.delay()+twn2.durationRepeat();
+                                
+                                //twn2 starts before twns
+                                if( twn_delay > twn2_delay )
+                                {
+                                    if( twn_dur > twn2_dur)
+                                    {
+                                        sorted_dl.insert( group_node1.data, group_node2, 'after' );
+                                        added = true;
+                                        break loop_p;
+                                    }
+                                    else
+                                    {
+                                        added = true;
+                                        break loop_p;
+                                    }
+                                }
+                                else
+                                {
+                                    if( twn_dur > twn2_dur)
+                                        sorted_dl.remove(group_node2);
+                                }
+
+                                group_node2 = group_node2.prev;
+                            }
+
+                            if(added==false)
+                                sorted_dl.unshift(group_node1.data);
+                        }
+                        
+                        group_node1 = group_node1.next;
+                    }
+
+                    stwnGroups[l][1] = sorted_dl;
+                }
+                
+                //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+                //Loop over subTweens and group values by props
+                m = stwnGroups[l][1].length();
+                if(m>1)
+                {
+                    //IMPORTANT: Create a third item in 'stwnGroups' array that groups values by properties.
+                    stwnGroups[l].push({});
+                    group_node1 = stwnGroups[l][1].head;
+                    draw_loop:for(;m--;)
+                    {
+                        twn = group_node1.data.tween;
+                        stwn = group_node1.data.subTween;
+                        //console.log('lala', group_node1.data.subTween.props);
+                        var props = group_node1.data.subTween.props;
+                        for(var prop in props)
+                        {
+                            if(stwnGroups[l][2][prop] == undefined)
+                                stwnGroups[l][2][prop] = {tween:[], subTween:[]};
+                            
+                            stwnGroups[l][2][prop]['tween'].push(twn);
+                            stwnGroups[l][2][prop]['subTween'].push(stwn);
+                        }
+                        
+                        group_node1 = group_node1.next;
+                    }
+                }
+                
+                //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+                //____________________________________________________________________________
+                var cssText = '';
+                //Loop over grouped subTweens and draw values according to timeline 'playhead'
+                m = stwnGroups[l][1].length();
+                if(m>1)
+                {
+                    for( var prop in stwnGroups[l][2] ) 
+                    {
+                        var twns = stwnGroups[l][2][prop]['tween']; 
+                        var stwns = stwnGroups[l][2][prop]['subTween'];
+                        var length = stwns.length;
+                        var r = 0;
+                        var lastToValues = undefined;
+                        
+                        //console.log('prop', r, prop);
+                        loop_stwns:for(;r<length;r++)
+                        {
+                            twn = twns[r];
+                            stwn = stwns[r];
+                            twn_delay = twn.delay();
+                            twn_dur = twn.delay() + twn.durationRepeat();
+                            
+                            if( playhead >= twn_delay )
+                            {
+                                //After duration
+                                if(playhead >= twn_dur)
+                                {
+                                    _updatePropVal(prop, twn, stwn, twn_delay, playhead, cssText, !r, r>0);
+                                    _updatePropVal(prop, twn, stwn, twn_dur, playhead, cssText, !r, r>0);
+                                }
+                                //After delay, before duration. Right in drawing time.
+                                else
+                                {   
+                                    _updatePropVal(prop, twn, stwn, twn_delay, playhead, cssText, !r, r>0);
+                                    _updatePropVal(prop, twn, stwn, playhead, playhead, cssText, !r, r>0);
+                                }
+                            }
+                            //Before delay
+                            else
+                            {
+                                _updatePropVal( prop, twn, stwn, twn_delay, playhead, cssText, !r, r>0 );
+                                
+                                break loop_stwns;
+                            }
+                        }
+                    }    
+                }
+                else
+                {
+                    twn = stwnGroups[l][1].head.data.tween;
+                    stwn = stwnGroups[l][1].head.data.subTween;
+                    
+                    _updatePropVals(twn, stwn, playhead, cssText);
+                }
+            }
+            
+            //console.log('seek', playhead );
+            j = _tweens.length;
+            for(;j--;)
+                _tweens[j].seek(playhead-_tweens[j].delay(), false, false);
         }
+        function _updatePropVal(prop, twn, stwn, playhead, timeline_playhead, cssText, setInitValues, checkConflict)
+        {
+            
+            if( setInitValues == undefined)
+                setInitValues = false;
+            
+            //console.log('_updatePropVal', stwn.element.id, playhead, timeline_playhead);
+            
+            var adjustedPlayhead = _updatePropAdjustedPlayhead(twn, playhead, checkConflict, prop, stwn);
+            
+            if(checkConflict == true)
+                stwn.manageSubTween(checkConflict, prop);
+            
+            
+            cssText = twn.tick_draw_prop( prop, adjustedPlayhead, setInitValues, stwn, cssText );
+            
+            //console.log('_updatePropVal', stwn.element.id, timeline_playhead, twn.delay(), timeline_playhead-twn.delay());
+            //twn.seek(timeline_playhead-twn.delay(), false, false)
+            
+            return cssText;
+        }
+        function _updatePropVals(twn, stwn, playhead, cssText)
+        {
+            var adjustedPlayhead = _updatePropAdjustedPlayhead(twn, playhead);
+
+            /* In Tween's method, 'tick_draw_prop', the 3rd parameter, 'setInitValues', is set
+            to true because this elements are affected by only one Tween. */
+            for (var prop in stwn.values)
+            {
+//                if(stwn.element.id == 'box2')
+//                    console.log('_updatePropVals', playhead, adjustedPlayhead, twn.duration(), twn.durationRepeat() );
+                
+                stwn.manageSubTween(false, prop);
+                cssText = twn.tick_draw_prop( prop, adjustedPlayhead, true, stwn, cssText );
+                //console.log(stwn.UID(), prop, stwn.values[prop].fromValues, stwn.values[prop].toValues);
+            }    
+            
+//            if( stwn.element.id == 'title_outlines_bottom')
+//                console.log( stwn.values );
+            
+            return cssText;
+        }
+        function _updatePropAdjustedPlayhead(twn, playhead, checkConflict, prop, stwn)
+        {
+            
+            var adjustedPlayhead;
+            
+            if(playhead!=undefined)
+                adjustedPlayhead = playhead - twn.delay();
+            
+            twn.tick_logic( adjustedPlayhead, false, prop, stwn, checkConflict);
+            
+            if(adjustedPlayhead<0) adjustedPlayhead = 0;
+            else if(adjustedPlayhead>twn.durationRepeat() ) adjustedPlayhead = twn.durationRepeat() ;
+            
+            return adjustedPlayhead;
+        }
+        
         /** Reverses sequence playback.
          *  @method reverse
          *  @param {int} playhead - Reverses playback from specified time in milliseconds.
@@ -309,6 +561,7 @@
             _repeat_direction = false;
             playhead  = _checkPlayhead( playhead );
             playhead  = _adjustRepeatPlayhead( playhead );
+            
             if(_yoyo_isOdd == false)
                 _apply( 'reverse', playhead, true );   
             else
@@ -353,12 +606,17 @@
         {
             var adjustedValue;
             var q;
+            
+            //console.log('_apply', value, adjustPlayhead);
             for(q=0; q < _tweens.length; q++)
             {    
                 if(adjustPlayhead==true && value!=undefined)
                     adjustedValue = value + ( -_tweens[q].delay() );
                 else adjustedValue = value;
                 
+                /*if(operation=='play')
+                   console.log('_tweens', _tweens[q].currentTime(), adjustedValue );
+                */
                 _tweens[q][operation](adjustedValue);
             }
         }
@@ -421,7 +679,25 @@
             _duration = TweenSpace._.getMax( list );
             
             for(q=0; q < _tweens.length; q++)
-                _tweens[q].durationTotal( _duration - (_tweens[q].delay() + _tweens[q].duration()) + _tweens[q].duration() );
+                _tweens[q].durationTotal( _duration - _tweens[q].delay() );
+        }
+        function _pushTween(tween)
+        {
+            tween.useDelay(true);
+            if( _tweens.length == 0)
+                _tweens.push(tween);
+            else
+            {
+                //Check if tween exists
+                var i = 0;
+                for(; i < _tweens.length; i++)
+                {
+                    if(_tweens[i] == tween)
+                        break;
+                    if(i == _tweens.length - 1)
+                        _tweens.push(tween);
+                }
+            }
         }
         
         this._ = {};
