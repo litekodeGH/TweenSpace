@@ -773,6 +773,7 @@
         };
         this.tick_draw_prop = function(prop, time, setInitValues, subtween, cssText)
         {
+            
             if( prop == TweenSpace.params.svg.drawSVG )
             {    
                 var drawValues = subtween.tick_prop(prop, _dTime, setInitValues);
@@ -804,16 +805,13 @@
                         cssText += prop +":"+ subtween.tick_prop(prop, _dTime, setInitValues)+";";
                     else
                     {
-                        //subtween.elementStyle[prop] = subtween.tick_prop(prop, time, setInitValues);
                         subtween.elementStyle[prop] = subtween.tick_prop(prop, _dTime, setInitValues);
-                        
-//                        if(subtween.element.id=='title_outlines_bottom')
-//                            console.log('tick_draw_prop', prop, subtween.elementStyle[prop]);
                     }
                 }
             }
             
             return cssText;
+            
         }
         /** Removes all elements from DOM as well as its references stored in 'elements'.
         *@method destroy
@@ -1248,8 +1246,8 @@
                 var _transform = _prop_values.transform;
                 var _min = 0, _max = 0;
                 
-//                if(_st_this.element.id == 'wire_holder_1')
-//                        console.log('wire_holder_1', property, _prop_values.initValues);
+                /*if(property == 'morphSVG' )
+                    console.log(_fromValues, _prop_values.initValues,_prop_values.fromValues);*/
                 
                 var w;
                 if( property == 'transform' || property=='filter' )
@@ -1389,7 +1387,6 @@
                 else
                 {    
                     
-                    
                     if(_toValues.constructor != Array)
                         if(isNaN(parseFloat(_toValues)) == false)
                             _toValues = [parseFloat(_toValues)];
@@ -1400,8 +1397,6 @@
                     if(_fromValues.constructor != Array)
                         if(isNaN(parseFloat(_fromValues)) == false)
                             _fromValues = [parseFloat(_fromValues)];
-                    
-                    
                     
                     for(w=0; w < toLength; w++)
                     {
@@ -1446,16 +1441,10 @@
                     if( _names ) result = _names+'('+newValues+')';
                     else result = newValues;
                     
-//                    if(_st_this.element.id=='title_outlines_bottom')
-//                            console.log('tick_prop', result);
                 }
                 
-//                if(_st_this.element.id == 'holder' && _st_this.UID()==26 )
-//                    console.log('tick_prop', _transform.rotate3d);
-                
-                
-                
                 return result;
+                
             };
             
             /** Method that manages subtweens.
@@ -1545,8 +1534,6 @@
                             else
                                 initProp = newInitProp;
                         }
-                        
-                        
                     }    
                     else
                     {
@@ -1587,8 +1574,6 @@
                             }
                         }
                     }
-                    
-                    
                     
                     nameMatch = name = initName = rgb = '';
                     if( prop == 'transform' || prop == 'filter' )
@@ -2112,6 +2097,9 @@
                             fromParent.appendChild(toShape);
                         }
 
+                        if( this.values[prop] == undefined  && newPropVals.initValues==undefined)
+                            newPropVals.initValues = newPropVals.fromValues.slice();
+                        
                         transform = null;
                         newPropVals.effects = null;
                     }
@@ -2134,10 +2122,6 @@
                             newPropVals.initValues = [];
                             newPropVals.initValues.push(fromVal);
                         }
-                            
-                        
-//                        if(_st_this.element.id == 'wire_holder_1')
-//                        console.log('wire_holder_1', prop, newPropVals.initValues == '', newPropVals.fromValues, initProp);
                         
                         //!Check function-based values___________________________
                         if(this.values[prop] != undefined )
@@ -2147,7 +2131,6 @@
                             
                             
                         //Check function-based values___________________________!
-                        
                         if( toVal == null )
                             toVal = parseFloat(inputPropString);
                         
@@ -2158,19 +2141,11 @@
                     if(this.values[prop])
                         newPropVals.initValues = this.values[prop].initValues;
                     
-                    
-                    
                     this.values[prop] = new PropValues(prop, name, newPropVals.fromValues, newPropVals.toValues, 
                                                        newPropVals.units, transform, newPropVals.effects, 
                                                        newPropVals.initValues);
                     
                     this.values_DL.push(this.values[prop]);
-                    
-                    /*if(_st_this.element.id == 'holder' && _st_this.UID()==26 )
-                    {
-                        console.log('manageSubTween B: ', transform.translate3d.fromValues, transform.translate3d.toValues,
-                       transform.rotate3d.fromValues, transform.rotate3d.toValues);
-                    }*/
                     
                     newPropVals.effects = undefined;
                 } 
@@ -2184,7 +2159,6 @@
             
             function _manageSubTween()
             {
-                
                 return _st_this.manageSubTween();
             }
             
