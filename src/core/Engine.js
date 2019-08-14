@@ -84,25 +84,27 @@
         {
             _isEngineOn = true;
             _tickCounter = _eTime = _dt = _dt_accum = 0;
-            _start_time = _then = performance.now();
+            _start_time = _then = window.performance.now();
             
             _queue_DL = TweenSpace._.queue_DL;
             _tick_tweens = TweenSpace._.tick_tweens;
             //var body_DL = TweenSpace.Physics._.body_DL; //__________________________________________________________________________________________________________________________
             
-            _requestAnimationFrame(tick);//tick();
+             _requestAnimationFrame(tick);//tick();
         }
     }
     
     function tick(now)
     {
+//---------------------------------------------------------
+        
         if(!_then) 
             _start_time = _then = now;
 
-        _eTime = now - _start_time;
+        //_eTime = now - _start_time;
         _dt = now - _then;
         _then = now;
-
+        
         //Loop over tweens
         if(_dt > _min_interval && _dt < _max_interval)
         {
@@ -114,9 +116,9 @@
         {
             _dt_accum += _dt;
         }
-            
+		
         _cancelAnimationFrame(_reqID);
-        if( _queue_DL.length() > 0 )//|| TweenSpace.Physics.active == true ) //________________________________________________________________________________________________
+        if( _queue_DL.length() > 0 )//|| TweenSpace.Physics.active == true ) 
         {
             _reqID = _requestAnimationFrame(tick);
         }
@@ -126,10 +128,12 @@
             _isEngineOn = false;
             _eTime = 0;
         }
-
+            
+        
+//---------------------------------------------------------
         //Loop over bodies
-        /*if(TweenSpace.Physics.active == true)
-            TweenSpace.Physics._.updateBodies();*/ //__________________________________________________________________________________________________________________________
+//        if(TweenSpace.Physics.active == true)
+//            TweenSpace.Physics._.updateBodies(); //__________________________________________________________________________________________________________________________
 
         _tickCounter++;
         
@@ -144,9 +148,9 @@
     function TweenSpaceOnVizChange(e)
     {
         if(document.visibilityState == 'hidden')
-            setTimeout( ()=> { TweenSpace.pauseAll(); }, 16.67);
+            setTimeout( function() { TweenSpace.pauseAll(); }, 16.67);
         else
-            setTimeout( ()=> { TweenSpace.resumeAll(); }, 16.67);
+            setTimeout( function() { TweenSpace.resumeAll(); }, 16.67);
     }
     
 })(TweenSpace || {});

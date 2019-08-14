@@ -154,7 +154,12 @@
                 }
                 else if( tweens.constructor === Array )
                 {
-                    if( _tweens.length == 0)
+                    //Check if tween exists
+                    loop1:for(; i < tweens.length; i++)
+                    {
+                        _pushTween(tweens[i]);
+                    }
+                    /*if( _tweens.length == 0)
                     {
                         if( tweens[0].__proto__.constructor.name === 'Tween' )
                         {
@@ -178,7 +183,8 @@
                                     _tweens.push(tweens[i]);
                             }
                         }
-                    }
+                    }*/
+                    
                 }
                 
                 _tweens[_tweens.length-1].keyTween(true);
@@ -260,7 +266,6 @@
         {
             _reversed = false;
             _repeat_direction = true;
-            
             playhead  = _checkPlayhead( playhead );
             playhead  = _adjustRepeatPlayhead( playhead );
             
@@ -617,6 +622,7 @@
                 /*if(operation=='play')
                    console.log('_tweens', _tweens[q].currentTime(), adjustedValue );
                 */
+                //------------------------------------
                 _tweens[q][operation](adjustedValue);
             }
         }

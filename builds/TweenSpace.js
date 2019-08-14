@@ -200,7 +200,7 @@ if (TweenSpace === undefined)
 
             //node = null;
             _length--;
-            _length = (_length > 0)?_length:0;
+            _length = (_length < 0)?0:_length;//_length = (_length > 0)?_length:0;
 
             return node;
         }
@@ -327,37 +327,29 @@ if (TweenSpace === undefined)
      * @private */
     function _tick_tweens(dt)
     {
-         _tween = null;
+        _tween = null;
         
         //Loop over tweens
-        var curr_node = _queue_DL.head;
         var j=0;
-        for( ; j<_queue_DL.length(); j++ )
+        loop:for (var curr_node = _queue_DL.head; j<_queue_DL.length(); j++)
         {
             _tween = curr_node.data;
-
+            
             if( _tween.playing() == true )
-            {    
                 _tween.tick(dt, true);
-            }
             else
             {
-                if( _queue_DL.length() > 0 )
-                {
-                    _tween.resetNode();
-                    curr_node = _queue_DL.remove( curr_node );
-                }    
-                if( _queue_DL.length() > 1 )
-                    curr_node = curr_node.prev;
-
-                j--;
-                j = (j<0)?0:j;
+                _tween.resetNode();
+                curr_node = _queue_DL.remove( curr_node );
+                curr_node = curr_node.next;
             }
-
-            if(curr_node)
+            
+            if(curr_node.next == _queue_DL.head)
+                break loop;
+            else
                 curr_node = curr_node.next;
         }
-
+        
         if(_queue_DL.length() <= 0)
             TweenSpace.onCompleteAll();
         else
@@ -486,6 +478,15 @@ if (TweenSpace === undefined)
                     if(clonedFromParams != undefined)
                         params.fromParams = clonedFromParams;
                     
+                    //_sequential() assigns params onProgress and onComplete to aeach tween created.
+                    //_sequentialTo() assigns params onProgress and onComplete to a timeline created.
+                    if( play == true )
+                    {
+                        if(params.onProgress != undefined)
+                            delete params.onProgress;
+                        if(params.onComplete != undefined)
+                            delete params.onComplete;
+                    }
                     tweens.push( TweenSpace.Tween( params ) );
                     
                     if(tweenDelay.constructor == String)
@@ -502,7 +503,7 @@ if (TweenSpace === undefined)
                 
                 if( play == true )
                 {
-                    var timeline = TweenSpace.Timeline({tweens:tweens});
+                    var timeline = TweenSpace.Timeline({tweens:tweens, onProgress:tsParams.onProgress, onComplete:tsParams.onComplete });
                     timeline.play();
                     return timeline;
                 }  
@@ -1445,8 +1446,8 @@ if (TweenSpace === undefined)
             if( alternativeParams.checkConflict != undefined)
                 return alternativeParams.checkConflict;
             else if( alternativeParams.checkConflicts != undefined)
-                return alternativeParams.checkConflict;
-                
+                return alternativeParams.checkConflicts;
+                 
             return undefined;
         }
     }
@@ -1459,9 +1460,9 @@ if (TweenSpace === undefined)
     /** Increment number for debugging purposes only. 
      * @private*/
     TweenSpace._.counter = 0;
-    /** TweenSpace Engine current version: 1.9.6.0
+    /** TweenSpace Engine current version: 1.9.7.0
      *  @memberof TweenSpace */
-    TweenSpace.version = '1.9.6.0'; //release.major.minor.dev_stage
+    TweenSpace.version = '1.9.9.0'; //release.major.minor.dev_stage
     /** Useful under a debugging enviroment for faster revisiones.
      *  If true, the engine will assign destination values immediately and no animation will be performed.
      *  @memberof TweenSpace */
@@ -1554,25 +1555,27 @@ if (TweenSpace === undefined)
         {
             _isEngineOn = true;
             _tickCounter = _eTime = _dt = _dt_accum = 0;
-            _start_time = _then = performance.now();
+            _start_time = _then = window.performance.now();
             
             _queue_DL = TweenSpace._.queue_DL;
             _tick_tweens = TweenSpace._.tick_tweens;
             //var body_DL = TweenSpace.Physics._.body_DL; //__________________________________________________________________________________________________________________________
             
-            _requestAnimationFrame(tick);//tick();
+             _requestAnimationFrame(tick);//tick();
         }
     }
     
     function tick(now)
     {
+//---------------------------------------------------------
+        
         if(!_then) 
             _start_time = _then = now;
 
-        _eTime = now - _start_time;
+        //_eTime = now - _start_time;
         _dt = now - _then;
         _then = now;
-
+        
         //Loop over tweens
         if(_dt > _min_interval && _dt < _max_interval)
         {
@@ -1584,9 +1587,9 @@ if (TweenSpace === undefined)
         {
             _dt_accum += _dt;
         }
-            
+		
         _cancelAnimationFrame(_reqID);
-        if( _queue_DL.length() > 0 )//|| TweenSpace.Physics.active == true ) //________________________________________________________________________________________________
+        if( _queue_DL.length() > 0 )//|| TweenSpace.Physics.active == true ) 
         {
             _reqID = _requestAnimationFrame(tick);
         }
@@ -1596,10 +1599,12 @@ if (TweenSpace === undefined)
             _isEngineOn = false;
             _eTime = 0;
         }
-
+            
+        
+//---------------------------------------------------------
         //Loop over bodies
-        /*if(TweenSpace.Physics.active == true)
-            TweenSpace.Physics._.updateBodies();*/ //__________________________________________________________________________________________________________________________
+//        if(TweenSpace.Physics.active == true)
+//            TweenSpace.Physics._.updateBodies(); //__________________________________________________________________________________________________________________________
 
         _tickCounter++;
         
@@ -1614,9 +1619,9 @@ if (TweenSpace === undefined)
     function TweenSpaceOnVizChange(e)
     {
         if(document.visibilityState == 'hidden')
-            setTimeout( ()=> { TweenSpace.pauseAll(); }, 16.67);
+            setTimeout( function() { TweenSpace.pauseAll(); }, 16.67);
         else
-            setTimeout( ()=> { TweenSpace.resumeAll(); }, 16.67);
+            setTimeout( function() { TweenSpace.resumeAll(); }, 16.67);
     }
     
 })(TweenSpace || {});
@@ -1843,7 +1848,9 @@ if (TweenSpace === undefined)
                         if( param == effect)
                         {
                             effectFound = true;
-                            var effectObjects = { [param]:{} };
+                            //var effectObjects = { [param]:{} };
+                            var effectObjects = {};
+                            effectObjects[param] = {};
                             var effectProps = [];
                             
                             //Iterate over effect object parameters
@@ -1983,11 +1990,15 @@ if (TweenSpace === undefined)
         /** Variable for current transform property values.
          *  @private */
         var _currentPropValues = new PropValues();
+        /** This is a quick ficx to identify an updateTo call. This pushes the engine to always updates
+            new destination values.
+         *  @private */
+        var _isUpdateTo = false;
         
         /** Returns Tween instance unique id number.
          *  @private */
         this.UID = function(){return _UID;};
-        /** Sets to undefined the reference to the node where this Tween instance is stored as data property.
+        /** Sets to undefined the reference to the node where this Tween instance was stored as data property.
          * @private */
         this.resetNode = function()
         {
@@ -2296,6 +2307,7 @@ if (TweenSpace === undefined)
         * @memberof Tween */
         this.updateTo = function( props )
         {
+            _isUpdateTo = true;
             _this.pause();
             _updateSubTweenProps(props);
             _this.play(0);
@@ -2305,47 +2317,55 @@ if (TweenSpace === undefined)
         * @private*/
         this.tick = function(dt, useCallbacks, updateDOM)
         {
-            if(TweenSpace.debug == true)
+            if(TweenSpace.debug == false  && _playing == true)
+                _tick_delta(dt);
+            else if(TweenSpace.debug == true)
             {
                 _playing = false;
                 _adjustPlayhead(_durationTotal);//_this.seek(_durationTotal);
             }
             
-            _tick_logic(TweenSpace._.interval());
+            _tick_logic(TweenSpace._.interval()); //TweenSpace._.interval()
             
             //Make drawing calls only when needed except for last frame
-            if( _mTime >= _sTime && _mTime <= _durationRepeat ) //-TweenSpace._.dt() _durationTotal
+            if( _mTime >= _sTime && _mTime <= _durationRepeat ) //-TweenSpace._.dt() _durationTotal _durationRepeat
             {
-//                if(_elements[0].id == 'holder' && _this.UID() == 33 )
-//                console.log('_manageConflicts', _mTime.toFixed(2), _dTime.toFixed(3), TweenSpace._.dt().toFixed(3) );
-                
                 //First drawing frame
                 if( _dTime == _sTime || (_last_mTime < 0 && _mTime >= 0)) 
                 {    
                     if( _reversed == false )  //&& updateDOM == true
                     {
-//                        if(_elements[0].id == 'holder')
-//                            console.log('holder');
-                        
                         _manageConflicts();
                     }
                 }
                 //Last drawing frame
-                else if ( _dTime == _durationRepeat ) //_durationTotal
+                else if ( _dTime == _durationRepeat ) //_durationTotal _durationRepeat
                 {
-                    /*if( _reversed == true )
-                        _manageConflicts();*/
-                    
-                    /*if( _reversed == true )
-                        console.log( 'complete', _elements[0].id, _dTime );*/
+                    //if( _reversed == true )
+                    //    _manageConflicts();
                 }
                 _last_mTime = _mTime;
                 _this.tick_draw(_dTime, false, updateDOM);
             }
+            else
+            {
+                //-------------------------
+                // FIRST OR LAST FRAME
+                //-------------------------
+                //This last call will ensure that the destination values were met.
+                
+                if( _mTime <= _sTime )
+                    _this.tick_draw(_sTime, false, updateDOM);
+                else if( _mTime >= _durationRepeat)
+                    _this.tick_draw(_durationRepeat, false, updateDOM);
+                
+                
+            }
             
-            if(TweenSpace.debug == false  && _playing == true)
-                _tick_delta(dt);
-            
+//            if(_elements[0].id == 'box0')
+//                console.log(_elements[0].id, _elements[0].style.marginLeft, '_mTime:', parseFloat(_mTime.toFixed(3)), '_dTime:', parseFloat(_dTime.toFixed(3)) );
+                //console.log(_elements[0].id, _elements[0].style.marginLeft, '_mTime:', parseFloat(_mTime.toFixed(3)), '_dTime:', parseFloat(_dTime.toFixed(3)), '_durationRepeat:', _durationRepeat, '_durationTotal:', _durationTotal, _playing);
+             
             if(useCallbacks==true)
                 _manageCallbacks();
         };
@@ -2390,12 +2410,9 @@ if (TweenSpace === undefined)
                 if(_useCSSText && updateDOM!=false)
                     subtween_element_style.cssText = cssText;
             }
-            
-            
         };
         this.tick_draw_prop = function(prop, time, setInitValues, subtween, cssText)
         {
-            
             if( prop == TweenSpace.params.svg.drawSVG )
             {    
                 var drawValues = subtween.tick_prop(prop, _dTime, setInitValues);
@@ -2414,7 +2431,9 @@ if (TweenSpace === undefined)
             else if( prop == 'morphSVG' )
                 subtween.element.setAttribute('d', subtween.tick_prop(prop, _dTime, setInitValues) );
             else if( prop == 'numberTo' )
-                _numberTo = subtween.tick_prop(prop, _dTime, setInitValues);
+			{
+				_numberTo = subtween.tick_prop(prop, _dTime, setInitValues);
+			}
             else
             {
                 //Animate custom objects. I.e. {x:0, y:1}
@@ -2468,7 +2487,7 @@ if (TweenSpace === undefined)
         
         function _manageCallbacks()
         {
-            if( _mTime >= _sTime && _mTime <= _durationRepeat )
+            if( _mTime >= _sTime && _mTime <= _durationRepeat ) //_durationRepeat
             {
                 //TWEEN CALLBACKS____________________________________
                 if( _this.onProgress )
@@ -2547,10 +2566,17 @@ if (TweenSpace === undefined)
         {
             //FORWARDS ---->>
             if(_reversed == false)
+                _mTime += dt;//TweenSpace._.dt(); //!!!!!!!!!!!!!!!!!!!!!!!!  
+            //BACKWARDS <<-----
+            else
+                _mTime -= dt;//TweenSpace._.dt(); //!!!!!!!!!!!!!!!!!!!!!!!! 
+            
+            /*//FORWARDS ---->>
+            if(_reversed == false)
                 _mTime += dt;  
             //BACKWARDS <<-----
             else
-                _mTime -= dt;
+                _mTime -= dt;*/
         }
         /** where the time logic occurs.
          * @private*/
@@ -2559,9 +2585,35 @@ if (TweenSpace === undefined)
             //ADJUST time______________________________________
             if( _mTime < _sTime)
             {
-                if(dt > -_mTime == true)
+                if( (_reversed == true && _useDelay == false) )
+                {
                     _mTime = _sTime;
-                    
+                    _playing = false;
+                }
+
+                if( _mTime <= -_delay )
+                {    
+                    _mTime = -_delay;
+                    _playing = false;
+                }
+                
+                _dTime = _sTime;
+            }
+            else if( _mTime >= _sTime && _mTime <= _durationTotal )
+            {
+                if( _useDelay == true && _timelineParent == null)
+                    _useDelay = false;
+                
+                _dTime = _mTime;
+            }
+            else if( _mTime > _durationTotal )
+            {
+                _dTime = _mTime = _durationTotal;
+                _playing = false;
+            }
+            //________________________________________
+            /*if( _mTime < _sTime)
+            {
                 if( (_reversed == true && _useDelay == false) )
                 {
                     _mTime = _sTime;
@@ -2594,10 +2646,64 @@ if (TweenSpace === undefined)
                 _dTime = _mTime = _durationTotal;
                 _playing = false;
                 
-            }
+            }*/
             //ADJUST time______________________________________
             
             _manageRepeatCycles();
+        }
+        /** Calculates current playhead in repeat situations.
+         * @private*/
+        function _manageRepeatCycles()
+        {
+            if( _repeat > 0 )
+            {
+                if( _mTime >= _durationRepeat )
+                    _dTime = _durationRepeat;
+                
+                _repetitions = parseInt(_dTime / _duration);
+                _repetitions = (_repetitions<=_repeat)?_repetitions:_repeat;
+                
+                if(_repeat_counter != _repetitions)
+                {
+                    if( _this.onRepeat != undefined )
+                        _this.onRepeat();
+                    
+                    _repeat_counter = _repetitions;
+                }
+                
+                if(_yoyo==true)
+                {
+                    _reversed_repeat = (_repetitions%2==0) ? false : true;
+                    
+                    _dTime = ( _reversed_repeat == false ) ? _dTime%_duration : Math.abs((_mTime%_duration)-_duration);
+                    
+                    if(_mTime>=_durationRepeat)
+                    {
+                        if( _reversed_repeat == false )
+                            _dTime = _durationRepeat;
+                        else
+                            _dTime = _sTime;
+                    }
+                    else if( _mTime < _sTime)
+                    {
+                           if(_elements[0].id == 'box0')
+                    console.log(_reversed_repeat, _dTime.toFixed(0), _mTime.toFixed(0)); 
+                    }
+                    /*if( _reversed_repeat == false )
+                        _dTime = (_mTime==_durationRepeat)?_durationRepeat:_dTime%_duration;
+                    else
+                        _dTime = (_mTime==_durationRepeat)?_sTime:Math.abs((_mTime%_duration)-_duration);*/
+                    
+                    
+                }    
+                else
+                {
+                    _reversed_repeat = false;
+                    _dTime = (_mTime>=_durationRepeat)?_durationRepeat:_dTime%_duration;
+                }
+                
+                
+            }
         }
         /** Method that updates props values. 
          * @private*/
@@ -2617,6 +2723,7 @@ if (TweenSpace === undefined)
                             _subTweens[p].props[oldProp] = newProps[newProp];
                             _subTweens[p].manageSubTween(true);
                             found = true;
+                            
                             break oldPropsLoop;
                         }
                     }
@@ -2697,45 +2804,7 @@ if (TweenSpace === undefined)
                 for( var prop in _subTweens[i].props )
                     _subTweens[i].values[prop].halted = false;
         }
-        /** Calculates current playhead in repeat situations.
-         * @private*/
-        function _manageRepeatCycles()
-        {
-            if( _repeat > 0 )
-            {
-                if( _mTime >= _durationRepeat )
-                    _dTime = _durationRepeat;
-                
-                _repetitions = parseInt(_dTime / _duration);
-                _repetitions = (_repetitions<=_repeat)?_repetitions:_repeat;
-                
-                if(_repeat_counter != _repetitions)
-                {
-                    if( _this.onRepeat != undefined )
-                        _this.onRepeat();
-                    _repeat_counter = _repetitions;
-                }
-                
-                if(_yoyo==true)
-                {
-                    _reversed_repeat = (_repetitions%2==0) ? false : true;
-                    _dTime = ( _reversed_repeat == false ) ? _dTime%_duration : Math.abs((_mTime%_duration)-_duration);
-                }    
-                else
-                {
-                    _reversed_repeat = false;
-                    _dTime = _dTime%_duration;
-                }
-                
-                if( _mTime >= _durationRepeat )
-                {
-                    if( _reversed_repeat == false )
-                        _dTime = _durationRepeat;
-                    else
-                        _dTime = _sTime;
-                }
-            }
-        }
+        
         /** Check if an element has an existing animation happening. 
          * true, it will get rid of the older tween and the new one will prevail.
          * @private*/
@@ -2820,7 +2889,6 @@ if (TweenSpace === undefined)
             else if( _immediateRender == true )
             {
                 _this.tick_draw(_dTime);
-                //console.log(_elements[0].id);
             }   
         }
         /**
@@ -3008,7 +3076,6 @@ if (TweenSpace === undefined)
                 }
                 else
                 {    
-                    
                     if(_toValues.constructor != Array)
                         if(isNaN(parseFloat(_toValues)) == false)
                             _toValues = [parseFloat(_toValues)];
@@ -3077,6 +3144,7 @@ if (TweenSpace === undefined)
                 var matchResult, inputPropString, initTransform, transform, initProp;
                 var newPropVals = new PropValues();
                 this.values_DL = TweenSpace._.DoublyList();
+				
                 
                 //color vars
                 var nameMatch, name, initName, rgb;
@@ -3133,10 +3201,14 @@ if (TweenSpace === undefined)
                         
                         if( props_value['from'] != undefined )
                             initProp = String( props_value['from'] );
+						
+						
+						
                     }
                     else
                         inputPropString = String(props_value);
-
+                    
+					
                     newPropVals.names = [], newPropVals.fromValues = [], newPropVals.toValues = [], newPropVals.units = [], newPropVals.initValues = '';
 
                     //If "_fromProps" exists, "TweenSpace.fromTo()" has been called.
@@ -3165,9 +3237,6 @@ if (TweenSpace === undefined)
                             if( this.values[prop] == undefined )
                             {
                                 initProp =  newPropVals.initValues = styles[prop];
-                                
-//                                if(_st_this.element.id == 'wire_holder_1')
-//                        console.log('wire_holder_1', prop, newPropVals.initValues, initProp);
                             }
                             else
                             {
@@ -3175,7 +3244,6 @@ if (TweenSpace === undefined)
                                 {
                                     if(_isFrom == false )
                                     {
-                                        //console.log(inputPropString);
                                         if(inputPropString != undefined)
                                             if(inputPropString.match( /\+=|-=|\*=|\/=/ ) != null)
                                                 initProp = this.values[prop].initValues;
@@ -3218,9 +3286,6 @@ if (TweenSpace === undefined)
                                 initTransform[ match[1] ] = { fromValues:String(match[2]).split(',') };
                         }
                         
-//                        if(_st_this.element.id == 'holder' && _st_this.UID()==26 )
-//                                    console.log('lala', this.element.style.transform, this.values);
-
                         //Set destination transform and eliminate initial transform properties that are not defined as destination values 
                         while(match = regex.exec(inputPropString))
                         {
@@ -3362,8 +3427,6 @@ if (TweenSpace === undefined)
                         name = nameMatch[0];
                         initName = String(initProp).match( /rgba|rgb/i );
 
-                        //console.log(name, initName);
-                        
                         if( name && initName)
                         {
                             rgb = String(inputPropString).slice( String(inputPropString).indexOf('(')+1, String(inputPropString).indexOf(')') ).split(',');
@@ -3396,14 +3459,6 @@ if (TweenSpace === undefined)
                                 newPropVals.toValues = this.values[prop].toValues.slice();
                                 newPropVals.units = this.values[prop].units.slice();
                             }
-                        
-                        /*if(_st_this.UID() == 7 || _st_this.UID() == 9)
-                        {    
-                            console.log( 'tick_prop', newPropVals.fromValues, newPropVals.toValues, 
-                                        (this.values[prop])?this.values[prop].fromValues:undefined, 
-                                        (this.values[prop])?this.values[prop].toValues:undefined );
-                        }*/
-                        
                         
                     }
                     else if( prop == TweenSpace.params.svg.drawSVG )
@@ -3727,8 +3782,11 @@ if (TweenSpace === undefined)
                     }
                     else if( prop == 'numberTo' )
                     {
-                        newPropVals.fromValues.push(parseFloat(_props['from']));
-                        newPropVals.toValues.push(parseFloat(_props['to']));
+						//console.log(prop);
+//                        newPropVals.fromValues.push(parseFloat(_props['from']));
+//                        newPropVals.toValues.push(parseFloat(_props['to']));
+						newPropVals.fromValues.push(parseFloat(params['from']));
+                        newPropVals.toValues.push(parseFloat(params['to']));
                         delete _props['from'];
                         delete _props['to'];
                     }
@@ -3750,10 +3808,13 @@ if (TweenSpace === undefined)
                             toVal = this.values[prop].toValues[0];
                         else
                             toVal = TweenSpace._.functionBasedValues(fromVal, inputPropString);
-                            
-                            
+                        
                         //Check function-based values___________________________!
                         if( toVal == null )
+                            toVal = parseFloat(inputPropString);
+                        
+                        //updateTo FIX !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                        if(_isUpdateTo == true)
                             toVal = parseFloat(inputPropString);
                         
                         newPropVals.toValues.push(toVal);
@@ -3971,7 +4032,12 @@ if (TweenSpace === undefined)
                 }
                 else if( tweens.constructor === Array )
                 {
-                    if( _tweens.length == 0)
+                    //Check if tween exists
+                    loop1:for(; i < tweens.length; i++)
+                    {
+                        _pushTween(tweens[i]);
+                    }
+                    /*if( _tweens.length == 0)
                     {
                         if( tweens[0].__proto__.constructor.name === 'Tween' )
                         {
@@ -3995,7 +4061,8 @@ if (TweenSpace === undefined)
                                     _tweens.push(tweens[i]);
                             }
                         }
-                    }
+                    }*/
+                    
                 }
                 
                 _tweens[_tweens.length-1].keyTween(true);
@@ -4077,7 +4144,6 @@ if (TweenSpace === undefined)
         {
             _reversed = false;
             _repeat_direction = true;
-            
             playhead  = _checkPlayhead( playhead );
             playhead  = _adjustRepeatPlayhead( playhead );
             
@@ -4434,6 +4500,7 @@ if (TweenSpace === undefined)
                 /*if(operation=='play')
                    console.log('_tweens', _tweens[q].currentTime(), adjustedValue );
                 */
+                //------------------------------------
                 _tweens[q][operation](adjustedValue);
             }
         }

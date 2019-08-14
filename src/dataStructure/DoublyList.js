@@ -144,7 +144,7 @@
 
             //node = null;
             _length--;
-            _length = (_length > 0)?_length:0;
+            _length = (_length < 0)?0:_length;//_length = (_length > 0)?_length:0;
 
             return node;
         }

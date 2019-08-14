@@ -89,37 +89,29 @@
      * @private */
     function _tick_tweens(dt)
     {
-         _tween = null;
+        _tween = null;
         
         //Loop over tweens
-        var curr_node = _queue_DL.head;
         var j=0;
-        for( ; j<_queue_DL.length(); j++ )
+        loop:for (var curr_node = _queue_DL.head; j<_queue_DL.length(); j++)
         {
             _tween = curr_node.data;
-
+            
             if( _tween.playing() == true )
-            {    
                 _tween.tick(dt, true);
-            }
             else
             {
-                if( _queue_DL.length() > 0 )
-                {
-                    _tween.resetNode();
-                    curr_node = _queue_DL.remove( curr_node );
-                }    
-                if( _queue_DL.length() > 1 )
-                    curr_node = curr_node.prev;
-
-                j--;
-                j = (j<0)?0:j;
+                _tween.resetNode();
+                curr_node = _queue_DL.remove( curr_node );
+                curr_node = curr_node.next;
             }
-
-            if(curr_node)
+            
+            if(curr_node.next == _queue_DL.head)
+                break loop;
+            else
                 curr_node = curr_node.next;
         }
-
+        
         if(_queue_DL.length() <= 0)
             TweenSpace.onCompleteAll();
         else
@@ -248,6 +240,15 @@
                     if(clonedFromParams != undefined)
                         params.fromParams = clonedFromParams;
                     
+                    //_sequential() assigns params onProgress and onComplete to aeach tween created.
+                    //_sequentialTo() assigns params onProgress and onComplete to a timeline created.
+                    if( play == true )
+                    {
+                        if(params.onProgress != undefined)
+                            delete params.onProgress;
+                        if(params.onComplete != undefined)
+                            delete params.onComplete;
+                    }
                     tweens.push( TweenSpace.Tween( params ) );
                     
                     if(tweenDelay.constructor == String)
@@ -264,7 +265,7 @@
                 
                 if( play == true )
                 {
-                    var timeline = TweenSpace.Timeline({tweens:tweens});
+                    var timeline = TweenSpace.Timeline({tweens:tweens, onProgress:tsParams.onProgress, onComplete:tsParams.onComplete });
                     timeline.play();
                     return timeline;
                 }  
@@ -1207,8 +1208,8 @@
             if( alternativeParams.checkConflict != undefined)
                 return alternativeParams.checkConflict;
             else if( alternativeParams.checkConflicts != undefined)
-                return alternativeParams.checkConflict;
-                
+                return alternativeParams.checkConflicts;
+                 
             return undefined;
         }
     }
@@ -1221,9 +1222,9 @@
     /** Increment number for debugging purposes only. 
      * @private*/
     TweenSpace._.counter = 0;
-    /** TweenSpace Engine current version: 1.9.6.0
+    /** TweenSpace Engine current version: 1.9.7.0
      *  @memberof TweenSpace */
-    TweenSpace.version = '1.9.6.0'; //release.major.minor.dev_stage
+    TweenSpace.version = '1.9.9.0'; //release.major.minor.dev_stage
     /** Useful under a debugging enviroment for faster revisiones.
      *  If true, the engine will assign destination values immediately and no animation will be performed.
      *  @memberof TweenSpace */

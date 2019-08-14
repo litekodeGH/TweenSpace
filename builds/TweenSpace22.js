@@ -1,3 +1,1638 @@
+/*
+Copyright (c) 2011-2017 TweenSpace
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+if (TweenSpace === undefined) 
+{    
+    /**
+     * TweenSpace Engine.
+     * @class TweenSpace is a Javascript library that tweens object properties producing smooth animations.
+     * It is an optimized tweening engine written from square one in pure Javascript with no dependencies. 
+     * Tween and Timeline are the core classes that make possible the creation and management of many types of tweenings.
+     * Tween instances are responsible of handling animations on single and multiple objects.
+     * Timeline instances are capable of controlling playback operations and time management on groups of tweens.
+     * @public
+     */
+    var TweenSpace, Tweenspace, TS;
+    TweenSpace = Tweenspace = TS = (function ()
+    {
+        return {
+            /* Underscore is an object which contains TweenSpace private properties and methods.
+            * @private*/
+            _:{}
+        };
+    })();
+}
+(function ( TweenSpace ) {
+
+    /**
+     * Node.
+     * @class Internal class. Simple node used in DoublyList.
+     * @param {Tween} value - Stores a Tween instance.
+     * @return {Node}  - Node instance.
+     * @private
+     */
+    function Node(value)
+    {
+        this.data = value;
+        this.prev = null;
+        this.next = null;
+
+        return this;
+    }
+
+    /* Private stuff.
+     * @private*/
+    TweenSpace._.Node = function(value)
+    {
+        return new Node(value);
+    };
+
+})(TweenSpace || {});
+(function ( TweenSpace ) {
+    /**
+     * DoublyList.
+     * @class Internal class that implements a circular bi-directional linked list in both directions.
+     * @return {DoublyList} - DoublyList instance.
+     * @private
+     */
+    function DoublyList()
+    {
+        this.head = null;
+        this.tail = null;
+
+        var _length = 0;
+        var _temp_node;
+
+        this.length = function ()
+        {
+            return _length;
+        }
+
+        this.push = function (value)
+        {
+            if(value==undefined)
+                return;
+            
+            _temp_node = (value.__proto__.constructor.name == 'Node')?value:TweenSpace._.Node(value);
+
+            if (_length > 0)
+            {
+                this.tail.next = _temp_node;
+                _temp_node.prev = this.tail;
+            }
+            else
+            {
+                this.head = _temp_node;
+                this.tail = _temp_node;
+            }
+
+            this.tail = _temp_node;
+            this.tail.next = this.head;
+            this.head.prev = this.tail;
+
+            _length++;
+
+            return _temp_node;
+        }
+        
+        this.unshift = function (value)
+        {
+            if(value==undefined)
+                return;
+            
+            _temp_node = (value.__proto__.constructor.name == 'Node')?value:TweenSpace._.Node(value);
+
+            if (_length > 0)
+            {
+                this.head.prev = _temp_node;
+                _temp_node.next = this.head;
+            }
+            else
+            {
+                this.head = _temp_node;
+                this.tail = _temp_node;
+            }
+
+            this.head = _temp_node;
+            this.tail.next = this.head;
+            this.head.prev = this.tail;
+
+            _length++;
+
+            return _temp_node;
+        }
+        
+        /* Inserts a new_data before or after specified existing_node. 
+         * When 'before_after_bool' is set to false, the new_data will be inserted before the 'existing_node'.
+         * @private*/
+        this.insert = function ( new_data, existing_node, before_after_bool )
+        {
+            if(new_data == undefined || existing_node == undefined)
+                return;
+            
+            new_data = (new_data.__proto__.constructor.name == 'Node')?new_data:TweenSpace._.Node(new_data);
+            
+            if(before_after_bool == undefined)
+                before_after_bool = true;
+            else if( before_after_bool == 'after' )
+                before_after_bool = true;
+            else if( before_after_bool == 'before' )
+                before_after_bool = false;
+            
+            //Add node after existing node
+            if( before_after_bool == true)
+            {
+                if(existing_node == this.tail)
+                    this.push(new_data);
+                else
+                {
+                    new_data.next = existing_node.next;
+                    new_data.prev = existing_node;
+                    existing_node.next = existing_node.next.prev = new_data;
+                    
+                    _length++;
+                }
+            }
+            //Add node before existing node
+            else
+            {
+                if(existing_node == this.head)
+                    this.unshift(new_data);
+                else
+                {
+                    new_data.next = existing_node;
+                    new_data.prev = existing_node.prev;
+                    existing_node.prev = existing_node.prev.next = new_data;
+                    
+                    _length++;
+                }
+            }
+            
+            
+        }
+
+        this.remove = function ( node )
+        {
+            if( !node )
+                return null;
+
+            if (_length > 1)
+            {
+                _temp_node = node.prev.next = node.next;
+                node.next.prev = node.prev;
+
+                if (node == this.head)
+                    this.head = node.next;
+                if (node == this.tail)
+                    this.tail = node.prev;
+            }
+            else
+            {
+                this.head = null;
+                this.tail = null;
+            }
+
+            //node = null;
+            _length--;
+            _length = (_length > 0)?_length:0;
+
+            return node;
+        }
+        
+        this.nodeAt = function ( index )
+        {
+            if(index >= _length)
+            {
+                console.warn('TweenSpace - DoublyList: index ' + index + ' is out of range.');
+                return;
+            }
+            
+            _temp_node = this.head;
+            
+            var i = 0;
+            for(;i<_length;i++)
+            {
+                if(i==index)
+                    return _temp_node;
+                
+                _temp_node = _temp_node.next;
+            }
+        }
+
+        return this;
+    }
+
+    /* Private stuff.
+     * @private*/
+    TweenSpace._.DoublyList = function()
+    {
+        return new DoublyList();
+    };
+
+})(TweenSpace || {});
+(function ( TweenSpace ) {
+    
+    //"use strict";
+    /** Reference to TweenSpace object.
+     * @private */
+    var _this = this;
+    /** Circular doubly linked list of the tweens being played.
+     * @private */
+    var _queue_DL = TweenSpace._.DoublyList();
+    /** Circular doubly linked list of paused tweens.
+     * @private */
+    var _queue_paused_DL = TweenSpace._.DoublyList();
+    /** Temporary Node instance used in DoublyList. 'data' property holds a Tween instance.
+     * @private */
+    var _node = TweenSpace._.Node();
+    /** Another temporary Node instance used in DoublyList.
+     * @private */
+    var _node_paused = TweenSpace._.Node();
+    /** Temporary Tween instance.
+     * @private */
+    var _tween = null;
+    /** _delayed calls list.
+     * @private */
+    var _delayedCallList = TweenSpace._.DoublyList();
+    /** Temporary Node instance used in _delayedCallList.
+     * @private */
+    var _delayedCallNode = TweenSpace._.Node();
+    /** PI value.
+     * @private */
+    var _pi = 3.1415926535897932384626433832795;
+    var _pi_m2 = _pi * 2;
+    var _pi_d2 = _pi / 2;
+    /** Stores a unique id number.
+     * @private */
+    var _UID = 0;
+    /** Clamps a val between min and max.
+     * @private */
+    var _clamp = function (val, min, max)
+    {
+        if(val<min) val = min;
+        else if(val>max) val = max;
+
+        return val;
+    }
+    /**
+     * Return the greatest property value of an array of tweens.
+     * @private */
+    var _getMax = function (array)
+    {
+        if(array.length == 0)
+            return 0;
+
+        var max = 0;
+        var l=0;
+        for(; l < array.length; l++)
+        {
+            if( array[l] > max)
+                max = array[l];
+        }
+
+        return max;
+    }
+    /**
+     * Returns an array of the specified elements to be animated.
+     * @private */
+    var _getElements = function ( elements )
+    {
+        var elementArray = [];
+
+        if( elements.constructor === String)
+        {
+            var nodeList = document.querySelectorAll(elements);
+            if( nodeList == null || nodeList == undefined )
+                return null;
+
+            var i = 0;
+            for(;i < nodeList.length; i++)
+                elementArray[i] = nodeList.item(i);
+        }
+        else if( elements.constructor === Array ) elementArray = elements;
+        else if( elements.constructor === Object ) elementArray.push(elements);
+        else elementArray.push(elements);
+
+        return elementArray;
+    }
+
+    /**
+     * Loop over tweens.
+     * @private */
+    function _tick_tweens(dt)
+    {
+         _tween = null;
+        
+        //Loop over tweens
+        var curr_node = _queue_DL.head;
+        var j=0;
+        for( ; j<_queue_DL.length(); j++ )
+        {
+            _tween = curr_node.data;
+
+            if( _tween.playing() == true )
+            {    
+                _tween.tick(dt, true);
+            }
+            else
+            {
+                if( _queue_DL.length() > 0 )
+                {
+                    _tween.resetNode();
+                    curr_node = _queue_DL.remove( curr_node );
+                }    
+                if( _queue_DL.length() > 1 )
+                    curr_node = curr_node.prev;
+
+                j--;
+                j = (j<0)?0:j;
+            }
+
+            if(curr_node)
+                curr_node = curr_node.next;
+        }
+
+        if(_queue_DL.length() <= 0)
+            TweenSpace.onCompleteAll();
+        else
+            TweenSpace.onProgressAll();
+    }
+    /**
+     * Private method that plays a group of tweens that share common animated properties. These tweens will be played sequentially
+     * with an offset in time based on the tweenDelay property. TweenSpace.sequentialTo() returns a timeline object 
+     * while TweenSpace.sequential() returns an array of tweens.
+     * @private */
+    function _sequential( params, play )
+    {
+        var elements, tsParams = {}, delay, tweenDelay, delayInc, duration, tweens = [], shuffle, seed,
+            fromParamsInc = [], toParamsInc = [], val = 'val', prefix = 'prefix', suffix = 'suffix', valInc = 'valInc';
+        play = (play != undefined)?play:false;
+
+        if( params.shuffle != undefined )
+        {
+            shuffle = params.shuffle;
+            seed = params.seed;
+        }
+        else shuffle = false;
+        
+        if( params.delay != undefined )
+            delay = params.delay;
+        else delay = 0;
+
+        params.elements = TweenSpace._.alternativeParams('elements', params);
+        params.duration = TweenSpace._.alternativeParams('duration', params);
+        
+        if( params.elements != undefined)
+        {
+            if( params.duration == undefined )
+            {
+                console.warn('TweenSpace.js Warning: Tween() has no duration defined!');
+                return null;
+            }
+            else
+            {
+                duration = params.duration;
+                delayInc = 0;
+                
+                if( params.tweenDelay == undefined)
+                {    
+                    console.warn('TweenSpace.js Warning: tweenDelay property needs to be defined in order to animate objects sequentially.');
+                    tweenDelay = 0;
+                }
+                else
+                {
+                    tweenDelay = params.tweenDelay;
+                    
+                    //Check if tweenDelay is function-based
+                    if(tweenDelay.constructor == String)
+                        //If *=, add 1 to delayInc, otherwise will be multiply by 0 and will never increment. 
+                        if( TweenSpace._.functionBasedValues(0, tweenDelay) == 0)
+                            delayInc = 1;
+                }       
+                
+                elements = TweenSpace._.getElements( params.elements );
+                if( elements.length == 0)
+                {
+                    console.warn('TweenSpace.js Warning: "sequential()" method has no elements to animate. Either "elements" paramater is empty or assigned value has failed.');
+                    return null;
+                }
+                
+                for ( var param in params )
+                {
+                    paramDefinedLoop:for ( var paramDefined in TweenSpace.params )
+                    {
+                        if( param == paramDefined)
+                        { 
+                            tsParams[param] = params[param];
+                            //delete params[param];
+                            break paramDefinedLoop;
+                        }
+                    }
+                }
+                
+                var length = elements.length;
+                if(params.fromParams != undefined)
+                    var clonedFromParams = JSON.parse(JSON.stringify(params.fromParams));
+                for(var i=0; i<length; i++)
+                {
+                    if(params.fromParams != undefined)
+                        manageFromToValues(clonedFromParams, fromParamsInc);
+                    
+                    manageFromToValues(params, toParamsInc);
+                    
+                    //Loop over NON TS params only
+                    function manageFromToValues(inputParams, arrayInc)
+                    {
+                        for ( var param in inputParams )
+                        {
+                            //console.log(param, inputParams[param], inputParams);
+                            if(inputParams[param].constructor == String)
+                            {
+                                //Is function-based value
+                                if(inputParams[param].match( /\+=|-=|\*=|\/=/ ) != null)
+                                {
+                                    if( arrayInc[param] == undefined)
+                                    {
+                                        arrayInc[param] = {};
+                                        arrayInc[param][prefix] = inputParams[param].match( /\+=|-=|\*=|\/=/ );
+                                        arrayInc[param][suffix] = inputParams[param].match( /em|ex|px|in|cm|mm|%|rad|deg/ );
+                                        arrayInc[param][val] = parseFloat( inputParams[param].split("=").pop() );
+                                        arrayInc[param][valInc] = (arrayInc[param][prefix][0] == '+=' || arrayInc[param][prefix][0] == '-=')?0:1;
+                                    }
+                                    else
+                                    {
+                                        arrayInc[param][valInc] = TweenSpace._.functionBasedValues(arrayInc[param][val], inputParams[param] );
+                                        inputParams[param] = arrayInc[param][prefix] + String(arrayInc[param][valInc]) + arrayInc[param][suffix];
+                                    }
+                                }   
+                            }    
+                        } 
+                    } 
+                    
+                    //Restore deleted TS params
+                    for (var param in tsParams)
+                        params[param] = tsParams[param];
+
+                    params.elements = elements[i];
+                    params.delay = delayInc + delay;
+                    params.duration = duration;
+                    
+                    if(clonedFromParams != undefined)
+                        params.fromParams = clonedFromParams;
+                    
+                    //_sequential() assigns params onProgress and onComplete to aeach tween created.
+                    //_sequentialTo() assigns params onProgress and onComplete to a timeline created.
+                    if( play == true )
+                    {
+                        if(params.onProgress != undefined)
+                            delete params.onProgress;
+                        if(params.onComplete != undefined)
+                            delete params.onComplete;
+                    }
+                    tweens.push( TweenSpace.Tween( params ) );
+                    
+                    if(tweenDelay.constructor == String)
+                        delayInc = TweenSpace._.functionBasedValues(delayInc, tweenDelay);
+                    else
+                        delayInc += tweenDelay;
+                    
+                    if(clonedFromParams != undefined)
+                        params.fromParams = clonedFromParams;
+                }
+
+                if(shuffle == true)
+                    tweens = shuffleDelay( tweens, seed );
+                
+                if( play == true )
+                {
+                    var timeline = TweenSpace.Timeline({tweens:tweens, onProgress:tsParams.onProgress, onComplete:tsParams.onComplete });
+                    timeline.play();
+                    return timeline;
+                }  
+                else
+                    return tweens;
+            }
+        }
+        else
+        {
+            console.warn('TweenSpace.js Warning: TweenSpace.sequential() has no elements to affect!');
+            return null;
+        }
+
+        //return null;
+    }        
+    /**
+     * Private method that sets attributes and css properties.
+     * @private */
+    function _set( params )
+    {
+        params.elements = TweenSpace._.alternativeParams('elements', params);
+        
+        if(params.elements == undefined )
+        {
+            console.warn('TweenSpace.js Warning: Tween() has no elements to affect!');
+            return null;
+        }
+        else
+        { 
+            _elements = TweenSpace._.getElements(params.elements);
+            delete params.elements;
+        }
+
+        var i = 0, length = _elements.length;
+        for(; i < length; i++)
+        {
+            for ( var param in params )
+            {   
+                if(_elements[i].style[param] != undefined)
+                    //css properties
+                    _elements[i].style[param] = params[param];
+                else
+                {
+                    //TweenSpace custom properties
+                    var tempParams = {};
+                    tempParams.elements = _elements[i];
+                    tempParams.duration = 1;
+                        tempParams[param] = params[param];
+                    TweenSpace.Tween( tempParams ).seek(1);
+                }
+            }
+        }
+    }
+    function _numberTo( params )
+    {
+        var tween;
+        if( params != undefined )
+        {
+            params.elements = TweenSpace._.alternativeParams('elements', params);
+            
+            //Temporary property to make Tween class know that this call comes from numberTo method.
+            params.numberTo = 'numberTo';
+            if(params.elements != undefined)
+            {    
+                console.warn('TweenSpace.js Warning: Property "elements" will not be considered by TweenSpace.numberTo() method!');
+            }
+            if(params.from == undefined)
+            {
+                console.warn('TweenSpace.js Warning: Property "from" needs to be declared with a number value in order to use TweenSpace.numberTo() method!');
+                return null;
+            }    
+            if(params.to == undefined)
+            {
+                console.warn('TweenSpace.js Warning: Property "to" needs to be declared with a number value in order to use TweenSpace.numberTo() method!');
+                return null;
+            }    
+            tween = TweenSpace.to(params);
+            
+        }
+        else console.warn('TweenSpace.js Warning: TweenSpace.numberTo() has no arguments!');
+        
+        return tween;    
+    }
+    /**
+     * Robert Penner's Easing Equations.
+     * @private */
+    var ease =
+    {
+        linear : function ( t, from, to, dur )
+        {
+            return (((to-from)*t)/dur) + from;
+        },
+        quad:
+        {
+            in: function( t, from, to, dur )
+            {
+                return (to-from)*(t/=dur)*t + from;
+            },
+            out: function( t, from, to, dur )
+            {
+                return -(to-from) *(t/=dur)*(t-2) + from;
+            },
+            inOut: function( t, from, to, dur )
+            {
+                if ((t/=dur/2) < 1) return (to-from)/2*t*t + from;
+                return -(to-from)/2 * ((--t)*(t-2) - 1) + from;
+            }
+        },
+        cubic:
+        {
+            in: function( t, from, to, dur )
+            {
+                return (to-from)*(t/=dur)*t*t + from;
+            },
+            out: function( t, from, to, dur )
+            {
+                return (to-from)*((t=t/dur-1)*t*t + 1) + from;
+            },
+            inOut: function( t, from, to, dur )
+            {
+                if ((t/=dur/2) < 1) return (to-from)/2*t*t*t + from;
+                return (to-from)/2*((t-=2)*t*t + 2) + from;
+            }
+        },
+        quart:
+        {
+            in: function( t, from, to, dur )
+            {
+                return (to-from)*(t/=dur)*t*t*t + from;
+            },
+            out: function( t, from, to, dur )
+            {
+                return -(to-from) * ((t=t/dur-1)*t*t*t - 1) + from;
+            },
+            inOut: function( t, from, to, dur )
+            {
+                if ((t/=dur/2) < 1) return (to-from)/2*t*t*t*t + from;
+                return -(to-from)/2 * ((t-=2)*t*t*t - 2) + from;
+            }
+        },
+        quint:
+        {
+            in: function( t, from, to, dur )
+            {
+                return (to-from)*(t/=dur)*t*t*t*t + from;
+            },
+            out: function( t, from, to, dur )
+            {
+                return (to-from)*((t=t/dur-1)*t*t*t*t + 1) + from;
+            },
+            inOut: function( t, from, to, dur )
+            {
+                if ((t/=dur/2) < 1) return (to-from)/2*t*t*t*t*t + from;
+                return (to-from)/2*((t-=2)*t*t*t*t + 2) + from;
+            }
+        },
+        sine:
+        {
+            in: function( t, from, to, dur )
+            {
+                return -(to-from) * Math.cos(t/dur * _pi_d2) + (to-from) + from;
+            },
+            out: function( t, from, to, dur )
+            {
+                return (to-from) * Math.sin(t/dur * _pi_d2) + from;
+            },
+            inOut: function( t, from, to, dur )
+            {
+                return -(to-from)/2 * (Math.cos(_pi*t/dur) - 1) + from;
+            }
+        },
+        exp:
+        {
+            in: function( t, from, to, dur )
+            {
+                return (t==0) ? from : (to-from) * Math.pow(2, 10 * (t/dur - 1)) + from;
+            },
+            out: function( t, from, to, dur )
+            {
+                return (t==dur) ? from+(to-from) : (to-from) * (-Math.pow(2, -10 * t/dur) + 1) + from;
+            },
+            inOut: function( t, from, to, dur )
+            {
+                if (t==0) return from;
+                if (t==dur) return from+(to-from);
+                if ((t/=dur/2) < 1) return (to-from)/2 * Math.pow(2, 10 * (t - 1)) + from;
+                return (to-from)/2 * (-Math.pow(2, -10 * --t) + 2) + from;
+            }
+        },
+        elastic:
+        {
+            in: function( t, from, to, dur, a, p )
+            {
+                var s;
+                if (t==0) return from;  if ((t/=dur)==1) return from+(to-from);  if (!p) p=dur*.3;
+                if (!a || a < Math.abs((to-from))) { a=(to-from); s=p/4; }
+                else s = p/_pi_m2 * Math.asin ((to-from)/a);
+                return -(a*Math.pow(2,10*(t-=1)) * Math.sin( (t*dur-s)*_pi_m2/p )) + from;
+            },
+            out: function( t, from, to, dur, a, p )
+            {
+                var s;
+                if (t==0) return from;  if ((t/=dur)==1) return from+(to-from);  if (!p) p=dur*.3;
+                if (!a || a < Math.abs((to-from))) { a=(to-from); s=p/4; }
+                else s = p/_pi_m2 * Math.asin ((to-from)/a);
+                return (a*Math.pow(2,-10*t) * Math.sin( (t*dur-s)*_pi_m2/p ) + (to-from) + from);
+            },
+            inOut: function( t, from, to, dur, a, p )
+            {
+                var s;
+                if (t==0) return from;  if ((t/=dur/2)==2) return from+(to-from);  if (!p) p=dur*(.3*1.5);
+                if (!a || a < Math.abs((to-from))) { a=(to-from); s=p/4; }
+                else s = p/_pi_m2 * Math.asin ((to-from)/a);
+                if (t < 1) return -.5*(a*Math.pow(2,10*(t-=1)) * Math.sin( (t*dur-s)*_pi_m2/p )) + from;
+                return a*Math.pow(2,-10*(t-=1)) * Math.sin( (t*dur-s)*_pi_m2/p )*.5 + (to-from) + from;
+            }
+        },
+        circ:
+        {
+            in: function( t, from, to, dur )
+            {
+                var s = 1.70158;
+                return -(to-from) * (Math.sqrt(1 - (t/=dur)*t) - 1) + from;
+            },
+            out: function( t, from, to, dur )
+            {
+                var s = 1.70158;
+                return (to-from) * Math.sqrt(1 - (t=t/dur-1)*t) + from;
+            },
+            inOut: function( t, from, to, dur )
+            {
+                var s = 1.70158;
+                if ((t/=dur/2) < 1) return -(to-from)/2 * (Math.sqrt(1 - t*t) - 1) + from;
+                return (to-from)/2 * (Math.sqrt(1 - (t-=2)*t) + 1) + from;
+            }
+        },
+        bounce:
+        {
+            in: function( t, from, to, dur )
+            {
+                return (to-from) - ease.bounce.out(dur-t, 0, (to-from), dur) + from;
+            },
+            out: function( t, from, to, dur )
+            {
+                if ((t/=dur) < (1/2.75))
+                    return (to-from)*(7.5625*t*t) + from;
+                else if (t < (2/2.75))
+                    return (to-from)*(7.5625*(t-=(1.5/2.75))*t + .75) + from;
+                else if (t < (2.5/2.75))
+                    return (to-from)*(7.5625*(t-=(2.25/2.75))*t + .9375) + from;
+                else
+                    return (to-from)*(7.5625*(t-=(2.625/2.75))*t + .984375) + from;
+            },
+            inOut: function( t, from, to, dur )
+            {
+                if (t < dur/2) return ease.bounce.in (t*2, 0, (to-from), dur) * .5 + from;
+                else return ease.bounce.out (t*2-dur, 0, (to-from), dur) * .5 + (to-from)*.5 + from;
+            }
+        },
+        back:
+        {
+            in: function( t, from, to, dur )
+            {
+                var s = 1.70158;
+                return (to-from)*(t/=dur)*t*((s+1)*t - s) + from;
+            },
+            out: function( t, from, to, dur )
+            {
+                var s = 1.70158;
+                return (to-from)*((t=t/dur-1)*t*((s+1)*t + s) + 1) + from;
+            },
+            inOut: function( t, from, to, dur )
+            {
+                var s = 1.70158;
+                if ((t/=dur/2) < 1) return (to-from)/2*(t*t*(((s*=(1.525))+1)*t - s)) + from;
+                return (to-from)/2*((t-=2)*t*(((s*=(1.525))+1)*t + s) + 2) + from;
+            }
+        }
+    }
+    /**
+     * PerlinNoise.
+     * @class Internal class that creates 1D Perlin Noise values.
+     * @return {PerlinNoise} - PerlinNoise instance.
+     * @private
+     */
+    function PerlinNoise( amplitude, frequency, seed )
+    {
+        if( seed == undefined) seed = 0;
+
+        this.amplitude = amplitude;
+        this.frequency = frequency;
+
+        var _this = this;
+        var _MAX_VERTICES = 256; //256
+        var _MAX_VERTICES_MASK = _MAX_VERTICES -1;
+        var _vertices = [];
+        var m = 0x80000000, a = 1103515245, c = 12345, next = seed;
+        var _xMin, _xMax;
+
+        this.constructor = new function()
+        {
+            for ( var i = 0; i < _MAX_VERTICES; ++i )
+            {
+                //Non-deterministic
+                //next = Math.random()*((Math.random()<0.5)?-1:1);
+
+                //Deterministic
+                //https://en.wikipedia.org/wiki/Linear_congruential_generator
+                next = (((a * (next+i) + c) % m) / m);
+                if((((a * (next+i) + c) % m) / m)<0.5) next = -next;
+
+                _vertices.push( next );
+            }    
+        }
+
+        this.tick = function( x )
+        {
+            var scaledX = x * (_this.frequency * 0.01 );
+            var xFloor = Math.floor(scaledX);
+            var t = scaledX - xFloor;
+            var tRemapSmoothstep = t * t * ( 3 - 2 * t );
+
+            _xMin = (xFloor & _MAX_VERTICES_MASK);
+            _xMax = ( _xMin + 1 ) & _MAX_VERTICES_MASK;
+
+            var y = _lerp( _vertices[ _xMin ], _vertices[ _xMax ], tRemapSmoothstep );
+
+            return y * _this.amplitude;
+        }
+
+        function _lerp(a, b, t )
+        {
+            return a * ( 1 - t ) + b * t;
+        }
+
+        return this;
+    }
+    /**
+     * Wave.
+     * @class Internal class that generates sine wave numbers.
+     * @return {Wave} - Wave instance.
+     * @private
+     */
+    function Wave( amplitude, frequency )
+    {
+        this.amplitude = amplitude;
+        this.frequency = frequency;
+
+        var _this = this;
+
+        this.tick = function( t )
+        {
+            return _this.amplitude * Math.sin( (2 * _pi * (_this.frequency*0.001) * t ) );
+        }
+
+        return this;
+    }
+    /**
+     * shuffleDelay.
+     * @class Shuffles array items.
+     * @return {array} - An array with the items shuffled.
+     * @private
+     */
+    function shuffleDelay(array, seed)
+    {
+        if(seed==undefined) seed = 1;
+
+        var temp, i=0, j=0;
+        var length = array.length;
+        seed = Math.pow(seed+length, 48);
+
+        forLoop:for(; i<length;i++)
+        {
+            j = (seed % (i+1) + i) % length;
+            temp=array[i].delay();
+            array[i].delay( array[j].delay() );
+            array[j].delay(temp);
+        }
+        
+        return array;
+    }
+
+    /**
+    * Static method that returns a Tween instance which holds destination values and other properties.
+    * This method creates and queues a Tween instance as well as stores its current values.
+    * @method to
+    * @param {object} params - An object containing the destination values of css properties and TweenSpace parameters defined in TweenSpace.params.
+    * @property {*} params.elements - Element or elements whose properties should be animated.
+                            Accepted arguments are a DOM element, an array of elements or CSS selection string.
+    * @property {int} params.duration - Tween duration in milliseconds. Check this link: http://codepen.io/TweenSpace/pen/mVwBdY
+    * @property {int} params.delay - Amount of time in milliseconds to wait before starting the animation. http://codepen.io/TweenSpace/pen/BjZJdb
+    * @property {boolean} params.yoyo - If true, yoyo() property will play the animation back and forth based on repeat property amount. Try this example: http://codepen.io/TweenSpace/pen/GoEyQP
+    * @property {int} params.repeat - Amount of times that the animation will be played. http://codepen.io/TweenSpace/pen/pgwpdj
+    * @property {int} params.timescale -  Sets and returns the timescale value. timescale() is a factor used to scale time in the animation.
+    *                                   While a value of 1 represents normal speed, lower values makes the faster as well as greater values
+    *                                   makes the animation slower. Please go to: http://codepen.io/TweenSpace/pen/OMzegL and http://codepen.io/TweenSpace/pen/WrOMQx
+    * @property {function} params.ease - Easing function that describes the rate of change of a parameter over time. http://codepen.io/TweenSpace/pen/qbjxZJ
+    *                                  Equations used were developed by Robert Penner.
+    * @property {function} params.onProgress - Callback dispatched every engine tick while animation is running. http://codepen.io/TweenSpace/pen/dMeVYR
+    * @property {function} params.onComplete - Callback dispatched when the animation has finished. http://codepen.io/TweenSpace/pen/vGjeEe
+    * @property {function} params.onRepeat - Callback dispatched when the animation starts a repetition.
+    * @property {object} params.wiggle - Adds deterministic randomness to property values. Use amplitude property to modify the magnitude of the effect and frequency property to change the speed.
+    *                                    You can also change the seed property to obtain different deterministic random behaviors. wiggle can be used in two ways.
+    *                                    For setting multiple css properties at once use the following approach:
+    *                                    http://codepen.io/TweenSpace/pen/PGWzoV
+    *                                    When setting css properties separately follow this example:
+    *                                    http://codepen.io/TweenSpace/pen/XjpKJp
+    * @property {object} params.wave - Adds oscilatory to property values. Use amplitude property to modify the magnitude of the effect and frequency property to change the speed.
+    *                                   http://codepen.io/TweenSpace/pen/QKKbJy
+    * @property {string} params.drawSVG - Value or set of values that allows you to animate an svg stroke length. Values can be provided as percentages as well as numbers.
+    *                                   Try this example: http://codepen.io/TweenSpace/pen/yORjYO
+    * @property {object} params.motionPathSVG - Makes any html element move along an SVG path. 'motionPathSVG' object contains the following properties:<br>
+    *                                       <p style="padding-left:40px;">
+    *                                       path : SVG object which serves as the trajectory.<br>
+    *                                       'from' : Starting position on curve based on percentage of length or a value between 0 and curve length.<br>
+    *                                       'to' : Destination position on curve based on percentage of length or a value between 0 and curve length.<br>
+    *                                       rotationOffset : Offsets current rotation in degrees for custom purposes.<br>
+    *                                       pivotX : Adjusts the current moving object's pivot in the x axis. This value will be considered in pixel units only,
+    *                                       therefore only numerical values will be accepted.<br>
+    *                                       pivotY : Adjusts the current moving object's pivot in the y axis. This value will be considered in pixel units only,
+    *                                       therefore only numerical values will be accepted.<br>
+    *                                       offsetX : Offsets the current moving object's position in the x axis. This value will be considered in pixel units only,
+    *                                       therefore only numerical values will be accepted.<br>
+    *                                       offsetY : Offsets the current moving object's position in the y axis. This value will be considered in pixel units only,
+    *                                       therefore only numerical values will be accepted.<br>
+    *                                       'align' : Rotates automatically the moving object accordingly to the path's orientation using the current css transform-origin values.<br>
+    *                                       http://codepen.io/TweenSpace/pen/qaRVKK
+    *                                       </p>
+    * @property {object} params.morphSVG -  Morphs from one SVG Element to another. morphSVG will match the necessary amount of points for both paths,
+    *                                       besides, it provides handy properties like reverse, shapeIndex and debug. Accepted SVG Elemets are circle, rect, ellipse, polygon, and path.
+    *                                       'morphSVG' object contains the following properties:
+    *                                       <p style="padding-left:40px;">
+    *                                       reverse : Changes the direction of the destination path. <br>
+    *                                       shapeIndex : Offsets the points along the destination path. <br>
+    *                                       debug : Shows graphics regarding initial and destination path for setup purposes. When debug is true, the green path is the initial path
+    *                                       while the red one is the destination path. Also, a larger dot indicates the end point and the max amount of points,
+    *                                       while a smaller dot represents either a 25% of length of the path or a user shapeIndex on the path. Notice that
+    *                                       the smaller dot indicates the direction of the path which is useful when matching dots positions.<br>
+    *                                       Please go here for more info: http://codepen.io/TweenSpace/pen/KMpedd
+    *                                       </p>
+    * @return {Tween} - Tween instance.
+    * @memberof TweenSpace */
+    TweenSpace.to = function( params )
+    {
+        var tween = TweenSpace.Tween( params );
+        tween.play();
+
+        return tween;
+    };
+    /**
+    * Static method that creates and plays a Tween instance which holds starting values and other properties.
+    * In contrast with the 'to()' method, the input values will be used as starting values while the current ones will be considered destination values.
+    * Please check this example https://codepen.io/TweenSpace/pen/BdYwqy/
+    * @method from
+    * @param {object} params - An object containing the starting values of css properties and TweenSpace parameters defined in TweenSpace.params.
+    * @property {*} params.elements - Element or elements whose properties should be animated.
+                            Accepted arguments are a DOM element, an array of elements or CSS selection string.
+    * @property {int} params.duration - Tween duration in milliseconds. Check this link: http://codepen.io/TweenSpace/pen/mVwBdY
+    * @property {int} params.delay - Amount of time in milliseconds to wait before starting the animation. http://codepen.io/TweenSpace/pen/BjZJdb
+    * @property {boolean} params.yoyo - If true, yoyo() property will play the animation back and forth based on repeat property amount. Try this example: http://codepen.io/TweenSpace/pen/GoEyQP
+    * @property {int} params.repeat - Amount of times that the animation will be played. http://codepen.io/TweenSpace/pen/pgwpdj
+    * @property {int} params.timescale -  Sets and returns the timescale value. timescale() is a factor used to scale time in the animation.
+    *                                   While a value of 1 represents normal speed, lower values makes the faster as well as greater values
+    *                                   makes the animation slower. Please go to: http://codepen.io/TweenSpace/pen/OMzegL and http://codepen.io/TweenSpace/pen/WrOMQx
+    * @property {function} params.ease - Easing function that describes the rate of change of a parameter over time. http://codepen.io/TweenSpace/pen/qbjxZJ
+    *                                  Equations used were developed by Robert Penner.
+    * @property {function} params.onProgress - Callback dispatched every engine tick while animation is running. http://codepen.io/TweenSpace/pen/dMeVYR
+    * @property {function} params.onComplete - Callback dispatched when the animation has finished. http://codepen.io/TweenSpace/pen/vGjeEe
+    * @property {function} params.onRepeat - Callback dispatched when the animation starts a repetition.
+    * @property {object} params.wiggle - Adds deterministic randomness to property values. Use amplitude property to modify the magnitude of the effect and frequency property to change the speed.
+    *                                    You can also change the seed property to obtain different deterministic random behaviors. wiggle can be used in two ways.
+    *                                    For setting multiple css properties at once use the following approach:
+    *                                    http://codepen.io/TweenSpace/pen/PGWzoV
+    *                                    When setting css properties separately follow this example:
+    *                                    http://codepen.io/TweenSpace/pen/XjpKJp
+    * @property {object} params.wave - Adds oscilatory to property values. Use amplitude property to modify the magnitude of the effect and frequency property to change the speed.
+    *                                   http://codepen.io/TweenSpace/pen/QKKbJy
+    * @property {string} params.drawSVG - Value or set of values that allows you to animate an svg stroke length. Values can be provided as percentages as well as numbers.
+    * @return {Tween} - Tween instance.
+    * @memberof TweenSpace */
+    TweenSpace.from = function( params )
+    {
+        params[TweenSpace.params.isFrom] = true;
+        var tween = TweenSpace.Tween( params );
+        tween.play();
+
+        return tween;
+    };
+    /**
+    * Static method that creates and plays a Tween instance which holds starting and destination values as well as other properties.
+    * @method fromTo
+    * @param {object} fromParams - An object containing the starting values of css properties and TweenSpace parameters defined in TweenSpace.params.
+    * @param {object} toParams - An object containing the destination values of css properties and TweenSpace parameters defined in TweenSpace.params.
+    * @property {*} (fromParams or toParams).elements - Element or elements whose properties should be animated.
+                            Accepted arguments are a DOM element, an array of elements or CSS selection string.
+    * @property {int} (fromParams or toParams).duration - Tween duration in milliseconds. Check this link: http://codepen.io/TweenSpace/pen/mVwBdY
+    * @property {int} (fromParams or toParams).delay - Amount of time in milliseconds to wait before starting the animation. http://codepen.io/TweenSpace/pen/BjZJdb
+    * @property {boolean} (fromParams or toParams).yoyo - If true, yoyo() property will play the animation back and forth based on repeat property amount. Try this example: http://codepen.io/TweenSpace/pen/GoEyQP
+    * @property {int} (fromParams or toParams).repeat - Amount of times that the animation will be played. http://codepen.io/TweenSpace/pen/pgwpdj
+    * @property {int} (fromParams or toParams).timescale -  Sets and returns the timescale value. timescale() is a factor used to scale time in the animation.
+    *                                   While a value of 1 represents normal speed, lower values makes the faster as well as greater values
+    *                                   makes the animation slower. Please go to: http://codepen.io/TweenSpace/pen/OMzegL and http://codepen.io/TweenSpace/pen/WrOMQx
+    * @property {function} (fromParams or toParams).ease - Easing function that describes the rate of change of a parameter over time. http://codepen.io/TweenSpace/pen/qbjxZJ
+    *                                  Equations used were developed by Robert Penner.
+    * @property {function} (fromParams or toParams).onProgress - Callback dispatched every engine tick while animation is running. http://codepen.io/TweenSpace/pen/dMeVYR
+    * @property {function} (fromParams or toParams).onComplete - Callback dispatched when the animation has finished. http://codepen.io/TweenSpace/pen/vGjeEe
+    * @property {function} (fromParams or toParams).onRepeat - Callback dispatched when the animation starts a repetition.
+    * @property {object} (fromParams or toParams).wiggle - Adds deterministic randomness to property values. Use amplitude property to modify the magnitude of the effect and frequency property to change the speed.
+    *                                    You can also change the seed property to obtain different deterministic random behaviors. wiggle can be used in two ways.
+    *                                    For setting multiple css properties at once use the following approach:
+    *                                    http://codepen.io/TweenSpace/pen/PGWzoV
+    *                                    When setting css properties separately follow this example:
+    *                                    http://codepen.io/TweenSpace/pen/XjpKJp
+    * @property {object} (fromParams or toParams).wave - Adds oscilatory to property values. Use amplitude property to modify the magnitude of the effect and frequency property to change the speed.
+    *                                   http://codepen.io/TweenSpace/pen/QKKbJy
+    * @property {string} (fromParams or toParams).drawSVG - Value or set of values that allows you to animate an svg stroke length. Values can be provided as percentages as well as numbers.
+    *                                   Try this example: http://codepen.io/TweenSpace/pen/yORjYO
+    * @return {Tween} - Tween instance.
+    * @memberof TweenSpace */
+    TweenSpace.fromTo = function( fromParams, toParams )
+    {
+        if(toParams == undefined)
+        {
+            console.warn("TweenSpace.sequentialFromTo(): Destination values has not been set. Please add an object "+
+                        "with properties as a 2nd parameter. I.e. {css_property:'value'}");
+            
+            return;
+        }
+        
+        //Loop over TweenSpace parameters
+        for ( var tsProp in TweenSpace.params )
+        {
+            //TweenSpace parameters declarared in fromParams will prevail over the ones in toParams
+            if(fromParams[tsProp] != undefined || toParams[tsProp] != undefined)
+             {
+                 toParams[tsProp] = fromParams[tsProp] || toParams[tsProp];
+                 if(fromParams[tsProp] != undefined)
+                     delete fromParams[tsProp];
+             }    
+        }    
+        
+        toParams[TweenSpace.params.isFrom] = false;
+        toParams.fromParams = fromParams;
+        
+        var tween = TweenSpace.Tween( toParams );
+        tween.play();
+        
+        return tween;
+    };
+    /** Static method that returns an array of Tween instances. In contrast to the static method sequentialTo,
+    * this method does not start the animation. When the time comes to animate the same properties on multiple objects
+    * this method reduces multiple tweens instantiation into one. Control the amount of delayed time between each tween using the tweenDelay parameter.
+    * If tweenDelay parameter is set to cero or just not declared, all tweens will start at the same time. If tweenDelay parameter is greater than cero, 
+    * objects will play with a delayed start time between each tween.
+    * @method sequential
+    * @param {object} params -  An object containing the common destination values of css properties and TweenSpace parameters defined in TweenSpace.params.
+    *                           The following properties are exclusive for this method. For more additional TweenSpace custom properties please go to TweenSpace.to() method description.
+    * @property {int} params.tweenDelay - Is the time offset between each tween. The tweenDelay amount will increment linearly as the tweens are played.
+    * @property {boolean} params.shuffle - If shuffle is set to true, the tweens are going to be played in a deterministic random fashion.
+    * @property {int} params.seed - Change this value in order to get different random behaviors.
+    * @return {array} - Array of Tween instances.
+    * @memberof TweenSpace */
+    TweenSpace.sequential = function( params )
+    {
+        return _sequential( params );
+    };
+    /** Static method that returns Timeline object that contains a sequence of tweens. In contrast to the static method sequential,
+    * this method plays the animation right after instantiation. When the time comes to animate the same properties on multiple objects
+    * this method reduces multiple tweens instantiation into one. Control the amount of delayed time between each tween using the tweenDelay parameter.
+    * If tweenDelay parameter is set to cero or just not declared, all tweens will start at the same time. If tweenDelay parameter is greater than cero, 
+    * objects will play with a delayed start time between each tween.
+    * @method sequentialTo
+    * @param {object} params -  An object containing the common destination values of css properties and TweenSpace parameters defined in TweenSpace.params.
+    *                           The following properties are exclusive for this method. For more additional TweenSpace custom properties please go to TweenSpace.to() method description.
+    * @property {int} params.tweenDelay - Is the time offset between each tween. The tweenDelay amount will increment linearly as the tweens are played.
+    * @property {boolean} params.shuffle - If shuffle is set to true, the tweens are going to be played in a deterministic random fashion.
+    * @property {int} params.seed - Change this value in order to get different random behaviors.
+    * @return {Timeline} - Timeline object.
+    * @memberof TweenSpace */
+    TweenSpace.sequentialTo = function( params )
+    {
+        return _sequential( params, true );
+    };
+    /** Static method that returns Timeline object that contains a sequence of tweens. This method plays the animation right after instantiation.
+    * en the time comes to animate the same properties on multiple objects this method reduces multiple tweens instantiation into one.
+    * Control the amount of delayed time between each tween using the tweenDelay parameter.
+    * If tweenDelay parameter is set to cero or just not declared, all tweens will start at the same time. If tweenDelay parameter is greater than cero, 
+    * objects will play with a delayed start time between each tween.
+    * @method sequentialFrom
+    * @param {object} params -  An object containing the common starting values of css properties and TweenSpace parameters defined in TweenSpace.params.
+    *                           The following properties are exclusive for this method. For more additional TweenSpace custom properties please go to TweenSpace.to() method description.
+    * @property {int} params.tweenDelay - Is the time offset between each tween. The tweenDelay amount will increment linearly as the tweens are played.
+    * @property {boolean} params.shuffle - If shuffle is set to true, the tweens are going to be played in a deterministic random fashion.
+    * @property {int} params.seed - Change this value in order to get different random behaviors.
+    * @return {Timeline} - Timeline object.
+    * @memberof TweenSpace */
+    TweenSpace.sequentialFrom = function( params )
+    {
+        params[TweenSpace.params.isFrom] = true;
+        return _sequential( params, true );
+    };
+    /** Static method that returns Timeline object that contains a sequence of tweens. This method plays the animation right after instantiation.
+    * en the time comes to animate the same properties on multiple objects this method reduces multiple tweens instantiation into one.
+    * Control the amount of delayed time between each tween using the tweenDelay parameter.
+    * If tweenDelay parameter is set to cero or just not declared, all tweens will start at the same time. If tweenDelay parameter is greater than cero, 
+    * objects will play with a delayed start time between each tween.
+    * @method sequentialFromTo
+    * @param {object} fromParams - An object containing the common starting values of css properties and TweenSpace parameters defined in TweenSpace.params.
+    * @param {object} toParams - An object containing the common destination values of css properties and TweenSpace parameters defined in TweenSpace.params.
+    *                            The following properties are exclusive for this method. For more additional TweenSpace custom properties please go to TweenSpace.to() method description.
+    * @property {int} (fromParams or toParams).tweenDelay - Is the time offset between each tween. The tweenDelay amount will increment linearly as the tweens are played.
+    * @property {boolean} (fromParams or toParams).shuffle - If shuffle is set to true, the tweens are going to be played in a deterministic random fashion.
+    * @property {int} (fromParams or toParams).seed - Change this value in order to get different random behaviors.
+    * @return {Timeline} - Timeline object.
+    * @memberof TweenSpace */
+    TweenSpace.sequentialFromTo = function( fromParams, toParams )
+    {
+        if(toParams == undefined)
+        {
+            console.warn("TweenSpace.sequentialFromTo(): Destination values has not been set. Please add an object "+
+                        "with properties as a 2nd parameter. I.e. {css_property:'value'}");
+            
+            return;
+        }
+        
+        //Loop over TweenSpace parameters
+        for ( var tsProp in TweenSpace.params )
+        {
+            //TweenSpace parameters declarared in fromParams will prevail over the ones in toParams
+            if(fromParams[tsProp] != undefined || toParams[tsProp] != undefined)
+             {
+                 if( fromParams[tsProp] != undefined)
+                     toParams[tsProp] = fromParams[tsProp]
+                 else
+                     toParams[tsProp] = toParams[tsProp]
+                 
+                 if(fromParams[tsProp] != undefined)
+                     delete fromParams[tsProp];
+             }    
+        }    
+        
+        toParams[TweenSpace.params.isFrom] = false;
+        toParams.fromParams = fromParams;
+        
+        return _sequential( toParams, true );
+    };
+    /** Static method that pauses all tweens and timelines.
+    * @method pauseAll
+    * @memberof TweenSpace */
+    TweenSpace.pauseAll = function()
+    {
+        for( ;_queue_DL.length() > 0; )
+            _queue_DL.head.data.pause();
+    };
+    /** Static method that resumes all tweens and timelines.
+    * @method resumeAll
+    * @memberof TweenSpace */
+    TweenSpace.resumeAll = function()
+    {
+        for( ;_queue_paused_DL.length() > 0; )
+            _queue_paused_DL.head.data.resume();
+    };
+    /** Static method that stops all tweens and timelines.
+    * @method stopAll
+    * @memberof TweenSpace */
+    TweenSpace.stopAll = function()
+    {
+        for( ;_queue_DL.length() > 0; )
+            _queue_DL.head.data.stop();
+
+        for( ;_queue_paused_DL.length() > 0; )
+            _queue_paused_DL.head.data.stop();
+    };
+    /** Static method that sets attributes and css properties.
+    * @method set
+    * @memberof TweenSpace */
+    TweenSpace.set = function( params )
+    {
+        return _set( params );
+    };
+    /** TweenSpace params contains custom properties such as delay, onComplete, etc. TweenSpace.params object is intended to be used as a reference only.
+    * @memberof TweenSpace */
+    TweenSpace.params =
+    {
+        //Exclusive Paramenters for TweenSpace.sequential() and TweenSpace.sequentialTo()
+        tweenDelay: 'tweenDelay',
+        shuffle: 'shuffle',
+        seed: 'seed',
+
+        //Exclusive Paramenters for TweenSpace.Timeline()
+        tweens: 'tweens',
+
+        //Exclusive Paramenters for TweenSpace.Tween()
+        elements: 'elements',
+        element: 'element',
+        item: 'item',
+        items: 'items',
+        object: 'object',
+        objects: 'objects',
+        duration: 'duration',
+        dur: 'dur',
+        checkConflict: 'checkConflict',
+        checkConflicts: 'checkConflicts',
+        useCSSText: 'useCSSText',
+        delay: 'delay',
+        yoyo: 'yoyo',
+        bounce: 'bounce',
+        repeat: 'repeat',
+        loop: 'loop',
+        loops: 'loops',
+        timescale: 'timescale',
+        debug: 'debug',
+        isFrom: 'isFrom',
+        from: 'from',
+        fromParams: 'fromParams', //for internal use only
+        immediateRender: 'immediateRender',
+        ease:
+        {
+            //Robert Penner's Easing Equations
+            linear : ease.linear,
+            quad:
+            {
+                in: ease.quad.in, out: ease.quad.out, inOut: ease.quad.inOut
+            },
+            cubic:
+            {
+                in: ease.cubic.in, out: ease.cubic.out, inOut: ease.cubic.inOut
+            },
+            quart:
+            {
+                in: ease.quart.in, out: ease.quart.out, inOut: ease.quart.inOut
+            },
+            quint:
+            {
+                in: ease.quint.in, out: ease.quint.out, inOut: ease.quint.inOut
+            },
+            sine:
+            {
+                in: ease.sine.in, out: ease.sine.out, inOut: ease.sine.inOut
+            },
+            exp:
+            {
+                in: ease.exp.in, out: ease.exp.out, inOut: ease.exp.inOut
+            },
+            elastic:
+            {
+                in: ease.elastic.in, out: ease.elastic.out, inOut: ease.elastic.inOut
+            },
+            circ:
+            {
+                in: ease.circ.in, out: ease.circ.out, inOut: ease.circ.inOut
+            },
+            bounce:
+            {
+                in: ease.bounce.in, out: ease.bounce.out, inOut: ease.bounce.inOut
+            },
+            back:
+            {
+                in: ease.back.in, out: ease.back.out, inOut: ease.back.inOut
+            }
+
+        },
+        onProgress: function(){},
+        onComplete: function(){},
+        onRepeat: function(){},
+        effects:
+        {
+            to:'to',
+            wiggle:
+            {
+                amplitude:'amplitude',
+                frequency:'frequency',
+                seed:'seed'
+            },
+            wave:
+            {
+                amplitude:'amplitude',
+                frequency:'frequency'
+            }
+        },
+        svg:
+        {
+            drawSVG:'drawSVG',
+            motionPathSVG:
+            {
+                from:'from',
+                to:'to',
+                path:'path',
+                rotationOffset:'rotationOffset',
+                pivotX:'pivotX',
+                pivotY:'pivotY',
+                offsetX:'offsetX',
+                offsetY:'offsetY',
+                align:'align'
+            },
+            morphSVG:
+            {
+                shape:'shape',
+                debug:'debug',
+                reverse:'reverse',
+                shapeIndex:'shapeIndex'
+            }
+        }
+    };
+    /** Static method that calls a function after an specified time.
+    * @method delayedCall
+    * @param {function} callback - Function to call.
+    * @param {int} delay - Delay time in milliseconds.
+    * @memberof TweenSpace */
+    TweenSpace.delayedCall = function( callback, delay )
+    {
+        var tempDelayedNode;
+        var id = setTimeout( function()
+        {
+            clearTimeout( id );
+            _delayedCallList.remove(tempDelayedNode);
+            callback();
+            return;
+        }, delay );
+        tempDelayedNode = _delayedCallList.push(id);
+    };
+    /** Static method that tweens a number over time using 'from' and 'to' properties in the params object.
+    * @method numberTo
+    * @param {object} params - An object containing TweenSpace custom properties.
+    * @memberof TweenSpace */
+    TweenSpace.numberTo = function( params )
+    {
+        return _numberTo( params );
+    };
+    /** Static method that kills all pending delayed calls.
+    * @method killDelayedCalls
+    * @memberof TweenSpace */
+    TweenSpace.killDelayedCalls = function()
+    {
+        for( ;_delayedCallList.length() > 0; )
+        {    
+            clearTimeout( _delayedCallList.head.data );
+            _delayedCallList.remove(_delayedCallList.head);
+        }
+    };
+
+    /** Global property that checks conflicts on multiple animations for the same property.
+    *  @memberof TweenSpace */
+    TweenSpace.checkConflict = true;
+    /** Global property that ensures to render the initial values declared
+     *  in 'from' properties and methods. This means that the element's initial
+     *  state can be different to the starting values specified.
+    *  @memberof TweenSpace */
+    TweenSpace.immediateRender = false;
+        
+    /** Callback dispatched every engine tick while animation is running.
+    *  @memberof TweenSpace */
+    TweenSpace.onProgressAll = function()
+    {};
+    /** Callback dispatched when engine finishes all its queues.
+    *  @memberof TweenSpace */
+    TweenSpace.onCompleteAll = function()
+    {};
+    /* Private stuff.
+     * @private*/
+    TweenSpace._.tick_tweens = function(dt)
+    {
+        return _tick_tweens(dt);
+    };
+    TweenSpace._.getElements = function(elements)
+    {
+        return _getElements(elements);
+    };
+    TweenSpace._.clamp = function(val, a, b)
+    {
+        return _clamp(val, a, b);
+    };
+    TweenSpace._.getMax = function(array)
+    {
+        return _getMax(array);
+    };
+    TweenSpace._.PerlinNoise = function(amplitude, frequency, seed)
+    {
+        return new PerlinNoise(amplitude, frequency, seed);
+    };
+    TweenSpace._.Wave = function(amplitude, frequency)
+    {
+        return new Wave(amplitude, frequency);
+    };
+    TweenSpace._.queue_DL = _queue_DL;
+    TweenSpace._.queue_paused_DL = _queue_paused_DL;
+    TweenSpace._.PI = function() { return _pi };
+
+    /** Method that manages function based values such as +=, -=, *= and /=. 
+     * @private*/
+    TweenSpace._.functionBasedValues = function (fromVal, toVal)
+    {
+        var prefix = toVal.match( /\+=|-=|\*=|\/=/ );
+        toVal = parseFloat  ( toVal.split("=").pop() );
+
+        if( prefix == null )
+            return null;
+        else
+        {
+            if(prefix[0] == '+=')
+                return fromVal += toVal;
+            else if(prefix[0] == '-=')
+                return fromVal -= toVal;
+            else if(prefix[0] == '*=')
+                return fromVal *= toVal;
+            else if(prefix[0] == '/=')
+                return fromVal /= toVal;
+        }
+    }
+    
+    /** Manages TS properties seudonames. 
+     * @private*/
+    TweenSpace._.alternativeParams = function ( paramName, alternativeParams )
+    {
+        /*                      !!!!!!   IMPORTANT NOTE !!!!!!!
+            Properties added here needs to be declared in "TweenSpace.params" object as well.
+        */        
+        if(paramName=='elements')
+        {
+            return alternativeParams.elements || alternativeParams.element || alternativeParams.item || alternativeParams.items || alternativeParams.object || alternativeParams.objects;
+        }
+        else if(paramName=='isFrom')
+        {
+            return alternativeParams.isFrom || alternativeParams.from || false;
+        }
+        else if(paramName=='repeat')
+        {
+            return alternativeParams.repeat || alternativeParams.loop || alternativeParams.loops || 0;
+        }
+        else if(paramName=='yoyo')
+        {
+            return alternativeParams.yoyo || alternativeParams.bounce || false;
+        }
+        else if(paramName=='duration')
+        {
+            return alternativeParams.duration || alternativeParams.dur;
+        }
+        else if(paramName=='checkConflict')
+        {
+            if( alternativeParams.checkConflict != undefined)
+                return alternativeParams.checkConflict;
+            else if( alternativeParams.checkConflicts != undefined)
+                return alternativeParams.checkConflict;
+                
+            return undefined;
+        }
+    }
+    /** Creates a unique id number. 
+     * @private*/
+    TweenSpace._.UID = function ( )
+    {
+        return _UID++;
+    }
+    /** Increment number for debugging purposes only. 
+     * @private*/
+    TweenSpace._.counter = 0;
+    /** TweenSpace Engine current version: 1.9.7.0
+     *  @memberof TweenSpace */
+    TweenSpace.version = '1.9.7.0'; //release.major.minor.dev_stage
+    /** Useful under a debugging enviroment for faster revisiones.
+     *  If true, the engine will assign destination values immediately and no animation will be performed.
+     *  @memberof TweenSpace */
+    TweenSpace.debug = false;
+    
+})(TweenSpace || {});
+/**
+ * Engine loop module.
+ * @private */
+(function ( TweenSpace )
+{
+    /** if true, engine is running.
+     * @private */
+    var _isEngineOn = false;
+    /** Global elapsed time.
+     * @private */
+    var _eTime = 0;
+    /** Delta time.
+     * @private */
+    var _dt = 0;
+    /** Accumulated delta time. If last frame took more time to calculate
+     * than expected, that delta time will be saved and added up 
+     * to the next on time frame's delta time. 
+     * @private */
+    var _dt_accum = 0;
+    /** Ideal delta time.
+     * @private */
+    var _interval = 16.67;
+    /** Ideal delta time.
+     * @private */
+    var _min_interval = 1;
+    /** Ideal delta time.
+     * @private */
+    var _max_interval = 34;
+    /** Counts each tick call.
+     * @private */
+    var _tickCounter = 0;
+    /** Stores time right before starting the engine.
+     * @private */
+    var _start_time = 0;
+    /** Stores current time.
+     * @private */
+    var _now;
+    /** Stores last time.
+     * @private */
+    var _then = 0;
+    /** requestAnimationFrame method id.
+     * @private */
+    var _reqID = 0;
+    
+    /** Request animation frame.
+     * @private */
+    var _requestAnimationFrame =    window.requestAnimationFrame ||
+                                    window.mozRequestAnimationFrame || 
+                                    window.webkitRequestAnimationFrame ||
+                                    window.msRequestAnimationFrame,
+        _cancelAnimationFrame =     window.cancelAnimationFrame ||
+                                    window.mozCancelAnimationFrame || 
+                                    window.webkitCancelAnimationFrame ||
+                                    window.msCancelAnimationFrame;
+    
+    var _queue_DL, _tick_tweens;
+    
+    
+    /** tick method counter.
+     *  @private */
+    TweenSpace._.tickCounter = function()
+    {
+        return _tickCounter;
+    }
+    /** Delta time.
+     *  @private */
+    TweenSpace._.dt = function(dt)
+    {
+        if(dt) _dt = dt;
+        return _dt;
+    }
+    /** Delta time.
+     *  @private */
+    TweenSpace._.interval = function()
+    {
+        return _interval;
+    }
+    /** Engine loop based on 'requestAnimationFrame' method.
+     *  @private */
+    TweenSpace._.engine = function()
+    {
+        //____ENGINE STARTS_____//
+        if( _isEngineOn == false )
+        {
+            _isEngineOn = true;
+            _tickCounter = _eTime = _dt = _dt_accum = 0;
+            _start_time = _then = window.performance.now();
+            
+            _queue_DL = TweenSpace._.queue_DL;
+            _tick_tweens = TweenSpace._.tick_tweens;
+            //var body_DL = TweenSpace.Physics._.body_DL; //__________________________________________________________________________________________________________________________
+            
+            _requestAnimationFrame(tick);//tick();
+        }
+    }
+    
+    function tick(now)
+    {
+//---------------------------------------------------------
+        
+        if(!_then) 
+            _start_time = _then = now;
+
+        _eTime = now - _start_time;
+        _dt = now - _then;
+        _then = now;
+        
+        //Loop over tweens
+        if(_dt > _min_interval && _dt < _max_interval)
+        {
+            _dt += _dt_accum;
+            _tick_tweens(_dt);
+            _dt_accum = 0;
+        }
+        else
+        {
+            _dt_accum += _dt;
+        }
+        
+        _cancelAnimationFrame(_reqID);
+        if( _queue_DL.length() > 0 )//|| TweenSpace.Physics.active == true ) 
+        {
+            _reqID = _requestAnimationFrame(tick);
+        }
+        else
+        {
+            //Engine turns off
+            _isEngineOn = false;
+            _eTime = 0;
+        }
+            
+        
+//---------------------------------------------------------
+        //Loop over bodies
+//        if(TweenSpace.Physics.active == true)
+//            TweenSpace.Physics._.updateBodies(); //__________________________________________________________________________________________________________________________
+
+        _tickCounter++;
+        
+//        if(_tickCounter%20==0)
+//            console.log('fps: ', 1000/_dt, _queue_DL.length() );
+    }
+    
+    /**
+     * Event to pause TweenSpace engine entirely while window or tab is hidden.
+     * @private */
+    document.addEventListener("visibilitychange", TweenSpaceOnVizChange);
+    function TweenSpaceOnVizChange(e)
+    {
+        if(document.visibilityState == 'hidden')
+            setTimeout( function() { TweenSpace.pauseAll(); }, 16.67);
+        else
+            setTimeout( function() { TweenSpace.resumeAll(); }, 16.67);
+    }
+    
+})(TweenSpace || {});
 /*Tween Module*/
 (function (TweenSpace) {
     
@@ -371,7 +2006,7 @@
         /** Returns Tween instance unique id number.
          *  @private */
         this.UID = function(){return _UID;};
-        /** Sets to undefined the reference to the node where this Tween instance was stored as data property.
+        /** Sets to undefined the reference to the node where this Tween instance is stored as data property.
          * @private */
         this.resetNode = function()
         {
@@ -690,18 +2325,18 @@
         * @private*/
         this.tick = function(dt, useCallbacks, updateDOM)
         {
-            if(TweenSpace.debug == false  && _playing == true)
-                _tick_delta(dt);
-            else if(TweenSpace.debug == true)
+            if(TweenSpace.debug == false)
+                _tick_delta();
+            else
             {
                 _playing = false;
                 _adjustPlayhead(_durationTotal);//_this.seek(_durationTotal);
             }
             
-            _tick_logic(TweenSpace._.interval()); //TweenSpace._.interval()
+            _tick_logic(); //_tick_logic(TweenSpace._.interval());
             
             //Make drawing calls only when needed except for last frame
-            if( _mTime >= _sTime && _mTime <= _durationRepeat ) //-TweenSpace._.dt() _durationTotal _durationRepeat
+            if( _mTime >= _sTime && _mTime <= _durationRepeat ) //-TweenSpace._.dt() _durationTotal
             {
                 //First drawing frame
                 if( _dTime == _sTime || (_last_mTime < 0 && _mTime >= 0)) 
@@ -714,31 +2349,41 @@
                 //Last drawing frame
                 else if ( _dTime == _durationRepeat ) //_durationTotal _durationRepeat
                 {
-                    //if( _reversed == true )
-                    //    _manageConflicts();
+                    /*if( _reversed == true )
+                        _manageConflicts();*/
                 }
                 _last_mTime = _mTime;
                 _this.tick_draw(_dTime, false, updateDOM);
+                
             }
             else
             {
-                //-------------------------
-                // FIRST OR LAST FRAME
-                //-------------------------
+                
+                //The frame just after the last one.
                 //This last call will ensure that the destination values were met.
                 
-                if( _mTime <= _sTime )
-                    _this.tick_draw(_sTime, false, updateDOM);
-                else if( _mTime >= _durationRepeat)
-                    _this.tick_draw(_durationRepeat, false, updateDOM);
+                //If duration is smaller than dt, make a draw
+                //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                /*if( dt >= _duration )
+                    _this.tick_draw(_durationRepeat, false, updateDOM);*/
                 
+                //Checks the closest value to duration plus last dt
+                //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                /*if( _dTime > _last_mTime+dt == false )
+                    _this.tick_draw(_durationRepeat, false, updateDOM);*/
+
+                //If tween is not playing anymore and duration has been met,
+                //draw an additional frame just to ensure that destination values 
+                //has been reached even under high processing situations.
+                if(_playing == false && _dTime >= _durationRepeat) //_durationRepeat
+                    _this.tick_draw(_durationRepeat, false, updateDOM);
                 
             }
             
-//            if(_elements[0].id == 'box0')
-//                console.log(_elements[0].id, _elements[0].style.marginLeft, '_mTime:', parseFloat(_mTime.toFixed(3)), '_dTime:', parseFloat(_dTime.toFixed(3)) );
-                //console.log(_elements[0].id, _elements[0].style.marginLeft, '_mTime:', parseFloat(_mTime.toFixed(3)), '_dTime:', parseFloat(_dTime.toFixed(3)), '_durationRepeat:', _durationRepeat, '_durationTotal:', _durationTotal, _playing);
-             
+            
+            /*if(TweenSpace.debug == false  && _playing == true)
+                _tick_delta(dt);*/
+            
             if(useCallbacks==true)
                 _manageCallbacks();
         };
@@ -804,9 +2449,7 @@
             else if( prop == 'morphSVG' )
                 subtween.element.setAttribute('d', subtween.tick_prop(prop, _dTime, setInitValues) );
             else if( prop == 'numberTo' )
-			{
-				_numberTo = subtween.tick_prop(prop, _dTime, setInitValues);
-			}
+                _numberTo = subtween.tick_prop(prop, _dTime, setInitValues);
             else
             {
                 //Animate custom objects. I.e. {x:0, y:1}
@@ -935,25 +2578,18 @@
         }
         /** Calculates delta change.
          * @private*/
-        function _tick_delta(dt)
+        function _tick_delta()
         {
             //FORWARDS ---->>
             if(_reversed == false)
-                _mTime += dt;//TweenSpace._.dt(); //!!!!!!!!!!!!!!!!!!!!!!!!  
+                _mTime += TweenSpace._.dt();  
             //BACKWARDS <<-----
             else
-                _mTime -= dt;//TweenSpace._.dt(); //!!!!!!!!!!!!!!!!!!!!!!!! 
-            
-            /*//FORWARDS ---->>
-            if(_reversed == false)
-                _mTime += dt;  
-            //BACKWARDS <<-----
-            else
-                _mTime -= dt;*/
+                _mTime -= TweenSpace._.dt();
         }
         /** where the time logic occurs.
          * @private*/
-        function _tick_logic(dt)
+        function _tick_logic()
         {
             //ADJUST time______________________________________
             if( _mTime < _sTime)
@@ -984,99 +2620,9 @@
                 _dTime = _mTime = _durationTotal;
                 _playing = false;
             }
-            //________________________________________
-            /*if( _mTime < _sTime)
-            {
-                if( (_reversed == true && _useDelay == false) )
-                {
-                    _mTime = _sTime;
-                    _playing = false;
-                }
-
-                if( _mTime < -_delay )
-                {    
-                    _mTime = -_delay;
-                    _playing = false;
-                }
-                
-                _dTime = _sTime;
-            }
-            else if( _mTime >= _sTime && _mTime <= _durationTotal )
-            {
-                if( _useDelay == true && _timelineParent == null)
-                    _useDelay = false;
-                
-                if(dt > _durationTotal-_mTime == true && _reversed == false)
-                {
-                    _mTime = _durationTotal;
-                    _playing = false;
-                }    
-                
-                _dTime = _mTime;
-            }
-            else if( _mTime > _durationTotal )
-            {
-                _dTime = _mTime = _durationTotal;
-                _playing = false;
-                
-            }*/
             //ADJUST time______________________________________
             
             _manageRepeatCycles();
-        }
-        /** Calculates current playhead in repeat situations.
-         * @private*/
-        function _manageRepeatCycles()
-        {
-            if( _repeat > 0 )
-            {
-                if( _mTime >= _durationRepeat )
-                    _dTime = _durationRepeat;
-                
-                _repetitions = parseInt(_dTime / _duration);
-                _repetitions = (_repetitions<=_repeat)?_repetitions:_repeat;
-                
-                if(_repeat_counter != _repetitions)
-                {
-                    if( _this.onRepeat != undefined )
-                        _this.onRepeat();
-                    
-                    _repeat_counter = _repetitions;
-                }
-                
-                if(_yoyo==true)
-                {
-                    _reversed_repeat = (_repetitions%2==0) ? false : true;
-                    
-                    _dTime = ( _reversed_repeat == false ) ? _dTime%_duration : Math.abs((_mTime%_duration)-_duration);
-                    
-                    if(_mTime>=_durationRepeat)
-                    {
-                        if( _reversed_repeat == false )
-                            _dTime = _durationRepeat;
-                        else
-                            _dTime = _sTime;
-                    }
-                    else if( _mTime < _sTime)
-                    {
-                           if(_elements[0].id == 'box0')
-                    console.log(_reversed_repeat, _dTime.toFixed(0), _mTime.toFixed(0)); 
-                    }
-                    /*if( _reversed_repeat == false )
-                        _dTime = (_mTime==_durationRepeat)?_durationRepeat:_dTime%_duration;
-                    else
-                        _dTime = (_mTime==_durationRepeat)?_sTime:Math.abs((_mTime%_duration)-_duration);*/
-                    
-                    
-                }    
-                else
-                {
-                    _reversed_repeat = false;
-                    _dTime = (_mTime>=_durationRepeat)?_durationRepeat:_dTime%_duration;
-                }
-                
-                
-            }
         }
         /** Method that updates props values. 
          * @private*/
@@ -1177,7 +2723,45 @@
                 for( var prop in _subTweens[i].props )
                     _subTweens[i].values[prop].halted = false;
         }
-        
+        /** Calculates current playhead in repeat situations.
+         * @private*/
+        function _manageRepeatCycles()
+        {
+            if( _repeat > 0 )
+            {
+                if( _mTime >= _durationRepeat )
+                    _dTime = _durationRepeat;
+                
+                _repetitions = parseInt(_dTime / _duration);
+                _repetitions = (_repetitions<=_repeat)?_repetitions:_repeat;
+                
+                if(_repeat_counter != _repetitions)
+                {
+                    if( _this.onRepeat != undefined )
+                        _this.onRepeat();
+                    _repeat_counter = _repetitions;
+                }
+                
+                if(_yoyo==true)
+                {
+                    _reversed_repeat = (_repetitions%2==0) ? false : true;
+                    _dTime = ( _reversed_repeat == false ) ? _dTime%_duration : Math.abs((_mTime%_duration)-_duration);
+                }    
+                else
+                {
+                    _reversed_repeat = false;
+                    _dTime = _dTime%_duration;
+                }
+                
+                if( _mTime >= _durationRepeat )
+                {
+                    if( _reversed_repeat == false )
+                        _dTime = _durationRepeat;
+                    else
+                        _dTime = _sTime;
+                }
+            }
+        }
         /** Check if an element has an existing animation happening. 
          * true, it will get rid of the older tween and the new one will prevail.
          * @private*/
@@ -1262,6 +2846,7 @@
             else if( _immediateRender == true )
             {
                 _this.tick_draw(_dTime);
+                //console.log(_elements[0].id);
             }   
         }
         /**
@@ -1517,7 +3102,6 @@
                 var matchResult, inputPropString, initTransform, transform, initProp;
                 var newPropVals = new PropValues();
                 this.values_DL = TweenSpace._.DoublyList();
-				
                 
                 //color vars
                 var nameMatch, name, initName, rgb;
@@ -1574,14 +3158,10 @@
                         
                         if( props_value['from'] != undefined )
                             initProp = String( props_value['from'] );
-						
-						
-						
                     }
                     else
                         inputPropString = String(props_value);
                     
-					
                     newPropVals.names = [], newPropVals.fromValues = [], newPropVals.toValues = [], newPropVals.units = [], newPropVals.initValues = '';
 
                     //If "_fromProps" exists, "TweenSpace.fromTo()" has been called.
@@ -1610,6 +3190,9 @@
                             if( this.values[prop] == undefined )
                             {
                                 initProp =  newPropVals.initValues = styles[prop];
+                                
+//                                if(_st_this.element.id == 'wire_holder_1')
+//                        console.log('wire_holder_1', prop, newPropVals.initValues, initProp);
                             }
                             else
                             {
@@ -1617,6 +3200,7 @@
                                 {
                                     if(_isFrom == false )
                                     {
+                                        //console.log(inputPropString);
                                         if(inputPropString != undefined)
                                             if(inputPropString.match( /\+=|-=|\*=|\/=/ ) != null)
                                                 initProp = this.values[prop].initValues;
@@ -1659,6 +3243,9 @@
                                 initTransform[ match[1] ] = { fromValues:String(match[2]).split(',') };
                         }
                         
+//                        if(_st_this.element.id == 'holder' && _st_this.UID()==26 )
+//                                    console.log('lala', this.element.style.transform, this.values);
+
                         //Set destination transform and eliminate initial transform properties that are not defined as destination values 
                         while(match = regex.exec(inputPropString))
                         {
@@ -1800,6 +3387,8 @@
                         name = nameMatch[0];
                         initName = String(initProp).match( /rgba|rgb/i );
 
+                        //console.log(name, initName);
+                        
                         if( name && initName)
                         {
                             rgb = String(inputPropString).slice( String(inputPropString).indexOf('(')+1, String(inputPropString).indexOf(')') ).split(',');
@@ -1832,6 +3421,14 @@
                                 newPropVals.toValues = this.values[prop].toValues.slice();
                                 newPropVals.units = this.values[prop].units.slice();
                             }
+                        
+                        /*if(_st_this.UID() == 7 || _st_this.UID() == 9)
+                        {    
+                            console.log( 'tick_prop', newPropVals.fromValues, newPropVals.toValues, 
+                                        (this.values[prop])?this.values[prop].fromValues:undefined, 
+                                        (this.values[prop])?this.values[prop].toValues:undefined );
+                        }*/
+                        
                         
                     }
                     else if( prop == TweenSpace.params.svg.drawSVG )
@@ -2155,11 +3752,8 @@
                     }
                     else if( prop == 'numberTo' )
                     {
-						//console.log(prop);
-//                        newPropVals.fromValues.push(parseFloat(_props['from']));
-//                        newPropVals.toValues.push(parseFloat(_props['to']));
-						newPropVals.fromValues.push(parseFloat(params['from']));
-                        newPropVals.toValues.push(parseFloat(params['to']));
+                        newPropVals.fromValues.push(parseFloat(_props['from']));
+                        newPropVals.toValues.push(parseFloat(_props['to']));
                         delete _props['from'];
                         delete _props['to'];
                     }
