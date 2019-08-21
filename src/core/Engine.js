@@ -100,17 +100,22 @@
         
         if(!_then) 
             _start_time = _then = now;
-
+		
         //_eTime = now - _start_time;
         _dt = now - _then;
         _then = now;
         
+		
+		
         //Loop over tweens
         if(_dt > _min_interval && _dt < _max_interval)
         {
             _dt += _dt_accum;
+			_dt = (_dt<0)?0:_dt;
             _tick_tweens(_dt);
             _dt_accum = 0;
+			
+			
         }
         else
         {
@@ -127,6 +132,7 @@
             //Engine turns off
             _isEngineOn = false;
             _eTime = 0;
+			_dt = 16.67;
         }
             
         

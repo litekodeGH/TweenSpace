@@ -1213,6 +1213,18 @@
             return undefined;
         }
     }
+	/** Check if parameter exists. 
+     * @private*/
+    TweenSpace._.checkParam = function (param)
+	{
+		for (let prop in TweenSpace.params)
+		{
+			if(param == prop)
+				return true;
+		}
+		
+		return false;
+	}
     /** Creates a unique id number. 
      * @private*/
     TweenSpace._.UID = function ( )

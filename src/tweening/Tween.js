@@ -204,11 +204,13 @@
             var isCSS = true;
             paramDefinedLoop:for ( var paramDefined in TweenSpace.params )
             {
+				
                 //CHECK IF PARAM IS TWEENSPACE CUSTOM SUCH AS delay, duration, repeat, yoyo, ease, etc.
                 if( param == paramDefined)
                 { 
                     _options[param] = params[param];
                     isCSS = false;
+					
                     //delete params[param];
                     break paramDefinedLoop;
                 }
@@ -690,6 +692,8 @@
         * @private*/
         this.tick = function(dt, useCallbacks, updateDOM)
         {
+			//console.warn(dt);
+			
             if(TweenSpace.debug == false  && _playing == true)
                 _tick_delta(dt);
             else if(TweenSpace.debug == true)
@@ -1059,8 +1063,8 @@
                     }
                     else if( _mTime < _sTime)
                     {
-                           if(_elements[0].id == 'box0')
-                    console.log(_reversed_repeat, _dTime.toFixed(0), _mTime.toFixed(0)); 
+//                           if(_elements[0].id == 'box0')
+//                    			console.log(_reversed_repeat, _dTime.toFixed(0), _mTime.toFixed(0)); 
                     }
                     /*if( _reversed_repeat == false )
                         _dTime = (_mTime==_durationRepeat)?_durationRepeat:_dTime%_duration;
@@ -1082,6 +1086,28 @@
          * @private*/
         function _updateSubTweenProps( newProps )
         {
+			/*FIX updateTo(): This block updates options new values
+			  and get deletes them to avoid being treated as animatable properties.*/
+			for ( var newProp in newProps )
+			{
+				if( TweenSpace._.checkParam(newProp) == true )
+				{
+					_duration = _dur_init = params.duration = _durationTotal = TweenSpace._.alternativeParams('duration', newProps);
+					this.onProgress = TweenSpace._.alternativeParams('onProgress', newProps);
+					this.onComplete = TweenSpace._.alternativeParams('onComplete', newProps);
+					
+					params.isFrom = TweenSpace._.alternativeParams('isFrom', params);
+					params.repeat = TweenSpace._.alternativeParams('repeat', params);
+					params.yoyo = TweenSpace._.alternativeParams('yoyo', params); 
+					
+					_yoyo = params.yoyo;
+					_repeat = params.repeat;
+					
+					delete newProps[newProp];
+				}
+			}
+			
+			
             newPropsLoop:for ( var newProp in newProps )
             {
                 var p = _subTweens.length;
@@ -1298,6 +1324,9 @@
              *  @private */
             this.tick_prop = function( property, elapsedTime, setInitValues )
             {
+				/*if( TweenSpace._.checkParam(property) == true )
+					return;*/
+				
                 var _prop_values = _st_this.values[property];
                 var _names = _prop_values.names;
                 var _toValues = (_isFrom === true) ? ((setInitValues==true)?_prop_values.initValues:_prop_values.fromValues) : _prop_values.toValues;
@@ -1456,6 +1485,7 @@
                     w = toLength = _toValues.length;
                     newValues = '';
                     
+					//console.log('_fromValues', _fromValues, property );
                     if(_fromValues.constructor != Array)
                         if(isNaN(parseFloat(_fromValues)) == false)
                             _fromValues = [parseFloat(_fromValues)];
@@ -1518,6 +1548,14 @@
                 var newPropVals = new PropValues();
                 this.values_DL = TweenSpace._.DoublyList();
 				
+				/*for ( var prop in this.props )
+                {
+					//console.log(prop);
+					if( TweenSpace._.checkParam(prop) == true )
+					{
+						delete this.props[prop];
+					}
+				}*/
                 
                 //color vars
                 var nameMatch, name, initName, rgb;
@@ -1554,6 +1592,13 @@
                 var props_value;
                 for ( var prop in this.props )
                 {
+					/*console.log(prop);
+					if( TweenSpace._.checkParam(prop) == true )
+					{
+						delete this.props[prop];
+						continue;
+					}*/
+					
                     initProp = undefined;
                     props_value = this.props[prop];
                     
@@ -2188,7 +2233,10 @@
                         
                         //updateTo FIX !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
                         if(_isUpdateTo == true)
-                            toVal = parseFloat(inputPropString);
+						{
+							toVal = parseFloat(inputPropString);
+						}
+                            
                         
                         newPropVals.toValues.push(toVal);
                         newPropVals.units.push((matchResult) ? matchResult[0] : "");  
