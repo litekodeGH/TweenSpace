@@ -478,7 +478,7 @@ if (TweenSpace === undefined)
                     if(clonedFromParams != undefined)
                         params.fromParams = clonedFromParams;
                     
-                    //_sequential() assigns params onProgress and onComplete to aeach tween created.
+                    //_sequential() assigns params onProgress and onComplete to each tween created.
                     //_sequentialTo() assigns params onProgress and onComplete to a timeline created.
                     if( play == true )
                     {
@@ -1033,6 +1033,8 @@ if (TweenSpace === undefined)
             return;
         }
         
+		
+		
         //Loop over TweenSpace parameters
         for ( var tsProp in TweenSpace.params )
         {
@@ -1047,7 +1049,24 @@ if (TweenSpace === undefined)
         
         toParams[TweenSpace.params.isFrom] = false;
         toParams.fromParams = fromParams;
-        
+		
+		//CHECK IMMEDIATE RENDER^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+		let immediateRender = false;
+		if(fromParams.immediateRender)
+			immediateRender = fromParams.immediateRender;
+			
+		if(toParams.immediateRender)
+			immediateRender = toParams.immediateRender;
+		
+		let elements = TweenSpace._.alternativeParams('elements', toParams);
+		if(immediateRender == true)
+		{
+			let object = JSON.parse(JSON.stringify(toParams.fromParams));
+			object.elements = elements;
+			TS.set(object);
+		}
+		//CHECK IMMEDIATE RENDE^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+		
         var tween = TweenSpace.Tween( toParams );
         tween.play();
         
@@ -1419,7 +1438,7 @@ if (TweenSpace === undefined)
     TweenSpace._.alternativeParams = function ( paramName, alternativeParams )
     {
         /*                      !!!!!!   IMPORTANT NOTE !!!!!!!
-            Properties added here needs to be declared in "TweenSpace.params" object as well.
+            Properties added here need to be declared in "TweenSpace.params" object as well.
         */        
         if(paramName=='elements')
         {
@@ -1472,9 +1491,9 @@ if (TweenSpace === undefined)
     /** Increment number for debugging purposes only. 
      * @private*/
     TweenSpace._.counter = 0;
-    /** TweenSpace Engine current version: 1.9.7.0
+    /** TweenSpace Engine current version: 1.9.91.0
      *  @memberof TweenSpace */
-    TweenSpace.version = '1.9.9.0'; //release.major.minor.dev_stage
+    TweenSpace.version = '1.9.91.0'; //release.major.minor.dev_stage
     /** Useful under a debugging enviroment for faster revisiones.
      *  If true, the engine will assign destination values immediately and no animation will be performed.
      *  @memberof TweenSpace */
@@ -1588,8 +1607,6 @@ if (TweenSpace === undefined)
         _dt = now - _then;
         _then = now;
         
-		
-		
         //Loop over tweens
         if(_dt > _min_interval && _dt < _max_interval)
         {
@@ -2348,16 +2365,23 @@ if (TweenSpace === undefined)
             }
             
             _tick_logic(TweenSpace._.interval()); //TweenSpace._.interval()
-            
+			
             //Make drawing calls only when needed except for last frame
             if( _mTime >= _sTime && _mTime <= _durationRepeat ) //-TweenSpace._.dt() _durationTotal _durationRepeat
             {
                 //First drawing frame
                 if( _dTime == _sTime || (_last_mTime < 0 && _mTime >= 0)) 
                 {    
+					
                     if( _reversed == false )  //&& updateDOM == true
                     {
                         _manageConflicts();
+						
+						//This will allow tweens to update init prop values
+						//to current in case that the tween was delayed and 
+						//it init prop values change since the time it was played.
+						if(_shouldCheckConflicts() == false)
+							_updateNewInitValues();
                     }
                 }
                 //Last drawing frame
@@ -2368,20 +2392,24 @@ if (TweenSpace === undefined)
                 }
                 _last_mTime = _mTime;
                 _this.tick_draw(_dTime, false, updateDOM);
+				
             }
             else
             {
                 //-------------------------
                 // FIRST OR LAST FRAME
                 //-------------------------
+				
                 //This last call will ensure that the destination values were met.
-                
-                if( _mTime <= _sTime )
-                    _this.tick_draw(_sTime, false, updateDOM);
-                else if( _mTime >= _durationRepeat)
-                    _this.tick_draw(_durationRepeat, false, updateDOM);
-                
-                
+				//It will keep ticking init or destination values even if is
+				//in a delay phase or after end point.
+				if(_shouldCheckConflicts())
+				{
+					if( _mTime <= _sTime )
+						_this.tick_draw(_sTime, false, updateDOM);
+					else if( _mTime >= _durationRepeat)
+						_this.tick_draw(_durationRepeat, false, updateDOM);
+				}
             }
             
 //            if(_elements[0].id == 'box0')
@@ -2398,8 +2426,8 @@ if (TweenSpace === undefined)
             var i = _subTweens.length, j, subtween, prop, 
                 subtween_element, subtween_element_style, subtween_props,
                 subtween_values_DL, subtween_values_node,
-                subtween_values_node_data, cssText = "";           
-            
+                subtween_values_node_data, cssText = "";  
+			
             for( ;i--; )
             {
                 subtween = _subTweens[i];
@@ -2414,6 +2442,7 @@ if (TweenSpace === undefined)
                 {   
                     subtween_values_node_data = subtween_values_node.data;
                     prop = subtween_values_node_data.prop;
+					
                     if( subtween_values_node_data.halted == false )
                     {
                         if(updateDOM==false)
@@ -2578,7 +2607,10 @@ if (TweenSpace === undefined)
                 
                 _manageRepeatCycles();
                 
-                _mTime = playhead;
+				/*
+					ADDING 0.00001 IS A QUICK FIX TO AVOID TWEENS TO GET STUCK AT FIRST FRAME.
+				*/
+                _mTime = playhead+0.00001;
             }
             return playhead;
         }
@@ -2837,7 +2869,7 @@ if (TweenSpace === undefined)
             if(playhead!=undefined)
                 _this.tick_draw(-_delay, true, false);
             
-            //console.log('playhead', playhead, _subTweens[0].UID());
+//            console.log('playhead', playhead, _subTweens[0].UID());
             
             TweenSpace._.engine();
         }
@@ -2847,6 +2879,17 @@ if (TweenSpace === undefined)
             for(;i--;)
                 for( var prop in _subTweens[i].props )
                     _subTweens[i].values[prop].halted = false;
+        }
+		
+		/** Set current prop values to new init values.
+         * @private*/
+		function _updateNewInitValues()
+        {
+            var i = _subTweens.length;
+            for(;i--;)
+				_subTweens[i].resetValues();
+			
+            _updateInitProps();	
         }
         
         /** Check if an element has an existing animation happening. 
@@ -2921,6 +2964,23 @@ if (TweenSpace === undefined)
                 _checkConflicts();
             }
         }
+		
+		function _shouldCheckConflicts()
+        {
+            if( _checkConflict == undefined )
+            {
+                if( TweenSpace.checkConflict == true )
+                {
+                    return true;
+                }
+            }
+            else if( _checkConflict == true )
+            {
+                return true;
+            }
+			
+			return false;
+        }
         /** Manages global and local immediate render declarations.
          * @private*/
         function _manageImmediateRender()
@@ -2963,7 +3023,7 @@ if (TweenSpace === undefined)
             /** Returns SubTween instance unique id number.
              *  @private */
             this.UID = function(){return _UID;};
-            
+			
             /** Calculates subtween property values. When 'elapsedTime' is set to -_delay
              *  and 'setInitValues' to true, initial values will be assigned.
              *  @private */
@@ -2985,7 +3045,7 @@ if (TweenSpace === undefined)
                 
                 /*if(property == 'morphSVG' )
                     console.log(_fromValues, _prop_values.initValues,_prop_values.fromValues);*/
-                
+				
                 var w;
                 if( property == 'transform' || property=='filter' )
                 {
@@ -3130,7 +3190,7 @@ if (TweenSpace === undefined)
                     w = toLength = _toValues.length;
                     newValues = '';
                     
-					//console.log('_fromValues', _fromValues, property );
+//					console.log('_fromValues', _fromValues, property );
                     if(_fromValues.constructor != Array)
                         if(isNaN(parseFloat(_fromValues)) == false)
                             _fromValues = [parseFloat(_fromValues)];
@@ -3164,11 +3224,14 @@ if (TweenSpace === undefined)
                         
                         //rgba case: r g b values need to be integer, however alpha needs to be decimal
                         if( _names )
-                            if( _names.match(/rgb/i) )
+						{
+							if( _names.match(/rgb/i) )
                             {
                                 if(w<3)
                                     value = parseInt(value);
                             }
+						}
+                            
                         
                         //newValues += value + _units[w];
                         newValues += String( value ) + _units[w];
@@ -3271,9 +3334,9 @@ if (TweenSpace === undefined)
                     else
                         inputPropString = String(props_value);
                     
-					
                     newPropVals.names = [], newPropVals.fromValues = [], newPropVals.toValues = [], newPropVals.units = [], newPropVals.initValues = '';
 
+					
                     //If "_fromProps" exists, "TweenSpace.fromTo()" has been called.
                     if(_fromProps!=undefined)
                     {
@@ -3290,6 +3353,8 @@ if (TweenSpace === undefined)
                                 initProp = lastInitProp;
                             else
                                 initProp = newInitProp;
+							
+							
                         }
                     }    
                     else
@@ -3356,6 +3421,7 @@ if (TweenSpace === undefined)
                             transform[ match[1] ] = { fromValues:[], toValues:String(match[2]).split(','), units:[], initValues:[] }; //(matchResult) ? matchResult[0] : ""
 
                             length = transform[ match[1] ].toValues.length;
+							
                             for( q=0; q < length; q++ )
                             {
                                 matchResult = String( transform[ match[1] ].toValues[q] ).match( /em|ex|px|in|cm|mm|%|rad|deg/ );
@@ -3516,13 +3582,14 @@ if (TweenSpace === undefined)
                         }
                         
                         if(this.values[prop])
-                            if(this.values[prop].toValues.length > 0)
+						{
+							if(this.values[prop].toValues.length > 0)
                             {
                                 newPropVals.fromValues = this.values[prop].fromValues.slice();
                                 newPropVals.toValues = this.values[prop].toValues.slice();
                                 newPropVals.units = this.values[prop].units.slice();
                             }
-                        
+						}
                     }
                     else if( prop == TweenSpace.params.svg.drawSVG )
                     {
@@ -3887,6 +3954,8 @@ if (TweenSpace === undefined)
                         newPropVals.units.push((matchResult) ? matchResult[0] : "");  
                     }
                     
+					
+					
                     if(this.values[prop])
                         newPropVals.initValues = this.values[prop].initValues;
                     
@@ -3901,6 +3970,15 @@ if (TweenSpace === undefined)
                 
                 return this;
             };
+			
+			/** Method that resets prop values. When this properties are
+			 * reset, manageSubTween will set element's current props to init values.
+             * @private*/
+			this.resetValues = function()
+			{
+				this.values = {};
+            	this.values_DL;
+			}
         
             /*____________CONSTRUCTOR___________*/
             _manageSubTween();
@@ -3949,9 +4027,10 @@ if (TweenSpace === undefined)
      * @method Timeline
      * @param {object} params - An object containing Timeline properties.
      * @property {*} params.tweens - A Tween or an array of Tween instances whose properties should be animated.
-     * @property {*} params.timescale - Sets and returns the timescale value. timescale() is a factor used to scale time in the animation.
+	 *								https://codepen.io/TweenSpace/pen/MyGGNM
+     * @property {*} params.timescale - Sets and returns the timescale value. timescale() is a factor used to scale time in the animation. 
      *                                  While a value of 1 represents normal speed, lower values makes the faster as well as greater values
-     *                                  makes the animation slower.
+     *                                  makes the animation slower. https://codepen.io/TweenSpace/pen/BKxVoP
      * @property {function} params.onProgress - Callback dispatched every engine tick while the Timeline instance is running.
      * @property {function} params.onComplete - Callback dispatched when the animation of all the Tween instances that belongs to a Timeline object has finished.
      * @return {Timeline} - Timeline instance.
@@ -3985,7 +4064,7 @@ if (TweenSpace === undefined)
             _duration = 0,
             _reversed = false;
         
-        /** Returns Timeline instance duration in milliseconds.
+        /** Returns Timeline instance duration in milliseconds. https://codepen.io/TweenSpace/pen/WNrGpGg
          *  @method duration
          *  @return {int} - Duration in milliseconds.
          *  @memberof Timeline */
@@ -4002,6 +4081,7 @@ if (TweenSpace === undefined)
             return _duration + (_duration*_repeat);
         }
         /** Sets or returns Timeline repeat amount.
+		 *	https://codepen.io/TweenSpace/pen/oNbzeBz
          *  @method repeat
          *  @return {int} - Repeat amount.
          *  @memberof Timeline */
@@ -4021,7 +4101,7 @@ if (TweenSpace === undefined)
                 _yoyo = bool;
             return _yoyo;
         }
-        /** Returns current time in milliseconds.
+        /** Returns current time in milliseconds. https://codepen.io/TweenSpace/pen/xxZEqGb
          *  @method currentTime
          *  @return {float} - Time in milliseconds.
          *  @memberof Timeline */
@@ -4034,6 +4114,7 @@ if (TweenSpace === undefined)
          *  makes the faster as well as greater values makes the animation slower.
          *  @method timescale
          *  @param {float} value - Amount of time scale.
+		 *	https://codepen.io/TweenSpace/pen/BKxVoP
          *  @memberof Timeline */
         this.timescale = function( value )
         {
@@ -4075,6 +4156,7 @@ if (TweenSpace === undefined)
         /** Adds tweens to a Timeline instance.
          *  @method addTweens
          *  @param {*} tweens - Tween, Tween parameters object or array of Tween instances.
+		 *						https://codepen.io/TweenSpace/pen/xVjjNZ
          *  @memberof Timeline */
         this.addTweens = function( tweens )
         {
@@ -4149,7 +4231,13 @@ if (TweenSpace === undefined)
                 _this.onComplete = params.onComplete || undefined;
                 _this.addTweens( params.tweens || undefined );
                 _this.timescale( params.timescale || undefined );
-                _this.repeat( params.repeat || undefined );
+				if(params.repeat)
+				{
+					
+					let r = (params.repeat == -1)?Number.MAX_SAFE_INTEGER:params.repeat;
+					_this.repeat( r );
+				}
+                
                 _this.yoyo( params.yoyo || undefined );
             }
         }
@@ -4204,6 +4292,7 @@ if (TweenSpace === undefined)
         /** Starts sequence playback.
          *  @method play
          *  @param {int} playhead - Forward playback from specified time in milliseconds.
+		 *							https://codepen.io/TweenSpace/pen/bpvNax
          *  @return {Timeline} - A Timeline instance.
          *  @memberof Timeline */
         this.play = function( playhead )
@@ -4232,6 +4321,7 @@ if (TweenSpace === undefined)
         /** Moves playhead to an specified time.
          *  @method seek
          *  @param {int} playhead - Moves playhead at specified time in milliseconds.
+		 *							https://codepen.io/TweenSpace/pen/MyGGNM
          *  @memberof Timeline */
         this.seek = function( playhead )
         {
@@ -4503,6 +4593,7 @@ if (TweenSpace === undefined)
         /** Reverses sequence playback.
          *  @method reverse
          *  @param {int} playhead - Reverses playback from specified time in milliseconds.
+		 *							https://codepen.io/TweenSpace/pen/wGjmYz
          *  @memberof Timeline */
         this.reverse = function( playhead )
         {
@@ -4520,6 +4611,7 @@ if (TweenSpace === undefined)
          *  @method pause
          *  @param {int} playhead - Pauses playback at specified time in milliseconds.
          *  If no argument is passed, animation will be paused at current playhead.
+		 *	https://codepen.io/TweenSpace/pen/zqjppV
          *  @return {Timeline} - Returns itself for chaining purposes.
          *  @memberof Timeline */
         this.pause = function( playhead )
@@ -4563,9 +4655,9 @@ if (TweenSpace === undefined)
                     adjustedValue = value + ( -_tweens[q].delay() );
                 else adjustedValue = value;
                 
-                /*if(operation=='play')
-                   console.log('_tweens', _tweens[q].currentTime(), adjustedValue );
-                */
+//                if(operation=='play')
+//                   console.log('_tweens', operation, _tweens[q].currentTime(), adjustedValue, _tweens[q].elements() );
+                
                 //------------------------------------
                 _tweens[q][operation](adjustedValue);
             }
@@ -5608,7 +5700,9 @@ if (TweenSpace === undefined)
      * @param {object} params - An object containing SplitText properties.
      * @property {*} params.elements - Element or elements whose properties should be animated. Accepted arguments are a DOM element, an array of elements or query selection string.
      * @property {string} params.type - Text will get ready to be animated by characters, words or lines.  
+	 									https://codepen.io/TweenSpace/pen/GvMgQb
      * @return {SplitText} - SplitText instance.
+	 						 
      * @memberof TweenSpace */
     TweenSpace.SplitText = function( params )
     {
@@ -5619,8 +5713,10 @@ if (TweenSpace === undefined)
      * @class SplitText class is capable of getting text ready to be animated by characters, words or lines.
      * @param {object} params - An object containing SplitText properties.
      * @property {*} params.elements - Element or elements whose properties should be animated. Accepted arguments are a DOM element, an array of elements or query selection string.
-     * @property {string} params.type - Text will get ready to be animated by characters, words or lines.  
+     * @property {string} params.type - Text will get ready to be animated by characters, words or lines. 
+	 									https://codepen.io/TweenSpace/embed/GvMgQb
      * @return {SplitText} - SplitText instance.
+	 						 
      * @memberof SplitText  
      * @public */
     class SplitText

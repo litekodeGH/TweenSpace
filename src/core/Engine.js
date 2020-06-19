@@ -105,8 +105,6 @@
         _dt = now - _then;
         _then = now;
         
-		
-		
         //Loop over tweens
         if(_dt > _min_interval && _dt < _max_interval)
         {
