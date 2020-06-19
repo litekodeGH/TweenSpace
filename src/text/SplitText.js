@@ -6,7 +6,9 @@
      * @param {object} params - An object containing SplitText properties.
      * @property {*} params.elements - Element or elements whose properties should be animated. Accepted arguments are a DOM element, an array of elements or query selection string.
      * @property {string} params.type - Text will get ready to be animated by characters, words or lines.  
+	 									https://codepen.io/TweenSpace/pen/GvMgQb
      * @return {SplitText} - SplitText instance.
+	 						 
      * @memberof TweenSpace */
     TweenSpace.SplitText = function( params )
     {
@@ -17,8 +19,10 @@
      * @class SplitText class is capable of getting text ready to be animated by characters, words or lines.
      * @param {object} params - An object containing SplitText properties.
      * @property {*} params.elements - Element or elements whose properties should be animated. Accepted arguments are a DOM element, an array of elements or query selection string.
-     * @property {string} params.type - Text will get ready to be animated by characters, words or lines.  
+     * @property {string} params.type - Text will get ready to be animated by characters, words or lines. 
+	 									https://codepen.io/TweenSpace/embed/GvMgQb
      * @return {SplitText} - SplitText instance.
+	 						 
      * @memberof SplitText  
      * @public */
     class SplitText
