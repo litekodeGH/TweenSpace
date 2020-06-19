@@ -5,9 +5,10 @@
      * @method Timeline
      * @param {object} params - An object containing Timeline properties.
      * @property {*} params.tweens - A Tween or an array of Tween instances whose properties should be animated.
-     * @property {*} params.timescale - Sets and returns the timescale value. timescale() is a factor used to scale time in the animation.
+	 *								https://codepen.io/TweenSpace/pen/MyGGNM
+     * @property {*} params.timescale - Sets and returns the timescale value. timescale() is a factor used to scale time in the animation. 
      *                                  While a value of 1 represents normal speed, lower values makes the faster as well as greater values
-     *                                  makes the animation slower.
+     *                                  makes the animation slower. https://codepen.io/TweenSpace/pen/BKxVoP
      * @property {function} params.onProgress - Callback dispatched every engine tick while the Timeline instance is running.
      * @property {function} params.onComplete - Callback dispatched when the animation of all the Tween instances that belongs to a Timeline object has finished.
      * @return {Timeline} - Timeline instance.
@@ -41,7 +42,7 @@
             _duration = 0,
             _reversed = false;
         
-        /** Returns Timeline instance duration in milliseconds.
+        /** Returns Timeline instance duration in milliseconds. https://codepen.io/TweenSpace/pen/WNrGpGg
          *  @method duration
          *  @return {int} - Duration in milliseconds.
          *  @memberof Timeline */
@@ -58,6 +59,7 @@
             return _duration + (_duration*_repeat);
         }
         /** Sets or returns Timeline repeat amount.
+		 *	https://codepen.io/TweenSpace/pen/oNbzeBz
          *  @method repeat
          *  @return {int} - Repeat amount.
          *  @memberof Timeline */
@@ -77,7 +79,7 @@
                 _yoyo = bool;
             return _yoyo;
         }
-        /** Returns current time in milliseconds.
+        /** Returns current time in milliseconds. https://codepen.io/TweenSpace/pen/xxZEqGb
          *  @method currentTime
          *  @return {float} - Time in milliseconds.
          *  @memberof Timeline */
@@ -90,6 +92,7 @@
          *  makes the faster as well as greater values makes the animation slower.
          *  @method timescale
          *  @param {float} value - Amount of time scale.
+		 *	https://codepen.io/TweenSpace/pen/BKxVoP
          *  @memberof Timeline */
         this.timescale = function( value )
         {
@@ -131,6 +134,7 @@
         /** Adds tweens to a Timeline instance.
          *  @method addTweens
          *  @param {*} tweens - Tween, Tween parameters object or array of Tween instances.
+		 *						https://codepen.io/TweenSpace/pen/xVjjNZ
          *  @memberof Timeline */
         this.addTweens = function( tweens )
         {
@@ -205,7 +209,13 @@
                 _this.onComplete = params.onComplete || undefined;
                 _this.addTweens( params.tweens || undefined );
                 _this.timescale( params.timescale || undefined );
-                _this.repeat( params.repeat || undefined );
+				if(params.repeat)
+				{
+					
+					let r = (params.repeat == -1)?Number.MAX_SAFE_INTEGER:params.repeat;
+					_this.repeat( r );
+				}
+                
                 _this.yoyo( params.yoyo || undefined );
             }
         }
@@ -260,6 +270,7 @@
         /** Starts sequence playback.
          *  @method play
          *  @param {int} playhead - Forward playback from specified time in milliseconds.
+		 *							https://codepen.io/TweenSpace/pen/bpvNax
          *  @return {Timeline} - A Timeline instance.
          *  @memberof Timeline */
         this.play = function( playhead )
@@ -288,6 +299,7 @@
         /** Moves playhead to an specified time.
          *  @method seek
          *  @param {int} playhead - Moves playhead at specified time in milliseconds.
+		 *							https://codepen.io/TweenSpace/pen/MyGGNM
          *  @memberof Timeline */
         this.seek = function( playhead )
         {
@@ -559,6 +571,7 @@
         /** Reverses sequence playback.
          *  @method reverse
          *  @param {int} playhead - Reverses playback from specified time in milliseconds.
+		 *							https://codepen.io/TweenSpace/pen/wGjmYz
          *  @memberof Timeline */
         this.reverse = function( playhead )
         {
@@ -576,6 +589,7 @@
          *  @method pause
          *  @param {int} playhead - Pauses playback at specified time in milliseconds.
          *  If no argument is passed, animation will be paused at current playhead.
+		 *	https://codepen.io/TweenSpace/pen/zqjppV
          *  @return {Timeline} - Returns itself for chaining purposes.
          *  @memberof Timeline */
         this.pause = function( playhead )
@@ -619,9 +633,9 @@
                     adjustedValue = value + ( -_tweens[q].delay() );
                 else adjustedValue = value;
                 
-                /*if(operation=='play')
-                   console.log('_tweens', _tweens[q].currentTime(), adjustedValue );
-                */
+//                if(operation=='play')
+//                   console.log('_tweens', operation, _tweens[q].currentTime(), adjustedValue, _tweens[q].elements() );
+                
                 //------------------------------------
                 _tweens[q][operation](adjustedValue);
             }
