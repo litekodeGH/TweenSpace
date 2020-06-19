@@ -240,7 +240,7 @@
                     if(clonedFromParams != undefined)
                         params.fromParams = clonedFromParams;
                     
-                    //_sequential() assigns params onProgress and onComplete to aeach tween created.
+                    //_sequential() assigns params onProgress and onComplete to each tween created.
                     //_sequentialTo() assigns params onProgress and onComplete to a timeline created.
                     if( play == true )
                     {
@@ -795,6 +795,8 @@
             return;
         }
         
+		
+		
         //Loop over TweenSpace parameters
         for ( var tsProp in TweenSpace.params )
         {
@@ -809,7 +811,24 @@
         
         toParams[TweenSpace.params.isFrom] = false;
         toParams.fromParams = fromParams;
-        
+		
+		//CHECK IMMEDIATE RENDER^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+		let immediateRender = false;
+		if(fromParams.immediateRender)
+			immediateRender = fromParams.immediateRender;
+			
+		if(toParams.immediateRender)
+			immediateRender = toParams.immediateRender;
+		
+		let elements = TweenSpace._.alternativeParams('elements', toParams);
+		if(immediateRender == true)
+		{
+			let object = JSON.parse(JSON.stringify(toParams.fromParams));
+			object.elements = elements;
+			TS.set(object);
+		}
+		//CHECK IMMEDIATE RENDE^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+		
         var tween = TweenSpace.Tween( toParams );
         tween.play();
         
@@ -1181,7 +1200,7 @@
     TweenSpace._.alternativeParams = function ( paramName, alternativeParams )
     {
         /*                      !!!!!!   IMPORTANT NOTE !!!!!!!
-            Properties added here needs to be declared in "TweenSpace.params" object as well.
+            Properties added here need to be declared in "TweenSpace.params" object as well.
         */        
         if(paramName=='elements')
         {
@@ -1234,9 +1253,9 @@
     /** Increment number for debugging purposes only. 
      * @private*/
     TweenSpace._.counter = 0;
-    /** TweenSpace Engine current version: 1.9.7.0
+    /** TweenSpace Engine current version: 1.9.91.0
      *  @memberof TweenSpace */
-    TweenSpace.version = '1.9.9.0'; //release.major.minor.dev_stage
+    TweenSpace.version = '1.9.91.0'; //release.major.minor.dev_stage
     /** Useful under a debugging enviroment for faster revisiones.
      *  If true, the engine will assign destination values immediately and no animation will be performed.
      *  @memberof TweenSpace */
