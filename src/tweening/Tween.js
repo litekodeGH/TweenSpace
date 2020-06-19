@@ -703,16 +703,23 @@
             }
             
             _tick_logic(TweenSpace._.interval()); //TweenSpace._.interval()
-            
+			
             //Make drawing calls only when needed except for last frame
             if( _mTime >= _sTime && _mTime <= _durationRepeat ) //-TweenSpace._.dt() _durationTotal _durationRepeat
             {
                 //First drawing frame
                 if( _dTime == _sTime || (_last_mTime < 0 && _mTime >= 0)) 
                 {    
+					
                     if( _reversed == false )  //&& updateDOM == true
                     {
                         _manageConflicts();
+						
+						//This will allow tweens to update init prop values
+						//to current in case that the tween was delayed and 
+						//it init prop values change since the time it was played.
+						if(_shouldCheckConflicts() == false)
+							_updateNewInitValues();
                     }
                 }
                 //Last drawing frame
@@ -723,20 +730,24 @@
                 }
                 _last_mTime = _mTime;
                 _this.tick_draw(_dTime, false, updateDOM);
+				
             }
             else
             {
                 //-------------------------
                 // FIRST OR LAST FRAME
                 //-------------------------
+				
                 //This last call will ensure that the destination values were met.
-                
-                if( _mTime <= _sTime )
-                    _this.tick_draw(_sTime, false, updateDOM);
-                else if( _mTime >= _durationRepeat)
-                    _this.tick_draw(_durationRepeat, false, updateDOM);
-                
-                
+				//It will keep ticking init or destination values even if is
+				//in a delay phase or after end point.
+				if(_shouldCheckConflicts())
+				{
+					if( _mTime <= _sTime )
+						_this.tick_draw(_sTime, false, updateDOM);
+					else if( _mTime >= _durationRepeat)
+						_this.tick_draw(_durationRepeat, false, updateDOM);
+				}
             }
             
 //            if(_elements[0].id == 'box0')
@@ -753,8 +764,8 @@
             var i = _subTweens.length, j, subtween, prop, 
                 subtween_element, subtween_element_style, subtween_props,
                 subtween_values_DL, subtween_values_node,
-                subtween_values_node_data, cssText = "";           
-            
+                subtween_values_node_data, cssText = "";  
+			
             for( ;i--; )
             {
                 subtween = _subTweens[i];
@@ -769,6 +780,7 @@
                 {   
                     subtween_values_node_data = subtween_values_node.data;
                     prop = subtween_values_node_data.prop;
+					
                     if( subtween_values_node_data.halted == false )
                     {
                         if(updateDOM==false)
@@ -933,7 +945,10 @@
                 
                 _manageRepeatCycles();
                 
-                _mTime = playhead;
+				/*
+					ADDING 0.00001 IS A QUICK FIX TO AVOID TWEENS TO GET STUCK AT FIRST FRAME.
+				*/
+                _mTime = playhead+0.00001;
             }
             return playhead;
         }
@@ -1192,7 +1207,7 @@
             if(playhead!=undefined)
                 _this.tick_draw(-_delay, true, false);
             
-            //console.log('playhead', playhead, _subTweens[0].UID());
+//            console.log('playhead', playhead, _subTweens[0].UID());
             
             TweenSpace._.engine();
         }
@@ -1202,6 +1217,17 @@
             for(;i--;)
                 for( var prop in _subTweens[i].props )
                     _subTweens[i].values[prop].halted = false;
+        }
+		
+		/** Set current prop values to new init values.
+         * @private*/
+		function _updateNewInitValues()
+        {
+            var i = _subTweens.length;
+            for(;i--;)
+				_subTweens[i].resetValues();
+			
+            _updateInitProps();	
         }
         
         /** Check if an element has an existing animation happening. 
@@ -1276,6 +1302,23 @@
                 _checkConflicts();
             }
         }
+		
+		function _shouldCheckConflicts()
+        {
+            if( _checkConflict == undefined )
+            {
+                if( TweenSpace.checkConflict == true )
+                {
+                    return true;
+                }
+            }
+            else if( _checkConflict == true )
+            {
+                return true;
+            }
+			
+			return false;
+        }
         /** Manages global and local immediate render declarations.
          * @private*/
         function _manageImmediateRender()
@@ -1318,7 +1361,7 @@
             /** Returns SubTween instance unique id number.
              *  @private */
             this.UID = function(){return _UID;};
-            
+			
             /** Calculates subtween property values. When 'elapsedTime' is set to -_delay
              *  and 'setInitValues' to true, initial values will be assigned.
              *  @private */
@@ -1340,7 +1383,7 @@
                 
                 /*if(property == 'morphSVG' )
                     console.log(_fromValues, _prop_values.initValues,_prop_values.fromValues);*/
-                
+				
                 var w;
                 if( property == 'transform' || property=='filter' )
                 {
@@ -1485,7 +1528,7 @@
                     w = toLength = _toValues.length;
                     newValues = '';
                     
-					//console.log('_fromValues', _fromValues, property );
+//					console.log('_fromValues', _fromValues, property );
                     if(_fromValues.constructor != Array)
                         if(isNaN(parseFloat(_fromValues)) == false)
                             _fromValues = [parseFloat(_fromValues)];
@@ -1519,11 +1562,14 @@
                         
                         //rgba case: r g b values need to be integer, however alpha needs to be decimal
                         if( _names )
-                            if( _names.match(/rgb/i) )
+						{
+							if( _names.match(/rgb/i) )
                             {
                                 if(w<3)
                                     value = parseInt(value);
                             }
+						}
+                            
                         
                         //newValues += value + _units[w];
                         newValues += String( value ) + _units[w];
@@ -1626,9 +1672,9 @@
                     else
                         inputPropString = String(props_value);
                     
-					
                     newPropVals.names = [], newPropVals.fromValues = [], newPropVals.toValues = [], newPropVals.units = [], newPropVals.initValues = '';
 
+					
                     //If "_fromProps" exists, "TweenSpace.fromTo()" has been called.
                     if(_fromProps!=undefined)
                     {
@@ -1645,6 +1691,8 @@
                                 initProp = lastInitProp;
                             else
                                 initProp = newInitProp;
+							
+							
                         }
                     }    
                     else
@@ -1711,6 +1759,7 @@
                             transform[ match[1] ] = { fromValues:[], toValues:String(match[2]).split(','), units:[], initValues:[] }; //(matchResult) ? matchResult[0] : ""
 
                             length = transform[ match[1] ].toValues.length;
+							
                             for( q=0; q < length; q++ )
                             {
                                 matchResult = String( transform[ match[1] ].toValues[q] ).match( /em|ex|px|in|cm|mm|%|rad|deg/ );
@@ -1871,13 +1920,14 @@
                         }
                         
                         if(this.values[prop])
-                            if(this.values[prop].toValues.length > 0)
+						{
+							if(this.values[prop].toValues.length > 0)
                             {
                                 newPropVals.fromValues = this.values[prop].fromValues.slice();
                                 newPropVals.toValues = this.values[prop].toValues.slice();
                                 newPropVals.units = this.values[prop].units.slice();
                             }
-                        
+						}
                     }
                     else if( prop == TweenSpace.params.svg.drawSVG )
                     {
@@ -2242,6 +2292,8 @@
                         newPropVals.units.push((matchResult) ? matchResult[0] : "");  
                     }
                     
+					
+					
                     if(this.values[prop])
                         newPropVals.initValues = this.values[prop].initValues;
                     
@@ -2256,6 +2308,15 @@
                 
                 return this;
             };
+			
+			/** Method that resets prop values. When this properties are
+			 * reset, manageSubTween will set element's current props to init values.
+             * @private*/
+			this.resetValues = function()
+			{
+				this.values = {};
+            	this.values_DL;
+			}
         
             /*____________CONSTRUCTOR___________*/
             _manageSubTween();
