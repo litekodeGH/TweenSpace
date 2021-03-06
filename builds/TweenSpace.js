@@ -28,6 +28,218 @@ if (TweenSpace === undefined)
         };
     })();
 }
+/*UI Module*/
+(function (TweenSpace) {
+    
+    TweenSpace.UI = {};
+	
+	
+    TweenSpace.UI.Timebar = function (params)
+    {
+        return new Timebar(params);
+    }
+    
+    function Timebar( params )
+    {
+        /** Reference to Timebar instance.
+         * @private */
+        let _this = this;
+		let _target;
+		
+		let _play_svg_string = '<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="11.2px" height="12.8px" viewBox="0 0 11.2 12.8" style="overflow:visible;" xml:space="preserve"><style type="text/css"> .st0{opacity:0.8;} .st1{fill:none;stroke:#32B47D;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;stroke-width:2px;}</style><g id="play_2_" class="st0"> <polygon class="st1" points="0.5,0.5 10.7,6.4 0.5,12.3 "/></g></svg>';
+		
+		let _pause_svg_string = '<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="5.2px" height="12.8px" viewBox="0 0 5.2 12.8" style="overflow:visible;" xml:space="preserve"><style type="text/css"> .st0{opacity:0.8;fill:none;stroke:#32B47D;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;stroke-width:2px;}</style><path id="pause_1_" class="st0" d="M0.5,0.5v11.8 M4.7,0.5v11.8"/></svg>';
+		
+		let _loop_svg_string = '<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="16.5px" height="16px" viewBox="0 0 16.5 13.2" style="overflow:visible;enable-background:new 0 0 16.5 13.2;" xml:space="preserve"><style type="text/css"> .st0{fill:none;stroke:#32B47D;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;}</style><path class="st0" d="M5.9,2.3C3,2.3,0.8,4.6,0.8,7.4v0c0,2.8,2.3,5.1,5.1,5.1h4.8c2.8,0,5.1-2.3,5.1-5.1v0c0-2.8-2.3-5.1-5.1-5.1 l3.1-1.5"/></svg>';
+
+		let _once_svg_string = '<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="15.8px" height="16px" viewBox="0 0 15.8 3.9" style="overflow:visible;enable-background:new 0 0 15.8 3.9;" xml:space="preserve"><style type="text/css"> .st0{fill:none;stroke:#32B47D;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;}</style><polyline class="st0" points="0.8,3.2 15.1,3.2 12.7,0.8 "/></svg>';
+
+		
+		
+
+		
+
+		 
+		 
+		let _play, _pause, _playing = false, _looping = false, _bbox, _bbox_checked = false;
+		
+		this.holder = document.createElement('div');
+		let _playHolder = document.createElement('div');
+		let _loopHolder = document.createElement('div');
+		let _barHolder = document.createElement('div');
+		let _cursorBarHolder = document.createElement('div');
+		let _cursorBar = document.createElement('div');
+		let _cursor = document.createElement('div');
+		
+		this.constructor = new function()
+        {
+            _playHolder.innerHTML = _play_svg_string;
+            _loopHolder.innerHTML = _once_svg_string;
+			
+			_this.holder.appendChild(_playHolder);
+			_this.holder.appendChild(_loopHolder);
+			_cursorBarHolder.appendChild(_cursorBar);
+			_barHolder.appendChild(_cursorBarHolder);
+			_barHolder.appendChild(_cursor);
+			_this.holder.appendChild(_barHolder);
+			
+			//Styles
+			_this.holder.style.width = '100%';
+			_this.holder.style.height = '30px';
+			_this.holder.style.display = 'flex';
+			_this.holder.style.flexWrap = 'nowrap';
+			_this.holder.style.padding = '0px 12px 0px 10px';
+			_this.holder.style.position = 'absolute';
+			_this.holder.style.bottom = '0px';
+			_this.holder.style.background = 'rgba(71, 77, 83, 0.9)';
+			_this.holder.style.alignItems = 'center';
+			
+			_playHolder.style.marginRight = '6px';
+			_playHolder.style.width = '14px';
+			_playHolder.style.cursor = 'pointer';
+			_playHolder.style.height = '16px';
+			
+			_loopHolder.style.marginRight = '6px';
+			_loopHolder.style.height = '16px';
+			_loopHolder.style.cursor = 'pointer';
+			
+			_barHolder.style.width = '100%';
+			_barHolder.style.height = '100%';
+			_barHolder.style.background = 'rgba(51, 57, 63, 0)';
+			_barHolder.style.cursor = 'pointer';
+			_barHolder.style.display = 'grid';
+			_barHolder.style.alignContent = 'center';
+			
+			_cursorBarHolder.style.position = 'relative';
+			_cursorBarHolder.style.width = '100%';
+			_cursorBarHolder.style.height = '2px';
+			_cursorBarHolder.style.background = 'rgba(150, 150, 150, 0.5)';
+			_cursorBarHolder.style.pointerEvents = 'none';
+			_cursorBarHolder.style.borderRadius = '2px';
+			
+			_cursorBar.style.height = '2px';
+			_cursorBar.style.background = 'rgba(50, 180, 125, 0.7)';
+			_cursorBar.style.borderRadius = '4px';
+			
+			_cursor.style.position = 'absolute';
+			_cursor.style.top = '7px';
+			_cursor.style.width = '4px';
+			_cursor.style.height = '16px';
+			_cursor.style.background = 'rgba(50, 180, 125, 0.7)';
+			_cursor.style.pointerEvents = 'none';
+			_cursor.style.borderRadius = '4px';
+			_cursor.style.left = '0px';
+			
+			_bbox = _barHolder.getBoundingClientRect();
+			
+			_playHolder.addEventListener('click', onPlay);
+			_loopHolder.addEventListener('click', onLoop);
+			
+			_barHolder.addEventListener('mousedown', function(e)
+			{
+				onMouseMove(e);
+				_bbox = _barHolder.getBoundingClientRect();
+				_barHolder.addEventListener('mousemove', onMouseMove);
+			});
+			document.body.addEventListener('mouseup', function()
+			{
+				_barHolder.removeEventListener('mousemove', onMouseMove);
+			});
+			
+			window.onresize = onresize;
+			
+        };
+		
+		/** Add a target to be time controled. 
+		* The parameter target can be either Timeline or Tween instance.
+        * @method add
+        * @memberof Timebar */
+       	this.add = function(target)
+		{
+			_target = target;
+			_target.onProgressTimebar = onProgressTimebar;
+			_target.onCompleteTimebar = onCompleteTimebar;
+			return this;
+		}
+		
+		function onPlay(e)
+		{
+			if(_playing == false)
+			{
+				if(_target.currentTime() == _target.duration())
+					_target.play(0);
+				else
+					_target.play();
+				
+				_playing = true;
+				_playHolder.innerHTML = _pause_svg_string;
+			}
+			else
+			{
+				
+				_target.pause();
+				_playing = false;
+				_playHolder.innerHTML = _play_svg_string;
+			}
+		}
+		
+		function onLoop(e)
+		{
+			if(_looping == false)
+			{
+				_looping = true;
+				_loopHolder.innerHTML = _loop_svg_string;
+				_target.repeat(-1);
+			}
+			else
+			{
+				_looping = false;
+				_loopHolder.innerHTML = _once_svg_string;
+				_target.repeat(0);
+			}
+		}
+		
+		function onMouseMove(e)
+		{
+			let playhead = TweenSpace.params.ease.linear( e.offsetX, 0, _target.duration(), Math.round(_bbox.width) );
+			
+			_cursorBar.style.width = ((playhead)*100/_target.duration())+'%';
+			_cursor.style.left = Math.round(e.clientX)+'px';
+			_target.seek(playhead);
+		}
+		
+		function onProgressTimebar(e)
+		{
+			if(_bbox_checked == false)
+			{
+				_bbox = _barHolder.getBoundingClientRect();
+				_bbox_checked = true;
+			}
+			
+			_cursorBar.style.width = ((_target.currentTime())*100/_target.duration())+'%';
+			_cursor.style.left = Math.round(_bbox.width)*((_target.currentTime())/_target.duration())+_bbox.x+'px';
+		}
+		
+		function onresize(e)
+		{
+			_bbox_checked = false;
+			onProgressTimebar();
+		}
+		
+		function onCompleteTimebar()
+		{
+			if(_looping)
+				return;
+			
+			_playHolder.innerHTML = _play_svg_string;
+			_playing = false;
+		}
+        
+        
+        return this;
+    }
+	
+})(TweenSpace || {});
 (function ( TweenSpace ) {
 
     /**
@@ -328,7 +540,7 @@ if (TweenSpace === undefined)
     function _tick_tweens(dt)
     {
         _tween = null;
-        
+       
         //Loop over tweens
         var j=0;
         loop:for (var curr_node = _queue_DL.head; j<_queue_DL.length(); j++)
@@ -1408,6 +1620,7 @@ if (TweenSpace === undefined)
         return new Wave(amplitude, frequency);
     };
     TweenSpace._.queue_DL = _queue_DL;
+    TweenSpace._.queue_DL = _queue_DL;
     TweenSpace._.queue_paused_DL = _queue_paused_DL;
     TweenSpace._.PI = function() { return _pi };
 
@@ -1488,7 +1701,8 @@ if (TweenSpace === undefined)
     {
         return _UID++;
     }
-    /** Increment number for debugging purposes only. 
+	
+	/** Increment number for debugging purposes only. 
      * @private*/
     TweenSpace._.counter = 0;
     /** TweenSpace Engine current version: 1.9.91.0
@@ -1498,6 +1712,7 @@ if (TweenSpace === undefined)
      *  If true, the engine will assign destination values immediately and no animation will be performed.
      *  @memberof TweenSpace */
     TweenSpace.debug = false;
+	
     
 })(TweenSpace || {});
 /**
@@ -1980,7 +2195,7 @@ if (TweenSpace === undefined)
         var _timescale = _options.timescale || 1;
         /** Animation playhead in milliseconds. Negative values represent delay time.
          * @private */
-        var _mTime = -(_delay);
+        var _mTime = -(_delay-0.000001);
         var _last_mTime = -1;
         /** Drawing animation playhead in milliseconds.
          * @private */
@@ -2006,6 +2221,9 @@ if (TweenSpace === undefined)
         /** If true, tween is being played, otherwise it is either paused or not queued at all.
          *   @private */
         var _playing = false;
+		/** If true, tween is being played, otherwise it is either paused or not queued at all.
+         *   @private */
+        var _checkDestValue = false;
         /** Amount of times that the animation will be played.
          *  @private */
         var _repeat = _options.repeat || 0;
@@ -2032,6 +2250,11 @@ if (TweenSpace === undefined)
          *  @private */
         var _isUpdateTo = false;
         
+		/** Returns if cssText property is being used to update properties.
+		 *  @method isCSSText
+         *  @return {boolean} - cssText usage.
+         *  @memberof Tween */
+        this.isCSSText = function(){return _useCSSText;};
         /** Returns Tween instance unique id number.
          *  @private */
         this.UID = function(){return _UID;};
@@ -2045,10 +2268,12 @@ if (TweenSpace === undefined)
          *  @var  onComplete 
          *  @memberof Tween */
         this.onComplete = _options.onComplete || undefined;
+        this.onCompleteTimebar = undefined;
         /** Callback dispatched every engine tick while animation is running.
          *  @var onProgress 
          *  @memberof Tween */
         this.onProgress = _options.onProgress || undefined;
+		this.onProgressTimebar = undefined;
         /** Callback dispatched every time the animation starts a repetition.
          *  @var  onRepeat 
          *  @memberof Tween */
@@ -2304,7 +2529,10 @@ if (TweenSpace === undefined)
                 if( _adjustPlayhead(playhead) != undefined )
                 {   
                     if(doTick==true)
-                        _this.tick(16.67, false, updateDOM);
+					{
+						_this.tick(16.67, false, updateDOM);
+					}
+                        
                 }
             }
         };
@@ -2384,12 +2612,12 @@ if (TweenSpace === undefined)
 							_updateNewInitValues();
                     }
                 }
-                //Last drawing frame
-                else if ( _dTime == _durationRepeat ) //_durationTotal _durationRepeat
-                {
-                    //if( _reversed == true )
-                    //    _manageConflicts();
-                }
+				//Last drawing frame
+				else if( _last_mTime <  _durationTotal && _mTime >= _durationTotal)
+				{	
+					
+				}
+				
                 _last_mTime = _mTime;
                 _this.tick_draw(_dTime, false, updateDOM);
 				
@@ -2399,26 +2627,40 @@ if (TweenSpace === undefined)
                 //-------------------------
                 // FIRST OR LAST FRAME
                 //-------------------------
-				
-                //This last call will ensure that the destination values were met.
-				//It will keep ticking init or destination values even if is
-				//in a delay phase or after end point.
-				if(_shouldCheckConflicts())
-				{
-					if( _mTime <= _sTime )
-						_this.tick_draw(_sTime, false, updateDOM);
-					else if( _mTime >= _durationRepeat)
-						_this.tick_draw(_durationRepeat, false, updateDOM);
-				}
             }
-            
-//            if(_elements[0].id == 'box0')
-//                console.log(_elements[0].id, _elements[0].style.marginLeft, '_mTime:', parseFloat(_mTime.toFixed(3)), '_dTime:', parseFloat(_dTime.toFixed(3)) );
-                //console.log(_elements[0].id, _elements[0].style.marginLeft, '_mTime:', parseFloat(_mTime.toFixed(3)), '_dTime:', parseFloat(_dTime.toFixed(3)), '_durationRepeat:', _durationRepeat, '_durationTotal:', _durationTotal, _playing);
+			
+			if(_dTime>_durationRepeat)
+			{
+				if(_checkDestValue == true)
+				{
+					ensureInitDestValues(updateDOM);
+					_checkDestValue = false;
+				}
+			}
              
             if(useCallbacks==true)
                 _manageCallbacks();
         };
+		
+		function ensureInitDestValues(_updateDOM)
+		{
+			if(_checkDestValue == true)
+			{
+				if( _mTime <= _sTime )
+				{
+					_this.tick_draw(_sTime, false, _updateDOM);
+				}
+				else if( _mTime >= _durationRepeat)
+				{
+					_this.tick_draw(_durationRepeat, false, _updateDOM);
+				}
+				
+				_checkDestValue = false;
+			}
+			
+//			console.log(_mTime, _dTime, _durationRepeat, _mTime >= _durationRepeat);
+		}
+		
         /** Method that draws the objects that are being animated.
          * @method tick_draw */
         this.tick_draw = function( time, setInitValues, updateDOM )
@@ -2437,7 +2679,7 @@ if (TweenSpace === undefined)
                 subtween_values_DL = subtween.values_DL;
                 j = subtween_values_DL.length();
                 subtween_values_node = subtween_values_DL.head;
-                
+				
                 for ( ;j--; )
                 {   
                     subtween_values_node_data = subtween_values_node.data;
@@ -2451,7 +2693,7 @@ if (TweenSpace === undefined)
                         }
                         else
                         {
-                            cssText = this.tick_draw_prop(prop, time, setInitValues, subtween, cssText);
+							cssText = this.tick_draw_prop(prop, time, setInitValues, subtween, cssText);
                         }
                     }
                     
@@ -2464,7 +2706,7 @@ if (TweenSpace === undefined)
         };
         this.tick_draw_prop = function(prop, time, setInitValues, subtween, cssText)
         {
-            if( prop == TweenSpace.params.svg.drawSVG )
+			if( prop == TweenSpace.params.svg.drawSVG )
             {    
                 var drawValues = subtween.tick_prop(prop, _dTime, setInitValues);
                 subtween.elementStyle.strokeDashoffset = drawValues[0];
@@ -2498,11 +2740,17 @@ if (TweenSpace === undefined)
                     else
                     {
                         subtween.elementStyle[prop] = subtween.tick_prop(prop, _dTime, setInitValues);
+						
+						//console.log('tick_draw_prop', _dTime, subtween.element.id, subtween.elementStyle[prop]);
+						
+//						if(subtween.UID() == 1 && prop == 'marginLeft')
+//							console.log(_dTime, subtween.element.id, subtween.elementStyle[prop]);
+						
                     }
                 }
             }
-            
-            return cssText;
+			
+			return cssText;
             
         }
         /** Removes all elements from DOM as well as its references stored in 'elements'.
@@ -2543,11 +2791,20 @@ if (TweenSpace === undefined)
                 //TWEEN CALLBACKS____________________________________
                 if( _this.onProgress )
                     _this.onProgress();
+				
+				if( _this.onProgressTimebar )
+                    _this.onProgressTimebar();
 
-                if( _this.onComplete )
+                if( _playing == false )
                 {
-                    if( _playing == false )
+                    if( _this.onComplete )
                         _this.onComplete();
+                }
+				
+				if( _playing == false )
+                {
+                    if( _this.onCompleteTimebar )
+                        _this.onCompleteTimebar();
                 }
                 //TWEEN CALLBACKS____________________________________
             }
@@ -2557,11 +2814,17 @@ if (TweenSpace === undefined)
             {
                 if( _this.timelineParent().onProgress != undefined )
                     _this.timelineParent().onProgress();
-                
+				
+				if( _this.timelineParent().onProgressTimebar != undefined )
+                    _this.timelineParent().onProgressTimebar();
+				
                 if(_playing == false)
                 {
                     if( _this.timelineParent().onComplete != undefined )
-                        _this.timelineParent().onComplete();
+						_this.timelineParent().onComplete();
+					
+					if( _this.timelineParent().onCompleteTimebar != undefined )
+						_this.timelineParent().onCompleteTimebar();
                     
                     if(_timelineParent != null)
                         _timelineParent._.manageRepeatCycles();
@@ -2600,8 +2863,10 @@ if (TweenSpace === undefined)
                     }
                 }
                 else if(playhead > _durationTotal)
-                {       
-                    console.warn('TweenSpace.js Warning: playhead '+playhead+'ms is greater than duration. Playhead has been set to '+_durationTotal+'ms.');
+                {     
+					if(_timelineParent == null )
+                    	console.warn('TweenSpace.js Warning: playhead '+playhead+'ms is greater than duration. Playhead has been set to '+_durationTotal+'ms.');
+					
                     playhead = _durationTotal;
                 }
                 
@@ -2612,8 +2877,13 @@ if (TweenSpace === undefined)
 				*/
                 _mTime = playhead+0.00001;
             }
+			
             return playhead;
         }
+		this.adjustPlayhead = function(playhead)
+		{
+			_adjustPlayhead( playhead );
+		};
         /** Calculates delta change.
          * @private*/
         function _tick_delta(dt)
@@ -2665,42 +2935,7 @@ if (TweenSpace === undefined)
                 _dTime = _mTime = _durationTotal;
                 _playing = false;
             }
-            //________________________________________
-            /*if( _mTime < _sTime)
-            {
-                if( (_reversed == true && _useDelay == false) )
-                {
-                    _mTime = _sTime;
-                    _playing = false;
-                }
-
-                if( _mTime < -_delay )
-                {    
-                    _mTime = -_delay;
-                    _playing = false;
-                }
-                
-                _dTime = _sTime;
-            }
-            else if( _mTime >= _sTime && _mTime <= _durationTotal )
-            {
-                if( _useDelay == true && _timelineParent == null)
-                    _useDelay = false;
-                
-                if(dt > _durationTotal-_mTime == true && _reversed == false)
-                {
-                    _mTime = _durationTotal;
-                    _playing = false;
-                }    
-                
-                _dTime = _mTime;
-            }
-            else if( _mTime > _durationTotal )
-            {
-                _dTime = _mTime = _durationTotal;
-                _playing = false;
-                
-            }*/
+			
             //ADJUST time______________________________________
             
             _manageRepeatCycles();
@@ -2710,10 +2945,10 @@ if (TweenSpace === undefined)
         function _manageRepeatCycles()
         {
             if( _repeat > 0 )
-            {
+            {	
                 if( _mTime >= _durationRepeat )
                     _dTime = _durationRepeat;
-                
+				
                 _repetitions = parseInt(_dTime / _duration);
                 _repetitions = (_repetitions<=_repeat)?_repetitions:_repeat;
                 
@@ -2752,10 +2987,13 @@ if (TweenSpace === undefined)
                 }    
                 else
                 {
+					
+					
                     _reversed_repeat = false;
                     _dTime = (_mTime>=_durationRepeat)?_durationRepeat:_dTime%_duration;
                 }
                 
+				
                 
             }
         }
@@ -2783,7 +3021,6 @@ if (TweenSpace === undefined)
 					delete newProps[newProp];
 				}
 			}
-			
 			
             newPropsLoop:for ( var newProp in newProps )
             {
@@ -2861,6 +3098,7 @@ if (TweenSpace === undefined)
             
             _paused = false;
             _playing = true;
+			_checkDestValue = true;
             
             /*If playhead is specified in any of the playback method,
             the tween will start intentionally from that value. If playhead 
@@ -3017,6 +3255,7 @@ if (TweenSpace === undefined)
                                     }
             */
             this.values = {};
+            this.creationValues = {};
             this.values_DL;
             
             
@@ -3032,9 +3271,12 @@ if (TweenSpace === undefined)
 				/*if( TweenSpace._.checkParam(property) == true )
 					return;*/
 				
+				
                 var _prop_values = _st_this.values[property];
                 var _names = _prop_values.names;
-                var _toValues = (_isFrom === true) ? ((setInitValues==true)?_prop_values.initValues:_prop_values.fromValues) : _prop_values.toValues;
+//                var _toValues = (_isFrom === true) ? ((setInitValues==true)?_prop_values.creationValues[property]:_prop_values.fromValues) : _prop_values.toValues;
+//                var _fromValues = (_isFrom === true) ? _prop_values.toValues : ((setInitValues==true)?_prop_values.creationValues[property]:_prop_values.fromValues);
+				var _toValues = (_isFrom === true) ? ((setInitValues==true)?_prop_values.initValues:_prop_values.fromValues) : _prop_values.toValues;
                 var _fromValues = (_isFrom === true) ? _prop_values.toValues : ((setInitValues==true)?_prop_values.initValues:_prop_values.fromValues);
                 var _units = _prop_values.units;
                 var _effects = _prop_values.effects;
@@ -3043,6 +3285,9 @@ if (TweenSpace === undefined)
                 var _transform = _prop_values.transform;
                 var _min = 0, _max = 0;
                 
+//				if(this.element.id == 'box1' && property == 'marginLeft')
+//					console.log('tick_prop 1', _prop_values.initValues, _prop_values.fromValues, _prop_values.creationValues[property]);
+				
                 /*if(property == 'morphSVG' )
                     console.log(_fromValues, _prop_values.initValues,_prop_values.fromValues);*/
 				
@@ -3195,8 +3440,13 @@ if (TweenSpace === undefined)
                         if(isNaN(parseFloat(_fromValues)) == false)
                             _fromValues = [parseFloat(_fromValues)];
                     
+					
                     for(w=0; w < toLength; w++)
-                    {
+                    {	
+						/*if(this.UID() == 1 && property == 'marginLeft')
+							console.log(_fromValues);*/
+						   
+						   
                         value = _this.ease( Math.min(elapsedTime, _duration), parseFloat(_fromValues[w]), parseFloat(_toValues[w]), _duration );
                         
                         if( _effects != undefined )
@@ -3237,12 +3487,15 @@ if (TweenSpace === undefined)
                         newValues += String( value ) + _units[w];
                         if(w<toLength-1) newValues += ',';
                     }
-                    
+					
                     if( _names ) result = _names+'('+newValues+')';
                     else result = newValues;
                     
                 }
-                
+				
+//				if(this.UID() == 1 && property == 'marginLeft')
+//					console.log('result', result);
+
                 return result;
                 
             };
@@ -3327,9 +3580,6 @@ if (TweenSpace === undefined)
                         
                         if( props_value['from'] != undefined )
                             initProp = String( props_value['from'] );
-						
-						
-						
                     }
                     else
                         inputPropString = String(props_value);
@@ -3537,14 +3787,10 @@ if (TweenSpace === undefined)
                             if( this.values[prop] == undefined )   
                             {
                                 transform[ match[1] ].initValues = transform[ match[1] ].fromValues.slice();
-                                
-                                
                             }
                             else
                             {
                                 transform[ match[1] ].initValues = this.values[prop].transform[match[1]].initValues;
-                                
-                                
                             }
                         }
                         
@@ -3948,20 +4194,29 @@ if (TweenSpace === undefined)
 						{
 							toVal = parseFloat(inputPropString);
 						}
-                            
                         
                         newPropVals.toValues.push(toVal);
                         newPropVals.units.push((matchResult) ? matchResult[0] : "");  
                     }
                     
-					
-					
                     if(this.values[prop])
                         newPropVals.initValues = this.values[prop].initValues;
+					
+					//The following condition will store prop values that were calculate at creation time
+					if(!this.creationValues[prop])
+					{
+						this.creationValues[prop] =  JSON.parse(JSON.stringify(newPropVals.fromValues));
+						
+						if(transform)
+							this.creationValues['transform'] =  JSON.parse(JSON.stringify(transform));
+					}
+					
+//					if(this.UID() == 1 && prop == 'marginLeft')
+//							console.log('tween', newPropVals.initValues, newPropVals.fromValues, this.creationValues.marginLeft);
                     
                     this.values[prop] = new PropValues(prop, name, newPropVals.fromValues, newPropVals.toValues, 
                                                        newPropVals.units, transform, newPropVals.effects, 
-                                                       newPropVals.initValues);
+                                                       newPropVals.initValues, this.creationValues );
                     
                     this.values_DL.push(this.values[prop]);
                     
@@ -3996,12 +4251,13 @@ if (TweenSpace === undefined)
          * @class Internal class. Stores SubTween prop values.
          * @private
          */
-        function PropValues(prop, names, fromValues, toValues, units, transform, effects, initValues)
+        function PropValues(prop, names, fromValues, toValues, units, transform, effects, initValues, creationValues)
         {
             /** "this.prop" CSS property name.
              * @private */
             this.prop = prop;
             this.names = names;
+            this.creationValues = creationValues;
             this.initValues = initValues;
             this.fromValues = fromValues;
             this.toValues = toValues;
@@ -4087,6 +4343,8 @@ if (TweenSpace === undefined)
          *  @memberof Timeline */
         this.repeat = function( int )
         {
+			int = (int <= -1)?Number.MAX_SAFE_INTEGER:int;
+			
             if(int != undefined)
                 _repeat = int;
             return _repeat;
@@ -4133,10 +4391,12 @@ if (TweenSpace === undefined)
          *  @var  onComplete 
          *  @memberof Timeline */
         this.onComplete = undefined;
+        this.onCompleteTimebar = undefined;
         /** Callback dispatched every engine tick while animation is running.
          *  @var onProgress 
          *  @memberof Timeline */
         this.onProgress = undefined;
+        this.onProgressTimebar = undefined;
         /** Returns true if timeline is being played, otherwise it is either paused or not queued at all.
          *  @method playing 
          *  @return {boolean} - Returns true if tween is currently playing.
@@ -4233,8 +4493,6 @@ if (TweenSpace === undefined)
                 _this.timescale( params.timescale || undefined );
 				if(params.repeat)
 				{
-					
-					let r = (params.repeat == -1)?Number.MAX_SAFE_INTEGER:params.repeat;
 					_this.repeat( r );
 				}
                 
@@ -4302,8 +4560,6 @@ if (TweenSpace === undefined)
             playhead  = _checkPlayhead( playhead );
             playhead  = _adjustRepeatPlayhead( playhead );
             
-            //console.log('play', playhead);
-            
             _apply( (_yoyo_isOdd == false)?'play':'reverse', playhead, true );
             
             return _this;
@@ -4323,273 +4579,140 @@ if (TweenSpace === undefined)
          *  @param {int} playhead - Moves playhead at specified time in milliseconds.
 		 *							https://codepen.io/TweenSpace/pen/MyGGNM
          *  @memberof Timeline */
-        this.seek = function( playhead )
-        {
-            /*playhead  = _checkPlayhead( playhead );
-            playhead  = _adjustRepeatPlayhead( playhead );*/
-            
-            var i = 0, j = 0, k = 0, l = 0, m = 0, p = 0;
-            var twn, stwn, stwnGroups = [], group_node1, group_node2, twn2;
-            
-            //Loop over Tweens and group subTweens
-            j = _tweens.length;
-            for(;j--;)
-            {
-                twn = _tweens[j];
-                
-                //Loop over this SubTweens
-                i = twn.subTweens().length;
-                for(;i--;)
-                {
-                    stwn = twn.subTweens()[i];
-                    //Add first DOM element and subTweens array
-                    if(stwnGroups.length == 0)
-                    {
-                        dl = TweenSpace._.DoublyList();
-                        dl.push( {tween:twn, subTween:stwn} );
-                        stwnGroups.push([stwn.element, dl] );//[{tween:twn, subTween:stwn}]]);
-                    }    
-                    else
-                    {
-                        //Loop over existing elements grouping subTweens
-                        var inserted = false;
-                        k = stwnGroups.length;
-                        loop_k:for(;k--;)
-                        {
-                            //If DOM element already exists, add subTween
-                            if(stwn.element == stwnGroups[k][0])
-                            {
-                                stwnGroups[k][1].push({tween:twn, subTween:stwn});
-                                inserted = true;
-                                break loop_k;
-                            }  
-                                
-                        }
-                        //If DOM element does not exist, add element and array containing first subTween
-                        if(inserted == false)
-                        {
-                            //console.log(stwnGroups[k][0].id, stwn.element.id, stwnGroups[k][0].id == stwn.element.id);
-                            dl = TweenSpace._.DoublyList();
-                            dl.push( {tween:twn, subTween:stwn} );
-                            stwnGroups.push([stwn.element, dl]);
-                        }
-                    }
-                } 
-            }
-            
-            //Sort subTweens chronologically
-            var l = stwnGroups.length;
-            for(;l--;)
-            {
-                //Loop over subTweens, grouped by DOM element
-                m = stwnGroups[l][1].length();
-                if(m>1)
-                {
-                    var twn_delay, twn_dur;
-                    group_node1 = stwnGroups[l][1].head;
-                    var sorted_dl = TweenSpace._.DoublyList();
-                    for(;m--;)
-                    {
-                        twn = group_node1.data.tween;
-                        twn_delay = twn.delay();
-                        twn_dur = twn.delay()+twn.durationRepeat();
-                        p = sorted_dl.length();
-                        group_node2 = sorted_dl.tail;
+		this.seek = function( playhead )
+		{
+			let stwn_list = [];
+			//LOOP OVER TWEENS
+			for(let i = 0, twn; twn = _tweens[i]; i++)
+			{
+				if(twn.isCSSText())
+					console.warn( 'The useCSSText property is not supported by Timeline.seek() method. This tween contains an element with id: ' + twn.elements()[0].id );
+				
+				//LOOP OVER SUBTWEENS
+				for(let j = 0, stwn; stwn = twn.subTweens()[j]; j++)
+				{
+					//CHECK IT ELEMENT EXISTS IN stwn_list
+					let element_found,  stwn_item;
+					element_loop:for(let k = 0; stwn_item = stwn_list[k]; k++)
+					{
+						if(stwn.element == stwn_item.element)
+						{
+							element_found = stwn.element;
+							break element_loop;
+						}
+					}
+					
+					//IF ELEMENT DOESN'T EXIST ADD TO stwn_list
+					if(element_found == undefined)
+					{
+						stwn_list.push({ element:stwn.element, props:{} });
+						for (let prop in stwn.values) 
+						{
+							
+							stwn_list[stwn_list.length-1].props[prop] = [{tween:twn, subtween:stwn, values:stwn.values[prop]}];
+						}
+					}
+					//IF ELEMENT EXISTS, ADD SUBTWEEN VALUES TO RESPECTIVE PROPS
+					else
+					{
+						for (let prop in stwn.values) 
+						{
+							if(stwn_item.props[prop])
+								stwn_item.props[prop].push({tween:twn, subtween:stwn, values:stwn.values[prop]});
+							else
+								stwn_item.props[prop] = [{tween:twn, subtween:stwn, values:stwn.values[prop]}];
+						}
+					}
+				}
+			}
+			
+			//LOOP OVER REARRANGED LIST
+			// {element:element, props:{propsA:propsA, propsB:propsB}}
+			for(let i = 0, item; item = stwn_list[i]; i++)
+			{	
+				//LOOP OVER PROPS
+				for (let prop in item.props) 
+				{
+					//item.props[prop]
+					//[ {tween:Tween, subtween:, SubTween, values:PropValues} ]
+					
+					//SORT CHRONOLOGICALLY
+					item.props[prop] = sortProps(item.props[prop]);
+					
+					for(let w = 0, prop_anim; prop_anim = item.props[prop][w]; w++)
+					{
+						let mTime = playhead - prop_anim.tween.delay();
+						if(mTime>prop_anim.tween.durationRepeat()) mTime=prop_anim.tween.durationRepeat();
+						
+						let dTime = playhead - prop_anim.tween.delay();
+						if(dTime<0) dTime=0;
+						else if(dTime>prop_anim.tween.durationRepeat()) dTime=prop_anim.tween.durationRepeat();
+						
+						prop_anim.tween.adjustPlayhead(playhead);
 
-                        //Sort ascending by delay
-                        if(p==0)
-                            sorted_dl.push( group_node1.data );
-                        else
-                        {
-                            var added = false, twn2_delay, twn2_dur;
+						//FIRST ANIMATION APPEARANCE
+						if(w==0)
+						{
+							if( prop == 'transform')
+								prop_anim.values.transform = JSON.parse(JSON.stringify(prop_anim.values.creationValues[prop]));
+							else if(prop_anim.values.creationValues[prop].constructor === Array)
+								prop_anim.values.fromValues = Array.from(prop_anim.values.creationValues[prop]);
+							else
+								prop_anim.values.fromValues = prop_anim.values.creationValues[prop];
+							
+						}
+						//FOLLOWING ANIMATIONS
+						else if(w>0)
+						{
+							prop_anim.subtween.resetValues()	
+							prop_anim.subtween.manageSubTween(true);
+						}
 
-                            loop_p:for(;p--;)
-                            {
-                                twn2 = group_node2.data.tween;
-                                twn2_delay = twn2.delay();
-                                twn2_dur = twn2.delay()+twn2.durationRepeat();
-                                
-                                //twn2 starts before twns
-                                if( twn_delay > twn2_delay )
-                                {
-                                    if( twn_dur > twn2_dur)
-                                    {
-                                        sorted_dl.insert( group_node1.data, group_node2, 'after' );
-                                        added = true;
-                                        break loop_p;
-                                    }
-                                    else
-                                    {
-                                        added = true;
-                                        break loop_p;
-                                    }
-                                }
-                                else
-                                {
-                                    if( twn_dur > twn2_dur)
-                                        sorted_dl.remove(group_node2);
-                                }
-
-                                group_node2 = group_node2.prev;
-                            }
-
-                            if(added==false)
-                                sorted_dl.unshift(group_node1.data);
-                        }
-                        
-                        group_node1 = group_node1.next;
-                    }
-
-                    stwnGroups[l][1] = sorted_dl;
-                }
-                
-                //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-                //Loop over subTweens and group values by props
-                m = stwnGroups[l][1].length();
-                if(m>1)
-                {
-                    //IMPORTANT: Create a third item in 'stwnGroups' array that groups values by properties.
-                    stwnGroups[l].push({});
-                    group_node1 = stwnGroups[l][1].head;
-                    draw_loop:for(;m--;)
-                    {
-                        twn = group_node1.data.tween;
-                        stwn = group_node1.data.subTween;
-                        //console.log('lala', group_node1.data.subTween.props);
-                        var props = group_node1.data.subTween.props;
-                        for(var prop in props)
-                        {
-                            if(stwnGroups[l][2][prop] == undefined)
-                                stwnGroups[l][2][prop] = {tween:[], subTween:[]};
-                            
-                            stwnGroups[l][2][prop]['tween'].push(twn);
-                            stwnGroups[l][2][prop]['subTween'].push(stwn);
-                        }
-                        
-                        group_node1 = group_node1.next;
-                    }
-                }
-                
-                //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-                //____________________________________________________________________________
-                var cssText = '';
-                //Loop over grouped subTweens and draw values according to timeline 'playhead'
-                m = stwnGroups[l][1].length();
-                if(m>1)
-                {
-                    for( var prop in stwnGroups[l][2] ) 
-                    {
-                        var twns = stwnGroups[l][2][prop]['tween']; 
-                        var stwns = stwnGroups[l][2][prop]['subTween'];
-                        var length = stwns.length;
-                        var r = 0;
-                        var lastToValues = undefined;
-                        
-                        //console.log('prop', r, prop);
-                        loop_stwns:for(;r<length;r++)
-                        {
-                            twn = twns[r];
-                            stwn = stwns[r];
-                            twn_delay = twn.delay();
-                            twn_dur = twn.delay() + twn.durationRepeat();
-                            
-                            if( playhead >= twn_delay )
-                            {
-                                //After duration
-                                if(playhead >= twn_dur)
-                                {
-                                    _updatePropVal(prop, twn, stwn, twn_delay, playhead, cssText, !r, r>0);
-                                    _updatePropVal(prop, twn, stwn, twn_dur, playhead, cssText, !r, r>0);
-                                }
-                                //After delay, before duration. Right in drawing time.
-                                else
-                                {   
-                                    _updatePropVal(prop, twn, stwn, twn_delay, playhead, cssText, !r, r>0);
-                                    _updatePropVal(prop, twn, stwn, playhead, playhead, cssText, !r, r>0);
-                                }
-                            }
-                            //Before delay
-                            else
-                            {
-                                _updatePropVal( prop, twn, stwn, twn_delay, playhead, cssText, !r, r>0 );
-                                
-                                break loop_stwns;
-                            }
-                        }
-                    }    
-                }
-                else
-                {
-                    twn = stwnGroups[l][1].head.data.tween;
-                    stwn = stwnGroups[l][1].head.data.subTween;
-                    
-                    _updatePropVals(twn, stwn, playhead, cssText);
-                }
-            }
-            
-            //console.log('seek', playhead );
-            j = _tweens.length;
-            for(;j--;)
-                _tweens[j].seek(playhead-_tweens[j].delay(), false, false);
-        }
-        function _updatePropVal(prop, twn, stwn, playhead, timeline_playhead, cssText, setInitValues, checkConflict)
-        {
-            
-            if( setInitValues == undefined)
-                setInitValues = false;
-            
-            //console.log('_updatePropVal', stwn.element.id, playhead, timeline_playhead);
-            
-            var adjustedPlayhead = _updatePropAdjustedPlayhead(twn, playhead, checkConflict, prop, stwn);
-            
-            if(checkConflict == true)
-                stwn.manageSubTween(checkConflict, prop);
-            
-            
-            cssText = twn.tick_draw_prop( prop, adjustedPlayhead, setInitValues, stwn, cssText );
-            
-            //console.log('_updatePropVal', stwn.element.id, timeline_playhead, twn.delay(), timeline_playhead-twn.delay());
-            //twn.seek(timeline_playhead-twn.delay(), false, false)
-            
-            return cssText;
-        }
-        function _updatePropVals(twn, stwn, playhead, cssText)
-        {
-            var adjustedPlayhead = _updatePropAdjustedPlayhead(twn, playhead);
-
-            /* In Tween's method, 'tick_draw_prop', the 3rd parameter, 'setInitValues', is set
-            to true because this elements are affected by only one Tween. */
-            for (var prop in stwn.values)
-            {
-//                if(stwn.element.id == 'box2')
-//                    console.log('_updatePropVals', playhead, adjustedPlayhead, twn.duration(), twn.durationRepeat() );
-                
-                stwn.manageSubTween(false, prop);
-                cssText = twn.tick_draw_prop( prop, adjustedPlayhead, true, stwn, cssText );
-                //console.log(stwn.UID(), prop, stwn.values[prop].fromValues, stwn.values[prop].toValues);
-            }    
-            
-//            if( stwn.element.id == 'title_outlines_bottom')
-//                console.log( stwn.values );
-            
-            return cssText;
-        }
-        function _updatePropAdjustedPlayhead(twn, playhead, checkConflict, prop, stwn)
-        {
-            
-            var adjustedPlayhead;
-            
-            if(playhead!=undefined)
-                adjustedPlayhead = playhead - twn.delay();
-            
-            twn.tick_logic( adjustedPlayhead, false, prop, stwn, checkConflict);
-            
-            if(adjustedPlayhead<0) adjustedPlayhead = 0;
-            else if(adjustedPlayhead>twn.durationRepeat() ) adjustedPlayhead = twn.durationRepeat() ;
-            
-            return adjustedPlayhead;
-        }
-        
+						prop_anim.tween.seek(playhead-prop_anim.tween.delay());
+						prop_anim.subtween.elementStyle[prop] = prop_anim.subtween.tick_prop(prop, dTime, false);
+						
+						
+							
+//						console.log(prop_anim.subtween.element.id, prop_anim.tween.UID(),  prop_anim.subtween.UID(), playhead, dTime,
+//										prop_anim.tween.durationRepeat());
+							
+							
+					}
+				}
+			}
+		}
+		
+		function sortProps(array)
+		{
+			let array_out = [array[0]];
+			for(let i = 1, a; a = array[i]; i++)
+			{
+				for(let j = 0, b; b = array_out[j]; j++)
+				{
+					if(a.tween.delay() <= b.tween.delay())
+					{
+						if(j==0)
+							array_out.unshift(a);
+						else
+							array_out.splice(j, 0, a);
+						
+						break;
+						
+//						console.log(a.tween.delay(), b.tween.delay());
+					}
+					
+					if(j==array_out.length-1)
+					{
+						array_out.push(a);
+						break;
+					}
+				}
+			}
+			
+			return array_out;
+			
+		}
+		
         /** Reverses sequence playback.
          *  @method reverse
          *  @param {int} playhead - Reverses playback from specified time in milliseconds.
@@ -4688,11 +4811,12 @@ if (TweenSpace === undefined)
                     playhead = _this.durationTotal()-1;
                 }    
                 
-                _repeat_inc = parseInt(playhead/_this.duration());
+                _repeat_inc = parseInt(parseInt(playhead)/_this.duration());
                 if( _yoyo == true )
                     _yoyo_isOdd = (_repeat_inc%2 == 1)?true:false;
                 
                 playhead = Math.abs((_repeat_inc*_this.duration()) - playhead );
+				
                 if( _yoyo_isOdd == true)
                     playhead = Math.abs(_this.duration() - playhead );
             }
