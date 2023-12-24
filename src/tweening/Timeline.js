@@ -34,14 +34,22 @@
     {
         var _this = this,
             _tweens = [],
+            _repeatedProps = [],
             _repeat = 0,
             _repeat_inc = 0,
             _repeat_direction = true, //true = forward, false = backwards
             _yoyo_isOdd = false,
             _yoyo = false,
             _duration = 0,
-            _reversed = false;
+            _reversed = false,
+            _currentTime = 0;
         
+        /** If true, it'll accurately manage multiple tweens on the same element at cost of performance.
+         * 
+         *  @method checkConflicts
+         *  @return {bool} - Either true or false.
+         *  @memberof Timeline */
+        this.checkConflicts = false;
         /** Returns Timeline instance duration in milliseconds. https://codepen.io/TweenSpace/pen/WNrGpGg
          *  @method duration
          *  @return {int} - Duration in milliseconds.
@@ -65,6 +73,8 @@
          *  @memberof Timeline */
         this.repeat = function( int )
         {
+			int = (int <= -1)?Number.MAX_SAFE_INTEGER:int;
+			
             if(int != undefined)
                 _repeat = int;
             return _repeat;
@@ -86,7 +96,10 @@
         this.currentTime = function()
         {
             //console.log('currentTime', _tweens[_tweens.length-1].currentTime() + _tweens[_tweens.length-1].delay());
-            return _tweens[_tweens.length-1].currentTime() + _tweens[_tweens.length-1].delay();
+            // console.log("___Timeline current time", _tweens[_tweens.length-1].currentTime(), _tweens[_tweens.length-1].delay());
+            // return _tweens[_tweens.length-1].currentTime() + _tweens[_tweens.length-1].delay();
+            //console.log(_currentTime);
+            return _currentTime;
         }
         /** Scales the time of all tweens in the Timeline. While a value of 1 represents normal speed, lower values
          *  makes the faster as well as greater values makes the animation slower.
@@ -111,10 +124,17 @@
          *  @var  onComplete 
          *  @memberof Timeline */
         this.onComplete = undefined;
+        this.onCompleteTimebar = undefined;
         /** Callback dispatched every engine tick while animation is running.
          *  @var onProgress 
          *  @memberof Timeline */
         this.onProgress = undefined;
+        this._onProgress = function(time)
+        {
+            _currentTime = time;
+            // console.log('_onProgress', _currentTime);
+        }
+        this.onProgressTimebar = undefined;
         /** Returns true if timeline is being played, otherwise it is either paused or not queued at all.
          *  @method playing 
          *  @return {boolean} - Returns true if tween is currently playing.
@@ -163,32 +183,6 @@
                     {
                         _pushTween(tweens[i]);
                     }
-                    /*if( _tweens.length == 0)
-                    {
-                        if( tweens[0].__proto__.constructor.name === 'Tween' )
-                        {
-                            tweens[0].useDelay(true);
-                            _tweens.push(tweens[0]);
-                            i++;
-                        }
-                    }
-
-                    //Check if tween exists
-                    loop1:for(; i < tweens.length; i++)
-                    {
-                        loop2:for(; j < _tweens.length; j++)
-                        {
-                            if( tweens[i].__proto__.constructor.name === 'Tween' )
-                            {
-                                tweens[i].useDelay(true);
-                                if(tweens[i] == _tweens[j])
-                                    break loop2;
-                                if(j == _tweens.length - 1)
-                                    _tweens.push(tweens[i]);
-                            }
-                        }
-                    }*/
-                    
                 }
                 
                 _tweens[_tweens.length-1].keyTween(true);
@@ -211,9 +205,7 @@
                 _this.timescale( params.timescale || undefined );
 				if(params.repeat)
 				{
-					
-					let r = (params.repeat == -1)?Number.MAX_SAFE_INTEGER:params.repeat;
-					_this.repeat( r );
+					_this.repeat(params.repeat || undefined );
 				}
                 
                 _this.yoyo( params.yoyo || undefined );
@@ -275,13 +267,17 @@
          *  @memberof Timeline */
         this.play = function( playhead )
         {
+           // console.log(_currentTime);
             _reversed = false;
             _repeat_direction = true;
+            
             playhead  = _checkPlayhead( playhead );
             playhead  = _adjustRepeatPlayhead( playhead );
             
-            //console.log('play', playhead);
-            
+            if(isNaN(playhead))
+                playhead = 0;
+
+            this.seek(playhead);
             _apply( (_yoyo_isOdd == false)?'play':'reverse', playhead, true );
             
             return _this;
@@ -301,273 +297,212 @@
          *  @param {int} playhead - Moves playhead at specified time in milliseconds.
 		 *							https://codepen.io/TweenSpace/pen/MyGGNM
          *  @memberof Timeline */
+		/* this.seek = function( playhead )
+		{
+			let stwn_list = [];
+			//LOOP OVER TWEENS
+			for(let i = 0, twn; twn = _tweens[i]; i++)
+			{
+				if(twn.isCSSText())
+					console.warn( 'The useCSSText property is not supported by Timeline.seek() method. This tween contains an element with id: ' + twn.elements()[0].id );
+				
+				//LOOP OVER SUBTWEENS
+				for(let j = 0, stwn; stwn = twn.subTweens()[j]; j++)
+				{
+					//CHECK IT ELEMENT EXISTS IN stwn_list
+					let element_found,  stwn_item;
+					element_loop:for(let k = 0; stwn_item = stwn_list[k]; k++)
+					{
+						if(stwn.element == stwn_item.element)
+						{
+							element_found = stwn.element;
+							break element_loop;
+						}
+					}
+					
+					//IF ELEMENT DOESN'T EXIST ADD TO stwn_list
+					if(element_found == undefined)
+					{
+						stwn_list.push({ element:stwn.element, props:{} });
+						for (let prop in stwn.values) 
+						{
+							
+							stwn_list[stwn_list.length-1].props[prop] = [{tween:twn, subtween:stwn, values:stwn.values[prop]}];
+						}
+					}
+					//IF ELEMENT EXISTS, ADD SUBTWEEN VALUES TO RESPECTIVE PROPS
+					else
+					{
+						for (let prop in stwn.values) 
+						{
+							if(stwn_item.props[prop])
+								stwn_item.props[prop].push({tween:twn, subtween:stwn, values:stwn.values[prop]});
+							else
+								stwn_item.props[prop] = [{tween:twn, subtween:stwn, values:stwn.values[prop]}];
+						}
+					}
+				}
+			}
+			
+			//LOOP OVER REARRANGED LIST
+			// {element:element, props:{propsA:propsA, propsB:propsB}}
+			for(let i = 0, item; item = stwn_list[i]; i++)
+			{	
+				//LOOP OVER PROPS
+				for (let prop in item.props) 
+				{
+					//item.props[prop]
+					//[ {tween:Tween, subtween:, SubTween, values:PropValues} ]
+					
+					//SORT CHRONOLOGICALLY
+					item.props[prop] = sortProps(item.props[prop]);
+					
+					for(let w = 0, prop_anim; prop_anim = item.props[prop][w]; w++)
+					{
+						let mTime = playhead - prop_anim.tween.delay();
+						if(mTime>prop_anim.tween.durationRepeat()) mTime=prop_anim.tween.durationRepeat();
+						
+						let dTime = playhead - prop_anim.tween.delay();
+						if(dTime<0) dTime=0;
+						else if(dTime>prop_anim.tween.durationRepeat()) dTime=prop_anim.tween.durationRepeat();
+						
+						prop_anim.tween.adjustPlayhead(playhead);
+
+						//FIRST ANIMATION APPEARANCE
+						if(w==0)
+						{
+							if( prop == 'transform')
+								prop_anim.values.transform = JSON.parse(JSON.stringify(prop_anim.values.creationValues[prop]));
+							else if(prop_anim.values.creationValues[prop].constructor === Array)
+								prop_anim.values.fromValues = Array.from(prop_anim.values.creationValues[prop]);
+							else
+								prop_anim.values.fromValues = prop_anim.values.creationValues[prop];
+							
+						}
+						//FOLLOWING ANIMATIONS
+						else if(w>0)
+						{
+							prop_anim.subtween.resetValues()	
+							prop_anim.subtween.manageSubTween(true);
+						}
+
+						prop_anim.tween.seek(playhead-prop_anim.tween.delay());
+						//prop_anim.subtween.elementStyle[prop] = prop_anim.subtween.tick_prop(prop, dTime, false);
+						
+						
+							
+//						console.log(prop_anim.subtween.element.id, prop_anim.tween.UID(),  prop_anim.subtween.UID(), playhead, dTime,
+//										prop_anim.tween.durationRepeat());
+							
+							
+					}
+				}
+			}
+		} */
+		
+        /* this.start_seek = function( playhead )
+		{
+            _currentTime = playhead;
+
+			let stwn_list = [];
+			//LOOP OVER TWEENS
+			for(let i = 0, twn; twn = _tweens[i]; i++)
+			{
+				//LOOP OVER SUBTWEENS
+				 for(let j = 0, stwn; stwn = twn.subTweens()[j]; j++)
+				{
+                    // console.log(stwn.values);
+                    for (const prop in stwn.values) {
+                        if (Object.hasOwnProperty.call(stwn.values, prop)) {
+                            const stwn_prop_init_value = stwn.values[prop];
+                            
+                            stwn.element.style[prop] = stwn_prop_init_value['initValues'];
+                            console.log(prop, stwn.element.style[prop]);
+                        }
+                    }
+				}  
+			}
+
+            for (let index = 0; index <= _currentTime; index+=16.67) {
+                
+                console.log(index);
+                this.seek(index);
+                
+            }
+		} */
         this.seek = function( playhead )
-        {
-            /*playhead  = _checkPlayhead( playhead );
-            playhead  = _adjustRepeatPlayhead( playhead );*/
+		{
+            _currentTime = playhead;
+
+			let stwn_list = [];
+			//LOOP OVER TWEENS
+			for(let i = 0, twn; twn = _tweens[i]; i++)
+			{
+				if(twn.isCSSText())
+                {
+                    console.warn( 'The useCSSText property is not supported by Timeline.seek() method. This tween contains an element with id: ' + 
+                    twn.elements()[0].id );
+                }
+
+                twn.seek( _currentTime-twn.delay() );
+			}
+
             
-            var i = 0, j = 0, k = 0, l = 0, m = 0, p = 0;
-            var twn, stwn, stwnGroups = [], group_node1, group_node2, twn2;
-            
-            //Loop over Tweens and group subTweens
-            j = _tweens.length;
-            for(;j--;)
+            for (let a = 0; a < _repeatedProps.length; a++)
             {
-                twn = _tweens[j];
+                const prop_stwn_group = _repeatedProps[a];
                 
-                //Loop over this SubTweens
-                i = twn.subTweens().length;
-                for(;i--;)
+                for (let b = 1; b < prop_stwn_group.length; b++)
                 {
-                    stwn = twn.subTweens()[i];
-                    //Add first DOM element and subTweens array
-                    if(stwnGroups.length == 0)
-                    {
-                        dl = TweenSpace._.DoublyList();
-                        dl.push( {tween:twn, subTween:stwn} );
-                        stwnGroups.push([stwn.element, dl] );//[{tween:twn, subTween:stwn}]]);
-                    }    
-                    else
-                    {
-                        //Loop over existing elements grouping subTweens
-                        var inserted = false;
-                        k = stwnGroups.length;
-                        loop_k:for(;k--;)
-                        {
-                            //If DOM element already exists, add subTween
-                            if(stwn.element == stwnGroups[k][0])
-                            {
-                                stwnGroups[k][1].push({tween:twn, subTween:stwn});
-                                inserted = true;
-                                break loop_k;
-                            }  
-                                
-                        }
-                        //If DOM element does not exist, add element and array containing first subTween
-                        if(inserted == false)
-                        {
-                            //console.log(stwnGroups[k][0].id, stwn.element.id, stwnGroups[k][0].id == stwn.element.id);
-                            dl = TweenSpace._.DoublyList();
-                            dl.push( {tween:twn, subTween:stwn} );
-                            stwnGroups.push([stwn.element, dl]);
-                        }
-                    }
-                } 
-            }
-            
-            //Sort subTweens chronologically
-            var l = stwnGroups.length;
-            for(;l--;)
-            {
-                //Loop over subTweens, grouped by DOM element
-                m = stwnGroups[l][1].length();
-                if(m>1)
-                {
-                    var twn_delay, twn_dur;
-                    group_node1 = stwnGroups[l][1].head;
-                    var sorted_dl = TweenSpace._.DoublyList();
-                    for(;m--;)
-                    {
-                        twn = group_node1.data.tween;
-                        twn_delay = twn.delay();
-                        twn_dur = twn.delay()+twn.durationRepeat();
-                        p = sorted_dl.length();
-                        group_node2 = sorted_dl.tail;
-
-                        //Sort ascending by delay
-                        if(p==0)
-                            sorted_dl.push( group_node1.data );
-                        else
-                        {
-                            var added = false, twn2_delay, twn2_dur;
-
-                            loop_p:for(;p--;)
-                            {
-                                twn2 = group_node2.data.tween;
-                                twn2_delay = twn2.delay();
-                                twn2_dur = twn2.delay()+twn2.durationRepeat();
-                                
-                                //twn2 starts before twns
-                                if( twn_delay > twn2_delay )
-                                {
-                                    if( twn_dur > twn2_dur)
-                                    {
-                                        sorted_dl.insert( group_node1.data, group_node2, 'after' );
-                                        added = true;
-                                        break loop_p;
-                                    }
-                                    else
-                                    {
-                                        added = true;
-                                        break loop_p;
-                                    }
-                                }
-                                else
-                                {
-                                    if( twn_dur > twn2_dur)
-                                        sorted_dl.remove(group_node2);
-                                }
-
-                                group_node2 = group_node2.prev;
-                            }
-
-                            if(added==false)
-                                sorted_dl.unshift(group_node1.data);
-                        }
-                        
-                        group_node1 = group_node1.next;
-                    }
-
-                    stwnGroups[l][1] = sorted_dl;
-                }
-                
-                //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-                //Loop over subTweens and group values by props
-                m = stwnGroups[l][1].length();
-                if(m>1)
-                {
-                    //IMPORTANT: Create a third item in 'stwnGroups' array that groups values by properties.
-                    stwnGroups[l].push({});
-                    group_node1 = stwnGroups[l][1].head;
-                    draw_loop:for(;m--;)
-                    {
-                        twn = group_node1.data.tween;
-                        stwn = group_node1.data.subTween;
-                        //console.log('lala', group_node1.data.subTween.props);
-                        var props = group_node1.data.subTween.props;
-                        for(var prop in props)
-                        {
-                            if(stwnGroups[l][2][prop] == undefined)
-                                stwnGroups[l][2][prop] = {tween:[], subTween:[]};
-                            
-                            stwnGroups[l][2][prop]['tween'].push(twn);
-                            stwnGroups[l][2][prop]['subTween'].push(stwn);
-                        }
-                        
-                        group_node1 = group_node1.next;
-                    }
-                }
-                
-                //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-                //____________________________________________________________________________
-                var cssText = '';
-                //Loop over grouped subTweens and draw values according to timeline 'playhead'
-                m = stwnGroups[l][1].length();
-                if(m>1)
-                {
-                    for( var prop in stwnGroups[l][2] ) 
-                    {
-                        var twns = stwnGroups[l][2][prop]['tween']; 
-                        var stwns = stwnGroups[l][2][prop]['subTween'];
-                        var length = stwns.length;
-                        var r = 0;
-                        var lastToValues = undefined;
-                        
-                        //console.log('prop', r, prop);
-                        loop_stwns:for(;r<length;r++)
-                        {
-                            twn = twns[r];
-                            stwn = stwns[r];
-                            twn_delay = twn.delay();
-                            twn_dur = twn.delay() + twn.durationRepeat();
-                            
-                            if( playhead >= twn_delay )
-                            {
-                                //After duration
-                                if(playhead >= twn_dur)
-                                {
-                                    _updatePropVal(prop, twn, stwn, twn_delay, playhead, cssText, !r, r>0);
-                                    _updatePropVal(prop, twn, stwn, twn_dur, playhead, cssText, !r, r>0);
-                                }
-                                //After delay, before duration. Right in drawing time.
-                                else
-                                {   
-                                    _updatePropVal(prop, twn, stwn, twn_delay, playhead, cssText, !r, r>0);
-                                    _updatePropVal(prop, twn, stwn, playhead, playhead, cssText, !r, r>0);
-                                }
-                            }
-                            //Before delay
-                            else
-                            {
-                                _updatePropVal( prop, twn, stwn, twn_delay, playhead, cssText, !r, r>0 );
-                                
-                                break loop_stwns;
-                            }
-                        }
-                    }    
-                }
-                else
-                {
-                    twn = stwnGroups[l][1].head.data.tween;
-                    stwn = stwnGroups[l][1].head.data.subTween;
+                    const stwn = prop_stwn_group[b];
                     
-                    _updatePropVals(twn, stwn, playhead, cssText);
+                    if(parseInt(_currentTime) >= stwn.tweenParent().delay() && 
+                    parseInt(_currentTime) <= stwn.tweenParent().delay() +stwn.tweenParent().duration() )
+                    {
+                        // console.log(parseInt(_currentTime), stwn.tweenParent().delay(), stwn.tweenParent().duration());
+                        
+                        // console.log(prop_stwn_group[0], stwn);
+                        stwn.tweenParent().tick_draw_prop(prop_stwn_group[0], _currentTime-stwn.tweenParent().delay(), false, stwn)
+                        // stwn.tick_prop(prop_stwn_group[0], 200, false);
+                        // console.log("___________");
+                    }
+                    
                 }
             }
-            
-            //console.log('seek', playhead );
-            j = _tweens.length;
-            for(;j--;)
-                _tweens[j].seek(playhead-_tweens[j].delay(), false, false);
-        }
-        function _updatePropVal(prop, twn, stwn, playhead, timeline_playhead, cssText, setInitValues, checkConflict)
-        {
-            
-            if( setInitValues == undefined)
-                setInitValues = false;
-            
-            //console.log('_updatePropVal', stwn.element.id, playhead, timeline_playhead);
-            
-            var adjustedPlayhead = _updatePropAdjustedPlayhead(twn, playhead, checkConflict, prop, stwn);
-            
-            if(checkConflict == true)
-                stwn.manageSubTween(checkConflict, prop);
-            
-            
-            cssText = twn.tick_draw_prop( prop, adjustedPlayhead, setInitValues, stwn, cssText );
-            
-            //console.log('_updatePropVal', stwn.element.id, timeline_playhead, twn.delay(), timeline_playhead-twn.delay());
-            //twn.seek(timeline_playhead-twn.delay(), false, false)
-            
-            return cssText;
-        }
-        function _updatePropVals(twn, stwn, playhead, cssText)
-        {
-            var adjustedPlayhead = _updatePropAdjustedPlayhead(twn, playhead);
-
-            /* In Tween's method, 'tick_draw_prop', the 3rd parameter, 'setInitValues', is set
-            to true because this elements are affected by only one Tween. */
-            for (var prop in stwn.values)
-            {
-//                if(stwn.element.id == 'box2')
-//                    console.log('_updatePropVals', playhead, adjustedPlayhead, twn.duration(), twn.durationRepeat() );
-                
-                stwn.manageSubTween(false, prop);
-                cssText = twn.tick_draw_prop( prop, adjustedPlayhead, true, stwn, cssText );
-                //console.log(stwn.UID(), prop, stwn.values[prop].fromValues, stwn.values[prop].toValues);
-            }    
-            
-//            if( stwn.element.id == 'title_outlines_bottom')
-//                console.log( stwn.values );
-            
-            return cssText;
-        }
-        function _updatePropAdjustedPlayhead(twn, playhead, checkConflict, prop, stwn)
-        {
-            
-            var adjustedPlayhead;
-            
-            if(playhead!=undefined)
-                adjustedPlayhead = playhead - twn.delay();
-            
-            twn.tick_logic( adjustedPlayhead, false, prop, stwn, checkConflict);
-            
-            if(adjustedPlayhead<0) adjustedPlayhead = 0;
-            else if(adjustedPlayhead>twn.durationRepeat() ) adjustedPlayhead = twn.durationRepeat() ;
-            
-            return adjustedPlayhead;
-        }
+		}
         
+
+		function sortProps(array)
+		{
+			let array_out = [array[0]];
+			for(let i = 1, a; a = array[i]; i++)
+			{
+				for(let j = 0, b; b = array_out[j]; j++)
+				{
+					if(a.tween.delay() <= b.tween.delay())
+					{
+						if(j==0)
+							array_out.unshift(a);
+						else
+							array_out.splice(j, 0, a);
+						
+						break;
+						
+//						console.log(a.tween.delay(), b.tween.delay());
+					}
+					
+					if(j==array_out.length-1)
+					{
+						array_out.push(a);
+						break;
+					}
+				}
+			}
+			
+			return array_out;
+			
+		}
+		
         /** Reverses sequence playback.
          *  @method reverse
          *  @param {int} playhead - Reverses playback from specified time in milliseconds.
@@ -623,6 +558,8 @@
          * @private */
         function _apply( operation, value, adjustPlayhead )
         {
+            _currentTime = value;
+
             var adjustedValue;
             var q;
             
@@ -647,7 +584,7 @@
         {
             if( isNaN(playhead) == true || playhead == undefined )
                 playhead = _this.currentTime();
-            
+
             return playhead;
         }
         /**
@@ -666,11 +603,12 @@
                     playhead = _this.durationTotal()-1;
                 }    
                 
-                _repeat_inc = parseInt(playhead/_this.duration());
+                _repeat_inc = parseInt(parseInt(playhead)/_this.duration());
                 if( _yoyo == true )
                     _yoyo_isOdd = (_repeat_inc%2 == 1)?true:false;
                 
                 playhead = Math.abs((_repeat_inc*_this.duration()) - playhead );
+				
                 if( _yoyo_isOdd == true)
                     playhead = Math.abs(_this.duration() - playhead );
             }
@@ -718,8 +656,93 @@
                         _tweens.push(tween);
                 }
             }
+            
+            if(_this.checkConflicts == true)
+                storeRepeatedProps();
         }
         
+        function storeRepeatedProps()
+        {
+            //[subtween, element_id, prop_name]
+            let subtweens_props = [];
+
+            //_repeatedProps
+            //LOOP OVER TWEENS
+            for (let index = 0; index < _tweens.length; index++) 
+            {
+                const twn = _tweens[index];
+                //LOOP OVER TWEEN'S SUBTWEENS
+                for (let index = 0; index < twn.subTweens().length; index++) 
+                {
+                    const stwn = twn.subTweens()[index];
+                    
+                    //LOOP OVER SUBTWEEN'S PROPS
+                    for (const key in stwn.props) 
+                    {
+                        if (Object.hasOwnProperty.call(stwn.props, key)) 
+                        {
+                            const element = stwn.props[key];
+                            subtweens_props.push([stwn, stwn.element.id, key ]);
+                            // console.log(stwn.UID(), stwn.element.id, key);
+                        }
+                    }
+                }
+            }
+
+            // console.log(subtweens_props);
+
+            let same_prop_stwns = [];
+            //LOOP OVER SUBTWEENS
+            for (let i = 0; i < subtweens_props.length; i++)
+            {
+                const i_stwn_prop = subtweens_props[i];
+                // console.log(i_stwn_prop);
+                let stwn_group = [i_stwn_prop[2], i_stwn_prop[0]];
+                 //LOOP OVER SAME SUBTWEENS FINDING REPEATED PROPS
+                for (let j = 0; j < subtweens_props.length; j++)
+                {
+                    const j_stwn_prop = subtweens_props[j];
+                    // console.log(i_stwn_prop[0] == j_stwn_prop[0], i_stwn_prop[2], j_stwn_prop[2]);
+                    //console.log(i_stwn_prop[0].UID(), j_stwn_prop[0].UID());
+                    if( i_stwn_prop[0].UID() != j_stwn_prop[0].UID() && 
+                        i_stwn_prop[1] == j_stwn_prop[1] && 
+                        i_stwn_prop[2] == j_stwn_prop[2])
+                    {
+                        stwn_group.push(j_stwn_prop[0]);
+                        
+                        
+                    }
+                }
+
+                if(stwn_group.length > 2)
+                {
+                    same_prop_stwns.push(stwn_group);
+                    for (let p = 1; p < stwn_group.length; p++) {
+                        const p_stwn = stwn_group[p];
+                        // console.log(stwn_group);
+                        for (let q = 0; q < subtweens_props.length; q++) {
+                            const q_stwn = subtweens_props[q][0];
+
+                            if( stwn_group[0] == subtweens_props[q][2] && p_stwn.UID() == q_stwn.UID()) 
+                            {
+                                subtweens_props.splice(q, 1);
+                                q--;
+                            }
+                            
+                        }
+                        
+                    }
+                }
+                    
+            }
+
+            // console.log(same_prop_stwns);
+
+            _repeatedProps = same_prop_stwns;
+
+            
+        }
+
         this._ = {};
         this._.manageRepeatCycles = function()
         {

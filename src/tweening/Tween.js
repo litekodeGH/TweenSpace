@@ -318,7 +318,7 @@
         var _timescale = _options.timescale || 1;
         /** Animation playhead in milliseconds. Negative values represent delay time.
          * @private */
-        var _mTime = -(_delay);
+        var _mTime = -(_delay-0.000001);
         var _last_mTime = -1;
         /** Drawing animation playhead in milliseconds.
          * @private */
@@ -344,6 +344,9 @@
         /** If true, tween is being played, otherwise it is either paused or not queued at all.
          *   @private */
         var _playing = false;
+		/** If true, tween is being played, otherwise it is either paused or not queued at all.
+         *   @private */
+        var _checkDestValue = false;
         /** Amount of times that the animation will be played.
          *  @private */
         var _repeat = _options.repeat || 0;
@@ -370,6 +373,11 @@
          *  @private */
         var _isUpdateTo = false;
         
+		/** Returns if cssText property is being used to update properties.
+		 *  @method isCSSText
+         *  @return {boolean} - cssText usage.
+         *  @memberof Tween */
+        this.isCSSText = function(){return _useCSSText;};
         /** Returns Tween instance unique id number.
          *  @private */
         this.UID = function(){return _UID;};
@@ -383,10 +391,12 @@
          *  @var  onComplete 
          *  @memberof Tween */
         this.onComplete = _options.onComplete || undefined;
+        this.onCompleteTimebar = undefined;
         /** Callback dispatched every engine tick while animation is running.
          *  @var onProgress 
          *  @memberof Tween */
         this.onProgress = _options.onProgress || undefined;
+		this.onProgressTimebar = undefined;
         /** Callback dispatched every time the animation starts a repetition.
          *  @var  onRepeat 
          *  @memberof Tween */
@@ -446,6 +456,7 @@
                 _useDelay = ( _delay > 0 ) ? true : false;
                 //_reset();
             }
+            //console.log(_delay);
             
             return _delay;
         };
@@ -482,6 +493,16 @@
             
             return _repeat;
         };
+		
+		/** Returns the current repeat count.
+         *  @method repeatCounter 
+         *  @return {int} - Returns the current repeat count.
+         *  @memberof Tween */
+        this.repeatCounter = function()
+        {
+            return _repeat_counter;
+        };
+		
         /** If true, yoyo() property will play the animation back and forth based on repeat property amount.
          *  @method yoyo 
          *  @return {boolean} - yoyo current state.
@@ -642,7 +663,10 @@
                 if( _adjustPlayhead(playhead) != undefined )
                 {   
                     if(doTick==true)
-                        _this.tick(16.67, false, updateDOM);
+					{
+						_this.tick(16.67, false, updateDOM);
+					}
+                        
                 }
             }
         };
@@ -704,59 +728,83 @@
             
             _tick_logic(TweenSpace._.interval()); //TweenSpace._.interval()
 			
-            //Make drawing calls only when needed except for last frame
-            if( _mTime >= _sTime && _mTime <= _durationRepeat ) //-TweenSpace._.dt() _durationTotal _durationRepeat
+            
+            //IF TWEEN BELONG TO TIMELINE, ALL FRAMES ARE DRAWN
+            if(_timelineParent != null && _timelineParent != undefined && _playing == false)
             {
-                //First drawing frame
-                if( _dTime == _sTime || (_last_mTime < 0 && _mTime >= 0)) 
-                {    
-					
-                    if( _reversed == false )  //&& updateDOM == true
-                    {
-                        _manageConflicts();
-						
-						//This will allow tweens to update init prop values
-						//to current in case that the tween was delayed and 
-						//it init prop values change since the time it was played.
-						if(_shouldCheckConflicts() == false)
-							_updateNewInitValues();
-                    }
-                }
-                //Last drawing frame
-                else if ( _dTime == _durationRepeat ) //_durationTotal _durationRepeat
-                {
-                    //if( _reversed == true )
-                    //    _manageConflicts();
-                }
                 _last_mTime = _mTime;
                 _this.tick_draw(_dTime, false, updateDOM);
-				
             }
             else
             {
-                //-------------------------
-                // FIRST OR LAST FRAME
-                //-------------------------
-				
-                //This last call will ensure that the destination values were met.
-				//It will keep ticking init or destination values even if is
-				//in a delay phase or after end point.
-				if(_shouldCheckConflicts())
-				{
-					if( _mTime <= _sTime )
-						_this.tick_draw(_sTime, false, updateDOM);
-					else if( _mTime >= _durationRepeat)
-						_this.tick_draw(_durationRepeat, false, updateDOM);
-				}
+                //Make drawing calls only when needed except for last frame
+                if( _mTime >= _sTime && _mTime <= _durationRepeat ) //-TweenSpace._.dt() _durationTotal _durationRepeat
+                {
+                    //First drawing frame
+                    if( _dTime == _sTime || (_last_mTime < 0 && _mTime >= 0)) 
+                    {    
+                        
+                        if( _reversed == false )  //&& updateDOM == true
+                        {
+                            _manageConflicts();
+                            
+                            //This will allow tweens to update init prop values
+                            //to current in case that the tween was delayed and 
+                            //it init prop values change since the time it was played.
+                            if(_shouldCheckConflicts() == false)
+                                _updateNewInitValues();
+                        }
+                    }
+                    //Last drawing frame
+                    else if( _last_mTime <  _durationTotal && _mTime >= _durationTotal)
+                    {	
+                        
+                    }
+                    
+                    _last_mTime = _mTime;
+                    _this.tick_draw(_dTime, false, updateDOM);
+                    
+                }
+                else
+                {
+                    //-------------------------
+                    // FIRST OR LAST FRAME
+                    //-------------------------
+                }
             }
-            
-//            if(_elements[0].id == 'box0')
-//                console.log(_elements[0].id, _elements[0].style.marginLeft, '_mTime:', parseFloat(_mTime.toFixed(3)), '_dTime:', parseFloat(_dTime.toFixed(3)) );
-                //console.log(_elements[0].id, _elements[0].style.marginLeft, '_mTime:', parseFloat(_mTime.toFixed(3)), '_dTime:', parseFloat(_dTime.toFixed(3)), '_durationRepeat:', _durationRepeat, '_durationTotal:', _durationTotal, _playing);
+			
+			if(_dTime>_durationRepeat)
+			{
+				if(_checkDestValue == true)
+				{
+					ensureInitDestValues(updateDOM);
+					_checkDestValue = false;
+				}
+			}
              
             if(useCallbacks==true)
                 _manageCallbacks();
         };
+		
+		function ensureInitDestValues(_updateDOM)
+		{
+			if(_checkDestValue == true)
+			{
+				if( _mTime <= _sTime )
+				{
+					_this.tick_draw(_sTime, false, _updateDOM);
+				}
+				else if( _mTime >= _durationRepeat)
+				{
+					_this.tick_draw(_durationRepeat, false, _updateDOM);
+				}
+				
+				_checkDestValue = false;
+			}
+			
+//			console.log(_mTime, _dTime, _durationRepeat, _mTime >= _durationRepeat);
+		}
+		
         /** Method that draws the objects that are being animated.
          * @method tick_draw */
         this.tick_draw = function( time, setInitValues, updateDOM )
@@ -775,12 +823,13 @@
                 subtween_values_DL = subtween.values_DL;
                 j = subtween_values_DL.length();
                 subtween_values_node = subtween_values_DL.head;
-                
+				
                 for ( ;j--; )
                 {   
                     subtween_values_node_data = subtween_values_node.data;
                     prop = subtween_values_node_data.prop;
 					
+                   
                     if( subtween_values_node_data.halted == false )
                     {
                         if(updateDOM==false)
@@ -789,7 +838,7 @@
                         }
                         else
                         {
-                            cssText = this.tick_draw_prop(prop, time, setInitValues, subtween, cssText);
+							cssText = this.tick_draw_prop(prop, time, setInitValues, subtween, cssText);
                         }
                     }
                     
@@ -802,7 +851,9 @@
         };
         this.tick_draw_prop = function(prop, time, setInitValues, subtween, cssText)
         {
-            if( prop == TweenSpace.params.svg.drawSVG )
+            _dTime = time;
+
+			if( prop == TweenSpace.params.svg.drawSVG )
             {    
                 var drawValues = subtween.tick_prop(prop, _dTime, setInitValues);
                 subtween.elementStyle.strokeDashoffset = drawValues[0];
@@ -836,11 +887,22 @@
                     else
                     {
                         subtween.elementStyle[prop] = subtween.tick_prop(prop, _dTime, setInitValues);
+						
+                        //if(prop == 'opacity')
+						// console.log('tick_draw_prop', _dTime, subtween.element.id, subtween.elementStyle[prop]);
+						
+//						if(subtween.UID() == 1 && prop == 'marginLeft')
+//							console.log(_dTime, subtween.element.id, subtween.elementStyle[prop]);
+						
                     }
                 }
+                //GOOD TO MONITOR PROP ANIMATED VALUES
+                //*******************************************************
+                // console.log(prop, subtween.elementStyle[prop], time, parseInt(_dTime), parseInt(_mTime));
+                //*******************************************************
             }
-            
-            return cssText;
+
+			return cssText;
             
         }
         /** Removes all elements from DOM as well as its references stored in 'elements'.
@@ -881,11 +943,20 @@
                 //TWEEN CALLBACKS____________________________________
                 if( _this.onProgress )
                     _this.onProgress();
+				
+				if( _this.onProgressTimebar )
+                    _this.onProgressTimebar();
 
-                if( _this.onComplete )
+                if( _playing == false )
                 {
-                    if( _playing == false )
+                    if( _this.onComplete )
                         _this.onComplete();
+                }
+				
+				if( _playing == false )
+                {
+                    if( _this.onCompleteTimebar )
+                        _this.onCompleteTimebar();
                 }
                 //TWEEN CALLBACKS____________________________________
             }
@@ -895,14 +966,25 @@
             {
                 if( _this.timelineParent().onProgress != undefined )
                     _this.timelineParent().onProgress();
-                
+
+                if( _this.timelineParent()._onProgress != undefined )
+                    _this.timelineParent()._onProgress( _this.currentTime() + _this.delay() );
+				
+				if( _this.timelineParent().onProgressTimebar != undefined )
+                    _this.timelineParent().onProgressTimebar();
+				
                 if(_playing == false)
                 {
                     if( _this.timelineParent().onComplete != undefined )
-                        _this.timelineParent().onComplete();
+						_this.timelineParent().onComplete();
+					
+					if( _this.timelineParent().onCompleteTimebar != undefined )
+						_this.timelineParent().onCompleteTimebar();
                     
                     if(_timelineParent != null)
                         _timelineParent._.manageRepeatCycles();
+
+                    
                 }    
             }
             
@@ -938,8 +1020,10 @@
                     }
                 }
                 else if(playhead > _durationTotal)
-                {       
-                    console.warn('TweenSpace.js Warning: playhead '+playhead+'ms is greater than duration. Playhead has been set to '+_durationTotal+'ms.');
+                {     
+					if(_timelineParent == null )
+                    	console.warn('TweenSpace.js Warning: playhead '+playhead+'ms is greater than duration. Playhead has been set to '+_durationTotal+'ms.');
+					
                     playhead = _durationTotal;
                 }
                 
@@ -948,10 +1032,15 @@
 				/*
 					ADDING 0.00001 IS A QUICK FIX TO AVOID TWEENS TO GET STUCK AT FIRST FRAME.
 				*/
-                _mTime = playhead+0.00001;
+                _mTime = playhead+0.000000001;
             }
+			
             return playhead;
         }
+		this.adjustPlayhead = function(playhead)
+		{
+			_adjustPlayhead( playhead );
+		};
         /** Calculates delta change.
          * @private*/
         function _tick_delta(dt)
@@ -1003,42 +1092,7 @@
                 _dTime = _mTime = _durationTotal;
                 _playing = false;
             }
-            //________________________________________
-            /*if( _mTime < _sTime)
-            {
-                if( (_reversed == true && _useDelay == false) )
-                {
-                    _mTime = _sTime;
-                    _playing = false;
-                }
-
-                if( _mTime < -_delay )
-                {    
-                    _mTime = -_delay;
-                    _playing = false;
-                }
-                
-                _dTime = _sTime;
-            }
-            else if( _mTime >= _sTime && _mTime <= _durationTotal )
-            {
-                if( _useDelay == true && _timelineParent == null)
-                    _useDelay = false;
-                
-                if(dt > _durationTotal-_mTime == true && _reversed == false)
-                {
-                    _mTime = _durationTotal;
-                    _playing = false;
-                }    
-                
-                _dTime = _mTime;
-            }
-            else if( _mTime > _durationTotal )
-            {
-                _dTime = _mTime = _durationTotal;
-                _playing = false;
-                
-            }*/
+			
             //ADJUST time______________________________________
             
             _manageRepeatCycles();
@@ -1048,10 +1102,10 @@
         function _manageRepeatCycles()
         {
             if( _repeat > 0 )
-            {
+            {	
                 if( _mTime >= _durationRepeat )
                     _dTime = _durationRepeat;
-                
+				
                 _repetitions = parseInt(_dTime / _duration);
                 _repetitions = (_repetitions<=_repeat)?_repetitions:_repeat;
                 
@@ -1090,10 +1144,13 @@
                 }    
                 else
                 {
+					
+					
                     _reversed_repeat = false;
                     _dTime = (_mTime>=_durationRepeat)?_durationRepeat:_dTime%_duration;
                 }
                 
+				
                 
             }
         }
@@ -1121,7 +1178,6 @@
 					delete newProps[newProp];
 				}
 			}
-			
 			
             newPropsLoop:for ( var newProp in newProps )
             {
@@ -1199,6 +1255,7 @@
             
             _paused = false;
             _playing = true;
+			_checkDestValue = true;
             
             /*If playhead is specified in any of the playback method,
             the tween will start intentionally from that value. If playhead 
@@ -1355,6 +1412,7 @@
                                     }
             */
             this.values = {};
+            this.creationValues = {};
             this.values_DL;
             
             
@@ -1370,9 +1428,12 @@
 				/*if( TweenSpace._.checkParam(property) == true )
 					return;*/
 				
+
                 var _prop_values = _st_this.values[property];
                 var _names = _prop_values.names;
-                var _toValues = (_isFrom === true) ? ((setInitValues==true)?_prop_values.initValues:_prop_values.fromValues) : _prop_values.toValues;
+//                var _toValues = (_isFrom === true) ? ((setInitValues==true)?_prop_values.creationValues[property]:_prop_values.fromValues) : _prop_values.toValues;
+//                var _fromValues = (_isFrom === true) ? _prop_values.toValues : ((setInitValues==true)?_prop_values.creationValues[property]:_prop_values.fromValues);
+				var _toValues = (_isFrom === true) ? ((setInitValues==true)?_prop_values.initValues:_prop_values.fromValues) : _prop_values.toValues;
                 var _fromValues = (_isFrom === true) ? _prop_values.toValues : ((setInitValues==true)?_prop_values.initValues:_prop_values.fromValues);
                 var _units = _prop_values.units;
                 var _effects = _prop_values.effects;
@@ -1381,6 +1442,9 @@
                 var _transform = _prop_values.transform;
                 var _min = 0, _max = 0;
                 
+//				if(this.element.id == 'box1' && property == 'marginLeft')
+//					console.log('tick_prop 1', _prop_values.initValues, _prop_values.fromValues, _prop_values.creationValues[property]);
+				
                 /*if(property == 'morphSVG' )
                     console.log(_fromValues, _prop_values.initValues,_prop_values.fromValues);*/
 				
@@ -1533,8 +1597,12 @@
                         if(isNaN(parseFloat(_fromValues)) == false)
                             _fromValues = [parseFloat(_fromValues)];
                     
+					
                     for(w=0; w < toLength; w++)
-                    {
+                    {	
+						/*if(this.UID() == 1 && property == 'marginLeft')
+							console.log(_fromValues);*/
+						   
                         value = _this.ease( Math.min(elapsedTime, _duration), parseFloat(_fromValues[w]), parseFloat(_toValues[w]), _duration );
                         
                         if( _effects != undefined )
@@ -1574,13 +1642,20 @@
                         //newValues += value + _units[w];
                         newValues += String( value ) + _units[w];
                         if(w<toLength-1) newValues += ',';
+
+                        
                     }
-                    
+					
                     if( _names ) result = _names+'('+newValues+')';
                     else result = newValues;
+
+                    // console.log('lol', property);
                     
                 }
-                
+				
+//				if(this.UID() == 1 && property == 'marginLeft')
+//					console.log('result', result);
+
                 return result;
                 
             };
@@ -1665,9 +1740,6 @@
                         
                         if( props_value['from'] != undefined )
                             initProp = String( props_value['from'] );
-						
-						
-						
                     }
                     else
                         inputPropString = String(props_value);
@@ -1875,14 +1947,10 @@
                             if( this.values[prop] == undefined )   
                             {
                                 transform[ match[1] ].initValues = transform[ match[1] ].fromValues.slice();
-                                
-                                
                             }
                             else
                             {
                                 transform[ match[1] ].initValues = this.values[prop].transform[match[1]].initValues;
-                                
-                                
                             }
                         }
                         
@@ -2286,20 +2354,29 @@
 						{
 							toVal = parseFloat(inputPropString);
 						}
-                            
                         
                         newPropVals.toValues.push(toVal);
                         newPropVals.units.push((matchResult) ? matchResult[0] : "");  
                     }
                     
-					
-					
                     if(this.values[prop])
                         newPropVals.initValues = this.values[prop].initValues;
+					
+					//The following condition will store prop values that were calculate at creation time
+					if(!this.creationValues[prop])
+					{
+						this.creationValues[prop] =  JSON.parse(JSON.stringify(newPropVals.fromValues));
+						
+						if(transform)
+							this.creationValues['transform'] =  JSON.parse(JSON.stringify(transform));
+					}
+					
+//					if(this.UID() == 1 && prop == 'marginLeft')
+//							console.log('tween', newPropVals.initValues, newPropVals.fromValues, this.creationValues.marginLeft);
                     
                     this.values[prop] = new PropValues(prop, name, newPropVals.fromValues, newPropVals.toValues, 
                                                        newPropVals.units, transform, newPropVals.effects, 
-                                                       newPropVals.initValues);
+                                                       newPropVals.initValues, this.creationValues );
                     
                     this.values_DL.push(this.values[prop]);
                     
@@ -2317,6 +2394,13 @@
 				this.values = {};
             	this.values_DL;
 			}
+
+            /** Return parent Tween instance.
+             * @private*/
+            this.tweenParent = function()
+            {
+                return _this;
+            }
         
             /*____________CONSTRUCTOR___________*/
             _manageSubTween();
@@ -2334,12 +2418,13 @@
          * @class Internal class. Stores SubTween prop values.
          * @private
          */
-        function PropValues(prop, names, fromValues, toValues, units, transform, effects, initValues)
+        function PropValues(prop, names, fromValues, toValues, units, transform, effects, initValues, creationValues)
         {
             /** "this.prop" CSS property name.
              * @private */
             this.prop = prop;
             this.names = names;
+            this.creationValues = creationValues;
             this.initValues = initValues;
             this.fromValues = fromValues;
             this.toValues = toValues;

@@ -1,3 +1,4 @@
+/* TWEENSPACE CORE */
 (function ( TweenSpace ) {
     
     //"use strict";
@@ -90,7 +91,7 @@
     function _tick_tweens(dt)
     {
         _tween = null;
-        
+       
         //Loop over tweens
         var j=0;
         loop:for (var curr_node = _queue_DL.head; j<_queue_DL.length(); j++)
@@ -1170,6 +1171,7 @@
         return new Wave(amplitude, frequency);
     };
     TweenSpace._.queue_DL = _queue_DL;
+    TweenSpace._.queue_DL = _queue_DL;
     TweenSpace._.queue_paused_DL = _queue_paused_DL;
     TweenSpace._.PI = function() { return _pi };
 
@@ -1250,15 +1252,17 @@
     {
         return _UID++;
     }
-    /** Increment number for debugging purposes only. 
+	
+	/** Increment number for debugging purposes only. 
      * @private*/
     TweenSpace._.counter = 0;
     /** TweenSpace Engine current version: 1.9.91.0
      *  @memberof TweenSpace */
-    TweenSpace.version = '1.9.91.0'; //release.major.minor.dev_stage
+    TweenSpace.version = '1.9.92.0'; //release.major.minor.dev_stage
     /** Useful under a debugging enviroment for faster revisiones.
      *  If true, the engine will assign destination values immediately and no animation will be performed.
      *  @memberof TweenSpace */
     TweenSpace.debug = false;
+	
     
 })(TweenSpace || {});
